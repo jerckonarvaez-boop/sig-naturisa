@@ -5,6 +5,10 @@ export const notFound: RequestHandler = (req, res) => {
 };
 
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  if (err?.type === 'entity.too.large') {
+    res.status(413).json({ error: 'Los datos enviados son demasiado grandes (por ejemplo, demasiadas fotos a la vez).' });
+    return;
+  }
   console.error(err);
   res.status(500).json({ error: 'Error interno del servidor' });
 };

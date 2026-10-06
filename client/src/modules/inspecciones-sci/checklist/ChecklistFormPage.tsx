@@ -7,8 +7,8 @@ import { hoyISO } from '@/features/eventos/fechas';
 import { actualizarRevision, crearRevision, eliminarRevision, listarRevisiones, obtenerPlantilla, obtenerRevision } from './api';
 import { agruparPorSeccion, contar } from './calculo';
 import { BarraCumplimiento, PorcentajeGrande } from './components/Cumplimiento';
-import { SeccionChecklist, type RespuestaEditable } from './components/SeccionChecklist';
-import type { ItemChecklist } from './types';
+import { RESPUESTA_VACIA, SeccionChecklist, type RespuestaEditable } from './components/SeccionChecklist';
+import type { ItemChecklist, Revision } from './types';
 
 const RUTA_LISTA = '/inspecciones-sci/checklist';
 
@@ -45,9 +45,7 @@ export function ChecklistFormPage() {
             responsable: revision.responsable,
             observaciones: revision.observaciones,
           });
-          setRespuestas(
-            Object.fromEntries(revision.respuestas.map((r) => [r.itemId, { respuesta: r.respuesta, observacion: r.observacion }])),
-          );
+          setRespuestas(aEditables(revision));
         }
       } catch (e) {
         if (vigente) setMensaje({ texto: (e as Error).message, error: true });
@@ -65,7 +63,7 @@ export function ChecklistFormPage() {
 
   const cambiarRespuesta = (itemId: number, cambio: Partial<RespuestaEditable>) =>
     setRespuestas((r) => {
-      const previa: RespuestaEditable = r[itemId] ?? { respuesta: null, observacion: '' };
+      const previa: RespuestaEditable = r[itemId] ?? RESPUESTA_VACIA;
       return { ...r, [itemId]: { ...previa, ...cambio } };
     });
 
@@ -82,11 +80,13 @@ export function ChecklistFormPage() {
         itemId: i.id,
         respuesta: respuestas[i.id]?.respuesta ?? null,
         observacion: respuestas[i.id]?.observacion ?? '',
+        fotos: respuestas[i.id]?.respuesta === 'NO' ? respuestas[i.id].fotos : [],
       })),
     };
     try {
       if (revisionId) {
-        await actualizarRevision(revisionId, cuerpo);
+        // Las fotos recién tomadas pasan a ser fotos guardadas (con id)
+        setRespuestas(aEditables(await actualizarRevision(revisionId, cuerpo)));
         setMensaje({ texto: 'Cambios guardados.' });
       } else {
         const nueva = await crearRevision(cuerpo);
@@ -258,6 +258,13 @@ export function ChecklistFormPage() {
         </button>
       </div>
     </>
+  );
+}
+
+/** Respuestas de una revisión guardada, en el formato que edita el formulario */
+function aEditables(revision: Revision): Record<number, RespuestaEditable> {
+  return Object.fromEntries(
+    revision.respuestas.map((r) => [r.itemId, { respuesta: r.respuesta, observacion: r.observacion, fotos: r.fotos.map((id) => ({ id })) }]),
   );
 }
 

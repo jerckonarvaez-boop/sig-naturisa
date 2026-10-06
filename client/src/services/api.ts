@@ -1,6 +1,9 @@
 // Cliente HTTP base. Todas las llamadas al backend deben pasar por aquí.
 const BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 
+/** URL completa de un recurso de la API (para <img src>, descargas, etc.) */
+export const urlApi = (path: string) => `${BASE_URL}${path}`;
+
 /** Evento que se emite cuando la API responde 401 (sesión vencida): la app vuelve al inicio de sesión */
 export const EVENTO_SESION_VENCIDA = 'sig:sesion-vencida';
 

@@ -4,10 +4,18 @@ import {
   crearRevision,
   eliminarRevision,
   listarRevisiones,
+  obtenerFoto,
   obtenerPlantilla,
   obtenerRevision,
 } from './checklist-bp.service.js';
-import { RESPUESTAS, type Respuesta, type RevisionDatos } from './checklist-bp.types.js';
+import {
+  MAX_FOTOS_POR_ITEM,
+  RESPUESTAS,
+  TIPOS_FOTO,
+  type FotoEntrada,
+  type Respuesta,
+  type RevisionDatos,
+} from './checklist-bp.types.js';
 
 export const checklistBpRouter = Router();
 
@@ -56,6 +64,16 @@ checklistBpRouter.put('/revisiones/:id', (req, res) => {
   res.json(revision);
 });
 
+// GET /api/checklist-bp/fotos/:id -> imagen (el contenido de un id nunca cambia)
+checklistBpRouter.get('/fotos/:id', (req, res) => {
+  const foto = obtenerFoto(Number(req.params.id));
+  if (!foto) {
+    res.status(404).json({ error: 'La foto no existe.' });
+    return;
+  }
+  res.set('Cache-Control', 'private, max-age=31536000, immutable').type(foto.tipo).send(Buffer.from(foto.datos));
+});
+
 // DELETE /api/checklist-bp/revisiones/:id
 checklistBpRouter.delete('/revisiones/:id', (req, res) => {
   if (!eliminarRevision(Number(req.params.id))) {
@@ -83,10 +101,13 @@ function validar(body: Record<string, unknown> | undefined): { datos: RevisionDa
     if (r.respuesta != null && !(RESPUESTAS as readonly unknown[]).includes(r.respuesta)) {
       return { error: `Respuesta no válida en el requisito ${r.itemId}.` };
     }
+    const fotos = validarFotos(r.fotos);
+    if ('error' in fotos) return { error: `${fotos.error} (requisito ${r.itemId}).` };
     respuestas.push({
       itemId: r.itemId as number,
       respuesta: (r.respuesta as Respuesta | null) ?? null,
       observacion: texto(r.observacion, 1000),
+      fotos: fotos.fotos,
     });
   }
 
@@ -99,4 +120,27 @@ function validar(body: Record<string, unknown> | undefined): { datos: RevisionDa
       respuestas,
     },
   };
+}
+
+const MAX_BYTES_FOTO = 3 * 1024 * 1024;
+
+/** Cada foto es { id } (ya guardada) o { datos: "data:image/jpeg;base64,..." } (nueva) */
+function validarFotos(valor: unknown): { fotos: FotoEntrada[] } | { error: string } {
+  if (valor == null) return { fotos: [] };
+  if (!Array.isArray(valor)) return { error: 'Las fotos no son válidas' };
+  if (valor.length > MAX_FOTOS_POR_ITEM) return { error: `Máximo ${MAX_FOTOS_POR_ITEM} fotos por requisito` };
+
+  const fotos: FotoEntrada[] = [];
+  for (const f of valor as Record<string, unknown>[]) {
+    if (Number.isInteger(f?.id)) {
+      fotos.push({ id: f.id as number });
+      continue;
+    }
+    const partes = typeof f?.datos === 'string' ? /^data:([\w/+.-]+);base64,(.+)$/.exec(f.datos) : null;
+    if (!partes || !(TIPOS_FOTO as readonly string[]).includes(partes[1])) return { error: 'Formato de foto no admitido' };
+    const datos = Buffer.from(partes[2], 'base64');
+    if (datos.length > MAX_BYTES_FOTO) return { error: 'Una foto supera los 3 MB' };
+    fotos.push({ tipo: partes[1], datos });
+  }
+  return { fotos };
 }

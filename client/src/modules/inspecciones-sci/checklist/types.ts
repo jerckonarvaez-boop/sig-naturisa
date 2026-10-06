@@ -3,6 +3,12 @@
 
 export type Respuesta = 'SI' | 'NO' | 'N/A';
 
+/** Fotos de evidencia: solo en requisitos marcados NO */
+export const MAX_FOTOS_POR_ITEM = 4;
+
+/** Foto ya guardada (id) o recién tomada, aún sin guardar (data URL JPEG) */
+export type Foto = { id: number } | { datos: string };
+
 export interface ItemChecklist {
   id: number;
   seccion: string;
@@ -18,6 +24,8 @@ export interface RespuestaItem {
   requerimiento: string;
   respuesta: Respuesta | null;
   observacion: string;
+  /** Ids de las fotos guardadas */
+  fotos: number[];
 }
 
 export interface RevisionDatos {
@@ -25,7 +33,7 @@ export interface RevisionDatos {
   sucursal: string;
   responsable: string;
   observaciones: string;
-  respuestas: { itemId: number; respuesta: Respuesta | null; observacion: string }[];
+  respuestas: { itemId: number; respuesta: Respuesta | null; observacion: string; fotos: Foto[] }[];
 }
 
 export interface Revision {

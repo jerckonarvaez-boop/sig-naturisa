@@ -3,6 +3,13 @@
 export const RESPUESTAS = ['SI', 'NO', 'N/A'] as const;
 export type Respuesta = (typeof RESPUESTAS)[number];
 
+/** Fotos de evidencia: solo en requisitos marcados NO */
+export const MAX_FOTOS_POR_ITEM = 4;
+export const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+/** Foto al guardar: una ya existente (id) o una nueva (contenido) */
+export type FotoEntrada = { id: number } | { tipo: string; datos: Buffer };
+
 export interface ItemChecklist {
   id: number;
   seccion: string;
@@ -18,6 +25,8 @@ export interface RespuestaItem {
   requerimiento: string;
   respuesta: Respuesta | null;
   observacion: string;
+  /** Ids de las fotos (se descargan en /api/checklist-bp/fotos/:id) */
+  fotos: number[];
 }
 
 export interface RevisionDatos {
@@ -25,7 +34,7 @@ export interface RevisionDatos {
   sucursal: string;
   responsable: string;
   observaciones: string;
-  respuestas: { itemId: number; respuesta: Respuesta | null; observacion: string }[];
+  respuestas: { itemId: number; respuesta: Respuesta | null; observacion: string; fotos: FotoEntrada[] }[];
 }
 
 export interface Revision {

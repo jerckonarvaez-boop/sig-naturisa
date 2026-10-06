@@ -1,5 +1,5 @@
 import { db, transaction } from '../../db/database.js';
-import type { ItemChecklist, Respuesta, RespuestaItem, Revision, RevisionDatos } from './checklist-bp.types.js';
+import type { FotoEntrada, ItemChecklist, Respuesta, RespuestaItem, Revision, RevisionDatos } from './checklist-bp.types.js';
 
 /** Requisitos vigentes de la plantilla, en orden */
 export function obtenerPlantilla(): ItemChecklist[] {
@@ -18,6 +18,7 @@ export function obtenerPlantilla(): ItemChecklist[] {
 function respuestasDe(revisionIds: number[]): Map<number, RespuestaItem[]> {
   const mapa = new Map<number, RespuestaItem[]>(revisionIds.map((id) => [id, []]));
   if (!revisionIds.length) return mapa;
+  const fotos = fotosDe(revisionIds);
   const filas = db
     .prepare(
       `SELECT revision_id, item_id, seccion, numero, requerimiento, respuesta, observacion
@@ -33,9 +34,55 @@ function respuestasDe(revisionIds: number[]): Map<number, RespuestaItem[]> {
       requerimiento: String(r.requerimiento),
       respuesta: r.respuesta ? (String(r.respuesta) as Respuesta) : null,
       observacion: String(r.observacion ?? ''),
+      fotos: fotos.get(`${r.revision_id}-${r.item_id}`) ?? [],
     });
   }
   return mapa;
+}
+
+/** Ids de fotos agrupados por "revision-item" (sin el contenido, que se descarga aparte) */
+function fotosDe(revisionIds: number[]): Map<string, number[]> {
+  const mapa = new Map<string, number[]>();
+  const filas = db
+    .prepare(
+      `SELECT id, revision_id, item_id FROM checklist_bp_foto
+       WHERE revision_id IN (${revisionIds.map(() => '?').join(', ')}) ORDER BY id`,
+    )
+    .all(...revisionIds);
+  for (const f of filas) {
+    const clave = `${f.revision_id}-${f.item_id}`;
+    mapa.set(clave, [...(mapa.get(clave) ?? []), Number(f.id)]);
+  }
+  return mapa;
+}
+
+/** Contenido de una foto para mostrarla */
+export function obtenerFoto(id: number): { tipo: string; datos: Uint8Array } | null {
+  const f = db.prepare('SELECT tipo, datos FROM checklist_bp_foto WHERE id = ?').get(id);
+  return f ? { tipo: String(f.tipo), datos: f.datos as Uint8Array } : null;
+}
+
+/**
+ * Sincroniza las fotos de la revisión: conserva las que siguen en la lista, borra las demás
+ * e inserta las nuevas. Solo los requisitos marcados NO pueden tener fotos.
+ */
+function guardarFotos(revisionId: number, respuestas: RevisionDatos['respuestas']) {
+  const conservar = new Set<number>();
+  const nuevas: { itemId: number; foto: Exclude<FotoEntrada, { id: number }> }[] = [];
+  for (const r of respuestas) {
+    if (r.respuesta !== 'NO') continue;
+    for (const foto of r.fotos) {
+      if ('id' in foto) conservar.add(foto.id);
+      else nuevas.push({ itemId: r.itemId, foto });
+    }
+  }
+
+  const borrar = db.prepare('DELETE FROM checklist_bp_foto WHERE id = ?');
+  for (const f of db.prepare('SELECT id FROM checklist_bp_foto WHERE revision_id = ?').all(revisionId)) {
+    if (!conservar.has(Number(f.id))) borrar.run(f.id);
+  }
+  const insertar = db.prepare('INSERT INTO checklist_bp_foto (revision_id, item_id, tipo, datos) VALUES (?, ?, ?, ?)');
+  for (const n of nuevas) insertar.run(revisionId, n.itemId, n.foto.tipo, n.foto.datos);
 }
 
 function aRevision(r: Record<string, unknown>, respuestas: RespuestaItem[]): Revision {
@@ -81,6 +128,7 @@ export function crearRevision(d: RevisionDatos): Revision {
       .prepare('INSERT INTO checklist_bp_revision (fecha, sucursal, responsable, observaciones) VALUES (?, ?, ?, ?)')
       .run(d.fecha, d.sucursal, d.responsable, d.observaciones);
     guardarRespuestas(Number(lastInsertRowid), d.respuestas);
+    guardarFotos(Number(lastInsertRowid), d.respuestas);
     return Number(lastInsertRowid);
   });
   return obtenerRevision(id)!;
@@ -94,7 +142,10 @@ export function actualizarRevision(id: number, d: RevisionDatos): Revision | nul
            actualizado_en = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?`,
       )
       .run(d.fecha, d.sucursal, d.responsable, d.observaciones, id);
-    if (changes) guardarRespuestas(id, d.respuestas);
+    if (changes) {
+      guardarRespuestas(id, d.respuestas);
+      guardarFotos(id, d.respuestas);
+    }
     return changes > 0;
   });
   return existe ? obtenerRevision(id) : null;

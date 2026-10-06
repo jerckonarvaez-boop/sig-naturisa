@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { MessageSquarePlus } from 'lucide-react';
 import { contar } from '../calculo';
-import type { ItemChecklist, Respuesta } from '../types';
+import type { Foto, ItemChecklist, Respuesta } from '../types';
 import { BotonesRespuesta } from './BotonesRespuesta';
 import { BarraCumplimiento } from './Cumplimiento';
+import { FotosItem } from './FotosItem';
 
 export interface RespuestaEditable {
   respuesta: Respuesta | null;
   observacion: string;
+  /** Evidencia; solo se guarda si la respuesta es NO */
+  fotos: Foto[];
 }
+
+export const RESPUESTA_VACIA: RespuestaEditable = { respuesta: null, observacion: '', fotos: [] };
 
 interface SeccionChecklistProps {
   seccion: string;
@@ -48,7 +53,7 @@ export function SeccionChecklist({ seccion, items, respuestas, onCambiar }: Secc
           <FilaItem
             key={item.id}
             item={item}
-            valor={respuestas[item.id] ?? { respuesta: null, observacion: '' }}
+            valor={respuestas[item.id] ?? RESPUESTA_VACIA}
             onCambiar={(cambio) => onCambiar(item.id, cambio)}
           />
         ))}
@@ -107,6 +112,7 @@ function FilaItem({
           className="mt-1.5 ml-9 w-[calc(100%-2.25rem)] rounded-md border border-slate-300 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-950"
         />
       )}
+      {valor.respuesta === 'NO' && <FotosItem fotos={valor.fotos} onCambiar={(fotos) => onCambiar({ fotos })} numero={item.numero} />}
     </li>
   );
 }
