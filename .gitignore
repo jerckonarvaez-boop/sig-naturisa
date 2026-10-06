@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.log
+
+# Base de datos local (SQLite)
+server/data/
+
+# Archivos temporales de compilación de TypeScript
+*.tsbuildinfo

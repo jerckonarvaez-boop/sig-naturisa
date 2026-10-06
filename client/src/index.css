@@ -1,0 +1,50 @@
+@import 'tailwindcss';
+
+/* Modo oscuro controlado por la clase .dark en <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Paleta corporativa: cambia estos valores para ajustar los colores de toda la app */
+@theme {
+  --color-brand-950: #0f2a44;
+  --color-brand-900: #143756;
+  --color-brand-800: #1b4468;
+  --color-brand-700: #24547e;
+  --color-brand-500: #3b82c4;
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/*
+ * Colores de gráficos (validados para daltonismo y contraste en claro y oscuro).
+ * serie: barras de gasto · pista: presupuesto (paso claro del mismo azul)
+ * exceso: sobregiro (rojo de estado crítico, siempre acompañado de texto)
+ * sin: gasto sin presupuesto asignado · rejilla: líneas de ejes
+ */
+:root {
+  --chart-serie: #1668e3;
+  --chart-pista: #dce8f7;
+  --chart-exceso: #d03b3b;
+  --chart-sin: #94a3b8;
+  --chart-rejilla: #e2e8f0;
+  --chart-apagado: #c5d2e1;
+}
+.dark {
+  --chart-serie: #3b8cf0;
+  --chart-pista: #1e3a5f;
+  --chart-exceso: #d03b3b;
+  --chart-sin: #64748b;
+  --chart-rejilla: #1e293b;
+  --chart-apagado: #334155;
+}
+
+@theme inline {
+  --color-chart-serie: var(--chart-serie);
+  --color-chart-pista: var(--chart-pista);
+  --color-chart-exceso: var(--chart-exceso);
+  --color-chart-sin: var(--chart-sin);
+  --color-chart-rejilla: var(--chart-rejilla);
+  --color-chart-apagado: var(--chart-apagado);
+}
+
+body {
+  @apply bg-slate-100 text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-100;
+}
