@@ -128,3 +128,29 @@ Requiere permisos de administrador; en un equipo corporativo, coordínelo con TI
 
 **App nativa (tiendas):** el siguiente paso sería envolver este mismo código con Capacitor.
 Android se puede compilar en Windows (Android Studio); iOS requiere un Mac con Xcode y una cuenta Apple Developer.
+
+## Inicio de sesión
+
+Todos los usuarios ingresan con sus **credenciales corporativas de Naturisa**, que se validan contra
+el servicio de seguridad del portal (`AUTH_URL`). La plataforma no guarda contraseñas: las reenvía por
+HTTPS y, si son correctas, crea una sesión propia (cookie firmada, válida 7 días).
+
+- Usuario: solo minúsculas y números (se convierte automáticamente). Contraseña: de 6 a 128 caracteres.
+- Cuentas con verificación en dos pasos o con cambio de contraseña pendiente reciben un aviso y no ingresan.
+- Tras 10 intentos fallidos desde la misma IP, se bloquea el ingreso durante 15 minutos.
+- Solo `/api/health` es público; el resto de la API exige sesión.
+- **Desarrollo:** `AUTH_DISABLED=true` en `server/.env` desactiva el inicio de sesión.
+- **Código:** `server/src/modules/auth/auth.ts`, `client/src/context/AuthContext.tsx` y `client/src/pages/LoginPage.tsx`.
+
+## Publicación (Render)
+
+En producción, un solo servicio entrega la web y la API: `npm run build` y luego `npm start`.
+El archivo `render.yaml` define el despliegue y Render vuelve a publicar con cada push a `main`.
+
+1. En [render.com](https://render.com) inicie sesión con su cuenta de GitHub.
+2. Pulse **New ▸ Blueprint** y elija el repositorio `sig-naturisa`.
+3. Pulse **Apply**. Render compila y publica la app en `https://sig-naturisa.onrender.com` (o similar).
+
+**Datos:** con el plan gratuito, la base de datos se **borra en cada despliegue o reinicio**, y el
+servicio se duerme tras unos minutos sin uso. Para conservar los datos, en `render.yaml` cambie
+`plan: free` por `starter` y descomente `disk` y `DB_PATH`. Es de pago.

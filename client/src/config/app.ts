@@ -7,7 +7,7 @@ export const APP_CONFIG = {
   logoUrl: '/logo-naturisa.png' as string | null,
 };
 
-// Usuario de prueba mientras no exista autenticación (se reemplazará en una fase posterior)
+// Usuario que se muestra solo si el inicio de sesión está desactivado (AUTH_DISABLED=true)
 export const DEMO_USER = {
   name: 'Usuario Demo',
   role: 'Administrador',

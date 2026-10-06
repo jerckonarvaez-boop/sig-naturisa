@@ -1,7 +1,8 @@
-import { Menu, Moon, Sun } from 'lucide-react';
+import { LogOut, Menu, Moon, Sun } from 'lucide-react';
 import { AbrirEnMovil } from '@/components/AbrirEnMovil';
 import { Logo } from '@/components/Logo';
-import { APP_CONFIG, DEMO_USER } from '@/config/app';
+import { APP_CONFIG } from '@/config/app';
+import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { getInitials } from '@/utils/format';
 
@@ -11,6 +12,7 @@ interface HeaderProps {
 
 export function Header({ onToggleMenu }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
+  const { nombreVisible, detalle, authActiva, cerrarSesion } = useAuth();
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between bg-brand-950 px-4 text-white shadow-md">
@@ -42,12 +44,23 @@ export function Header({ onToggleMenu }: HeaderProps) {
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
         <div className="hidden text-right leading-tight sm:block">
-          <p className="text-sm font-semibold">{DEMO_USER.name}</p>
-          <p className="text-xs text-white/70">{DEMO_USER.role}</p>
+          <p className="text-sm font-semibold">{nombreVisible}</p>
+          <p className="text-xs text-white/70">{detalle}</p>
         </div>
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-brand-950">
-          {getInitials(DEMO_USER.name)}
+          {getInitials(nombreVisible)}
         </div>
+        {authActiva && (
+          <button
+            type="button"
+            onClick={cerrarSesion}
+            className="rounded-md p-1.5 hover:bg-white/10"
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión"
+          >
+            <LogOut size={18} />
+          </button>
+        )}
       </div>
     </header>
   );

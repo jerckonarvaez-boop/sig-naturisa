@@ -5,4 +5,13 @@ export const env = {
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   /** Puerto de la web (Vite), para mostrar la dirección de acceso desde el móvil */
   webPort: Number(process.env.WEB_PORT ?? 5173),
+  /** Servicio de seguridad del portal Naturisa que valida usuario y contraseña */
+  authUrl: process.env.AUTH_URL ?? 'https://gateway.naturisa.com.ec/bff/web/portal/security/api/auth',
+  /** true = no pedir inicio de sesión (solo para desarrollo) */
+  authDisabled: process.env.AUTH_DISABLED === 'true',
+  /**
+   * Clave para firmar las sesiones. En producción debe definirse; si falta, se guarda una
+   * generada junto a la base de datos para que las sesiones sobrevivan a los reinicios.
+   */
+  sessionSecret: process.env.SESSION_SECRET ?? '',
 };

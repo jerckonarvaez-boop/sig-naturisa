@@ -1,0 +1,30 @@
+# Configuración de despliegue en Render (https://render.com) — "Blueprint".
+# Render crea el servicio a partir de este archivo y lo vuelve a desplegar en cada push a "main".
+services:
+  - type: web
+    name: sig-naturisa
+    runtime: node
+    # Plan gratuito: sirve para probar, pero se duerme sin uso y BORRA la base de datos
+    # en cada despliegue o reinicio. Para conservar los datos, cambie a "starter" y
+    # descomente el bloque "disk" y la variable DB_PATH de abajo.
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      # Servicio corporativo que valida usuario y contraseña de Naturisa
+      - key: AUTH_URL
+        value: https://gateway.naturisa.com.ec/bff/web/portal/security/api/auth
+      # Clave aleatoria para firmar las sesiones (Render la genera automáticamente)
+      - key: SESSION_SECRET
+        generateValue: true
+      # - key: DB_PATH
+      #   value: /var/data/sig.db
+    # disk:
+    #   name: datos-sig
+    #   mountPath: /var/data
+    #   sizeGB: 1
