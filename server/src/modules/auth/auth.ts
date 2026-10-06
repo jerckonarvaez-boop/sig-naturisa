@@ -105,14 +105,13 @@ function campo(obj: unknown, ...nombres: string[]): unknown {
   return undefined;
 }
 
-/** Nombre para mostrar, si el servicio lo devuelve */
+const texto = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+
+/** Nombre para mostrar: el servicio devuelve data.usuario { firstNames, lastNames } */
 function nombreVisible(data: unknown, username: string): string {
-  const fuentes = [data, campo(data, 'user', 'usuario', 'userInfo', 'profile')];
-  for (const f of fuentes) {
-    const n = campo(f, 'fullName', 'nombreCompleto', 'displayName', 'name', 'nombre', 'nombres');
-    if (typeof n === 'string' && n.trim()) return n.trim();
-  }
-  return username;
+  const u = campo(data, 'usuario', 'user');
+  const nombre = `${texto(campo(u, 'firstNames'))} ${texto(campo(u, 'lastNames'))}`.trim();
+  return nombre || texto(campo(u, 'fullName')) || username;
 }
 
 async function validarCredenciales(username: string, password: string): Promise<Resultado> {
@@ -121,7 +120,8 @@ async function validarCredenciales(username: string, password: string): Promise<
     respuesta = await fetch(env.authUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ username, password }),
+      // Mismo formato que usa el portal de Naturisa al iniciar sesión
+      body: JSON.stringify({ userName: username, password, codeApplication: env.authAppCode, includeUserInfo: true }),
       signal: AbortSignal.timeout(15000),
     });
   } catch (error) {

@@ -135,6 +135,10 @@ Todos los usuarios ingresan con sus **credenciales corporativas de Naturisa**, q
 el servicio de seguridad del portal (`AUTH_URL`). La plataforma no guarda contraseñas: las reenvía por
 HTTPS y, si son correctas, crea una sesión propia (cookie firmada, válida 7 días).
 
+- Formato (igual que el portal): `POST { userName, password, codeApplication, includeUserInfo: true }`.
+  `codeApplication` es por defecto el del Portal de Compras (`AUTH_APP_CODE`); si TI registra uno
+  propio para el SIG, basta con cambiar esa variable. El nombre mostrado sale de `data.usuario.firstNames/lastNames`.
+
 - Usuario: solo minúsculas y números (se convierte automáticamente). Contraseña: de 6 a 128 caracteres.
 - Cuentas con verificación en dos pasos o con cambio de contraseña pendiente reciben un aviso y no ingresan.
 - Tras 10 intentos fallidos desde la misma IP, se bloquea el ingreso durante 15 minutos.

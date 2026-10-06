@@ -7,6 +7,11 @@ export const env = {
   webPort: Number(process.env.WEB_PORT ?? 5173),
   /** Servicio de seguridad del portal Naturisa que valida usuario y contraseña */
   authUrl: process.env.AUTH_URL ?? 'https://gateway.naturisa.com.ec/bff/web/portal/security/api/auth',
+  /**
+   * Código de aplicación que el servicio exige ("codeApplication"). Por defecto, el del
+   * Portal de Compras; si TI registra uno propio para el SIG, se cambia aquí o en AUTH_APP_CODE.
+   */
+  authAppCode: process.env.AUTH_APP_CODE ?? 'cbe2cd96-cdc5-4bd9-bc6e-b7d6a822e656',
   /** true = no pedir inicio de sesión (solo para desarrollo) */
   authDisabled: process.env.AUTH_DISABLED === 'true',
   /**
