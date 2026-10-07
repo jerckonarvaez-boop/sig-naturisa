@@ -1,5 +1,5 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
-import { Camera, LoaderCircle, X } from 'lucide-react';
+import { useEffect, useState, type ChangeEvent, type ReactNode } from 'react';
+import { Camera, ImagePlus, LoaderCircle, X } from 'lucide-react';
 import { reducirImagen } from '@/utils/imagen';
 import { urlFoto } from '../api';
 import { MAX_FOTOS_POR_ITEM, type Foto } from '../types';
@@ -10,7 +10,11 @@ interface FotosItemProps {
   numero: number;
 }
 
-/** Fotos de evidencia de un requisito marcado NO: miniaturas, agregar (cámara o galería) y quitar. */
+/**
+ * Fotos de evidencia de un requisito marcado NO: miniaturas, agregar y quitar.
+ * En celulares/tablets (pantalla táctil) ofrece "Tomar foto" (abre la cámara) y "Galería";
+ * en el PC, solo "Agregar foto" (elegir archivos).
+ */
 export function FotosItem({ fotos, onCambiar, numero }: FotosItemProps) {
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,21 +61,50 @@ export function FotosItem({ fotos, onCambiar, numero }: FotosItemProps) {
           </div>
         ))}
 
-        {disponibles > 0 && (
-          <label
-            className={`inline-flex h-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-slate-400 px-3 text-[11px] font-semibold text-slate-600 hover:border-brand-500 hover:text-brand-500 dark:border-slate-600 dark:text-slate-300 print:hidden ${
-              procesando ? 'pointer-events-none opacity-60' : ''
-            }`}
-          >
-            {procesando ? <LoaderCircle size={18} className="animate-spin" /> : <Camera size={18} />}
-            {procesando ? 'Procesando…' : 'Agregar foto'}
-            <input type="file" accept="image/*" multiple onChange={agregar} className="sr-only" />
-          </label>
-        )}
+        {disponibles > 0 &&
+          (procesando ? (
+            <span className={`${BOTON} opacity-60`}>
+              <LoaderCircle size={18} className="animate-spin" /> Procesando…
+            </span>
+          ) : (
+            <>
+              <BotonArchivo camara onChange={agregar} className="hidden pointer-coarse:inline-flex">
+                <Camera size={18} /> Tomar foto
+              </BotonArchivo>
+              <BotonArchivo onChange={agregar}>
+                <ImagePlus size={18} />
+                <span className="pointer-coarse:hidden">Agregar foto</span>
+                <span className="hidden pointer-coarse:inline">Galería</span>
+              </BotonArchivo>
+            </>
+          ))}
       </div>
       {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
       {ampliada && <VisorFoto src={ampliada} onCerrar={() => setAmpliada(null)} />}
     </div>
+  );
+}
+
+const BOTON =
+  'inline-flex h-16 min-w-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-slate-400 px-3 text-[11px] font-semibold text-slate-600 dark:border-slate-600 dark:text-slate-300 print:hidden';
+
+/** Botón que abre la cámara (camara) o el selector de imágenes (varias a la vez). */
+function BotonArchivo({
+  camara,
+  onChange,
+  className = 'inline-flex',
+  children,
+}: {
+  camara?: boolean;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className={`${BOTON} ${className} cursor-pointer hover:border-brand-500 hover:text-brand-500`}>
+      {children}
+      <input type="file" accept="image/*" capture={camara ? 'environment' : undefined} multiple={!camara} onChange={onChange} className="sr-only" />
+    </label>
   );
 }
 

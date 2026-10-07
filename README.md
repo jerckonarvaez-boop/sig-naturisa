@@ -107,7 +107,8 @@ basado en *Check List-Buenas Prácticas-Ago01-2022.xlsx* (43 requisitos en 5 ár
   Colores: ≥ 80 % alto, ≥ 50 % medio, < 50 % bajo (umbrales en `checklist/calculo.ts`).
 - **Plantilla:** tabla `checklist_bp_item` (migración `004_checklist_bp.sql`). Cada respuesta guarda una
   copia del texto del requisito, así el historial no cambia si se modifica la plantilla.
-- **Fotos de evidencia:** solo en requisitos marcados **NO**, hasta 4 por requisito (cámara o galería).
+- **Fotos de evidencia:** solo en requisitos marcados **NO**, hasta 4 por requisito. En celular: "Tomar foto"
+  (abre la cámara trasera) o "Galería"; en el PC: "Agregar foto".
   El navegador las reduce a JPEG de máx. 1600 px antes de enviarlas (`utils/imagen.ts`); se guardan en
   `checklist_bp_foto` (migración `005`) y se borran con su revisión o si la respuesta deja de ser NO.
 - **API:** `GET /api/checklist-bp/plantilla`, CRUD en `/api/checklist-bp/revisiones` (cada respuesta
