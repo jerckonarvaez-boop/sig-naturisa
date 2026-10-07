@@ -1,12 +1,5 @@
-// Utilidades de fechas del calendario. Las fechas se manejan como texto AAAA-MM-DD
-// (hora local) para evitar desfases por zona horaria.
-import type { Evento, EstadoVisual } from '../types';
-
-export const MESES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
-export const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+// Utilidades de fechas. Las fechas se manejan como texto AAAA-MM-DD (hora local)
+// para evitar desfases por zona horaria.
 
 export const aISO = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -39,14 +32,23 @@ export function semanasDelMes(anio: number, mes: number): Date[][] {
 export const fechaCorta = (iso: string) =>
   deISO(iso).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
 
-/** "20 oct 2026" o "20 oct 2026 – 22 oct 2026" */
-export const rangoFechas = (e: Pick<Evento, 'fechaInicio' | 'fechaFin'>) =>
-  e.fechaFin ? `${fechaCorta(e.fechaInicio)} – ${fechaCorta(e.fechaFin)}` : fechaCorta(e.fechaInicio);
+/** AAAA-MM-DD -> DD/MM/AAAA (tablas con muchas filas) */
+export function fechaNumerica(iso: string): string {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
 
-export const fechaFinal = (e: Pick<Evento, 'fechaInicio' | 'fechaFin'>) => e.fechaFin ?? e.fechaInicio;
-
-/** ¿El evento ocupa ese día? */
-export const cubreDia = (e: Evento, iso: string) => e.fechaInicio <= iso && iso <= fechaFinal(e);
+/** Fecha larga en español: "Martes 6 de octubre de 2026" */
+export function formatLongDate(date: Date): string {
+  const text = date.toLocaleDateString('es-EC', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  return text.charAt(0).toUpperCase() + text.slice(1).replace(',', '');
+}
 
 /** Días desde hoy hasta la fecha (negativo si ya pasó) */
 export const diasHasta = (iso: string) => Math.round((deISO(iso).getTime() - deISO(hoyISO()).getTime()) / 864e5);
@@ -59,13 +61,3 @@ export function textoRelativo(iso: string): string {
   if (d === -1) return 'Ayer';
   return d > 0 ? `En ${d} días` : `Hace ${-d} días`;
 }
-
-/** Estado a mostrar: un evento programado cuya fecha ya pasó se considera vencido */
-export function estadoVisual(e: Evento, hoy = hoyISO()): EstadoVisual {
-  const pendiente = e.estado === 'programado' || e.estado === 'reprogramado';
-  return pendiente && fechaFinal(e) < hoy ? 'vencido' : e.estado;
-}
-
-/** Programado o reprogramado, con fecha de hoy en adelante */
-export const esProximo = (e: Evento, hoy = hoyISO()) =>
-  (e.estado === 'programado' || e.estado === 'reprogramado') && fechaFinal(e) >= hoy;

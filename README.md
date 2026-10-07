@@ -14,46 +14,90 @@ npm run dev
 
 Requiere Node 24 o superior (usa el SQLite integrado en Node, `node:sqlite`).
 
-## Estructura
+## Arquitectura
+
+Monorepo con dos aplicaciones (npm workspaces). Cada módulo funcional tiene su carpeta tanto
+en el frontend como en el backend, y dentro de ella separa interfaz, datos y lógica.
 
 ```
 sig-naturisa/
-├── client/                     Frontend (React + Vite + TypeScript + Tailwind)
-│   └── src/
-│       ├── config/             app.ts (nombre, logo, usuario demo)
-│       │                       modules.ts (registro de módulos → menú y rutas)
-│       │                       developmentPlan.ts (fases del Dashboard)
-│       ├── layout/             Header, Sidebar, AppLayout
-│       ├── components/         Componentes reutilizables (Card, StatusBadge...)
-│       │   └── charts/         Gráficos reutilizables (barras, columnas, medidor, tooltip)
-│       ├── modules/            Un módulo por carpeta
-│       │   ├── auditorias/     (subsecciones: certificacion-asc, certificacion-bap)
-│       │   ├── laboratorios/
-│       │   ├── inspecciones-sci/
-│       │   ├── gestion-desechos/
-│       │   └── presupuesto/
-│       ├── features/           Funciones compartidas entre varios módulos
-│       │   └── eventos/        Calendario de auditorías e inspecciones
-│       ├── pages/              Dashboard y páginas generales
-│       ├── services/api.ts     Cliente HTTP hacia el backend
-│       ├── utils/excel.ts      Lector de Excel (.xlsx) en el navegador, sin librerías
-│       └── context/            Tema claro/oscuro
-└── server/                     Backend (Node + Express + TypeScript)
-    ├── migrations/             Archivos .sql que se aplican en orden al iniciar
+├── client/src/                     FRONTEND (React + Vite + TypeScript + Tailwind)
+│   ├── main.tsx · App.tsx          Arranque y composición: tema → sesión → control de acceso → rutas
+│   ├── routes/                     AppRoutes (rutas generadas del registro) · NotFoundPage
+│   ├── config/                     app.ts (nombre, logo) · modules.ts (REGISTRO de módulos → menú y rutas)
+│   │                               developmentPlan.ts (fases del Dashboard)
+│   ├── constants/                  Valores fijos compartidos (meses, días)
+│   ├── context/                    AuthContext (estado de sesión) · ThemeContext (claro/oscuro)
+│   ├── services/                   ÚNICO lugar que habla con el exterior
+│   │   ├── api/                    client.ts (fetch, cookie, sesión vencida) · health.ts
+│   │   ├── auth/                   auth.service.ts (estado, login, logout)
+│   │   └── storage/                preferencias.ts (localStorage) · imagenes.ts (reducir fotos)
+│   ├── hooks/                      Hooks genéricos (useElementWidth)
+│   ├── components/                 Componentes visuales reutilizables, sin lógica de negocio
+│   │   ├── layout/                 AppLayout, Header, Sidebar, Logo, AbrirEnMovil
+│   │   ├── ui/                     Card, PageHeader, Modal, StatusBadge, ModulePlaceholder, botones
+│   │   ├── forms/                  Campo + estilo de controles
+│   │   ├── tables/                 Tabla + estilo de encabezado
+│   │   └── charts/                 BarList, BudgetBars, ColumnChart, Gauge, Tooltip
+│   ├── modules/                    Un módulo funcional por carpeta
+│   │   ├── auth/                   LoginPage · ControlAcceso (quién puede ver la app)
+│   │   ├── dashboard/
+│   │   ├── eventos/                Calendario compartido (Auditorías, SCI y Dashboard)
+│   │   ├── auditorias/             asc y bap
+│   │   ├── laboratorios/
+│   │   ├── inspecciones-sci/       calendario + checklist/
+│   │   ├── gestion-desechos/
+│   │   └── presupuesto/
+│   ├── utils/                      Funciones puras: fechas, numeros, texto, csv, excel
+│   └── styles/index.css            Tailwind, colores corporativos y de gráficos
+└── server/                         BACKEND (Node + Express + TypeScript + SQLite)
+    ├── migrations/                 Archivos .sql que se aplican en orden al iniciar
     └── src/
-        ├── config/env.ts       Variables de entorno
-        ├── db/database.ts      Conexión SQLite y ejecutor de migraciones
-        ├── modules/            Rutas de la API, una carpeta por módulo
-        └── shared/             Middlewares comunes
+        ├── index.ts · app.ts       Arranque y montaje de Express
+        ├── config/env.ts           Variables de entorno
+        ├── db/database.ts          Conexión SQLite, migraciones y transacciones
+        ├── middleware/             requiereSesion (único control de acceso) · errores
+        ├── storage/evidencias.ts   Reglas de archivos/fotos (formato, tamaño)
+        ├── utils/validacion.ts     texto(), esFecha(), esUnoDe()
+        └── modules/
+            ├── index.ts            REGISTRO de módulos de la API (/api/<ruta>)
+            └── <modulo>/           routes → controller → validator + service → types
 ```
+
+### Estructura de un módulo
+
+| Frontend `client/src/modules/<modulo>/` | Para qué |
+|---|---|
+| `meta.ts` · `index.ts` | Nombre, ruta, ícono, submenús · registro (meta + página) |
+| `<Modulo>Routes.tsx` | Rutas internas (solo si tiene subpáginas) |
+| `pages/` | Páginas: solo componen hooks y componentes |
+| `components/` | Piezas visuales propias del módulo |
+| `hooks/` | Estado y carga/guardado de datos |
+| `services/` | Llamadas a la API del módulo |
+| `logic/` | Cálculos y reglas de negocio (funciones puras, sin JSX) |
+| `types.ts` | Tipos de datos |
+
+| Backend `server/src/modules/<modulo>/` | Para qué |
+|---|---|
+| `<modulo>.routes.ts` | Tabla de rutas (método + URL → controlador) |
+| `<modulo>.controller.ts` | Recibe la petición y responde (códigos HTTP) |
+| `<modulo>.validator.ts` | Valida y limpia los datos de entrada |
+| `<modulo>.service.ts` | Lógica y consultas SQL |
+| `<modulo>.types.ts` | Tipos (deben coincidir con los del frontend) |
+
+Reglas: los componentes no llaman a la API (usan hooks → services); la lógica de negocio va en
+`logic/`; los estilos repetidos se toman de `components/` (botones, campos, tablas); las constantes
+se definen una sola vez en `constants/` o `config/`.
 
 ## Agregar o modificar un módulo
 
-1. Crea la carpeta `client/src/modules/<modulo>/` con `meta.ts`, la página y `index.ts`
-   (copia uno existente como plantilla).
-2. Regístralo en `client/src/config/modules.ts`. El menú y la ruta se crean solos.
-3. Si necesita datos: añade una migración `server/migrations/00X_<modulo>.sql`
-   y sus rutas en `server/src/modules/<modulo>/`, registradas en `server/src/app.ts`.
+1. Frontend: crea `client/src/modules/<modulo>/` con `meta.ts`, `pages/` e `index.ts`
+   (copia `laboratorios/` como plantilla) y regístralo en `client/src/config/modules.ts`.
+   El menú y la ruta se crean solos.
+2. Backend (si necesita datos): añade la migración `server/migrations/00X_<modulo>.sql`, crea
+   `server/src/modules/<modulo>/` con routes, controller, validator, service y types, y regístralo
+   en `server/src/modules/index.ts`. Queda protegido con sesión automáticamente.
+3. Frontend: las llamadas en `services/<modulo>.api.ts` y la carga de datos en `hooks/`.
 
 Para mostrar un módulo en el menú como "PRÓXIMAMENTE", usa `status: 'proximamente'` en su `meta.ts`.
 
@@ -62,13 +106,19 @@ Para mostrar un módulo en el menú como "PRÓXIMAMENTE", usa `status: 'proximam
 Un módulo puede tener subsecciones (ver `modules/auditorias/`):
 
 1. Decláralas en `children` dentro de su `meta.ts`. Así aparecen como submenú desplegable.
-2. Crea la página de cada subsección en su propia carpeta y añade su ruta en la página
-   principal del módulo (ej. `AuditoriasPage.tsx`).
+2. Crea la página de cada subsección en `pages/` y añade su ruta en `<Modulo>Routes.tsx`
+   (ej. `AuditoriasRoutes.tsx`).
+
+### Permisos y roles
+
+Hoy cualquier usuario corporativo válido tiene acceso completo. El control está centralizado en dos
+puntos, que es donde se agregarán los roles cuando se definan: `client/src/modules/auth/ControlAcceso.tsx`
+(interfaz) y `server/src/middleware/requiereSesion.ts` (API; deja el usuario en `res.locals.usuario`).
 
 ## Personalizar
 
 - **Logo:** coloca la imagen en `client/public/` y pon su ruta en `logoUrl` de `client/src/config/app.ts`.
-- **Colores:** variables `--color-brand-*` en `client/src/index.css`.
+- **Colores:** variables `--color-brand-*` en `client/src/styles/index.css`.
 - **Base de datos:** SQLite en `server/data/sig.db` (configurable con `DB_PATH` en `server/.env`).
 
 ## Módulo Presupuesto
@@ -81,8 +131,9 @@ Replica el dashboard `Dashboard_Presupuesto_SIG.html` dentro de la plataforma.
   pulse **Importar Excel** en el módulo Presupuesto. Cada importación reemplaza los datos anteriores.
 - **Dónde se guarda:** tablas `presupuesto_*` de la base de datos (migración `002_presupuesto.sql`).
 - **API:** `GET /api/presupuesto` (datos) y `POST /api/presupuesto/importar` (reemplazo).
-- **Código:** `client/src/modules/presupuesto/`. Los cálculos están en `logica.ts`,
-  el mapeo de columnas del Excel en `excel.ts` y la página en `PresupuestoPage.tsx`.
+- **Código:** `client/src/modules/presupuesto/`. Cálculos en `logic/logica.ts` y `logic/agregaciones.ts`
+  (datos de cada gráfico), mapeo de columnas del Excel en `logic/leerExcel.ts`, estado de los filtros
+  en `hooks/useTablero.ts` y la página en `pages/PresupuestoPage.tsx`.
 
 ## Calendario de eventos (Auditorías ASC/BAP e Inspecciones SCI)
 
@@ -91,7 +142,7 @@ Replica el dashboard `Dashboard_Presupuesto_SIG.html` dentro de la plataforma.
 - **Datos de cada evento:** tipo, título, fecha de inicio/fin, sucursal, responsable, estado
   (programado, realizado, reprogramado, cancelado) y observaciones. Un evento programado cuya fecha
   ya pasó se muestra como **vencido**.
-- **Código:** `client/src/features/eventos/`. Para usarlo en otro módulo:
+- **Código:** `client/src/modules/eventos/` (reglas en `logic/eventos.ts`, estado en `hooks/useCalendario.ts`). Para usarlo en otro módulo:
   `<CalendarioEventos tipos={['mi-tipo']} />`, después de añadir el tipo en `config.ts` (cliente)
   y en `eventos.types.ts` (servidor).
 - **API:** `GET /api/eventos?tipo=...`, `POST /api/eventos`, `PUT /api/eventos/:id`, `DELETE /api/eventos/:id`.
@@ -104,12 +155,12 @@ basado en *Check List-Buenas Prácticas-Ago01-2022.xlsx* (43 requisitos en 5 ár
 
 - **Ruta:** Inspecciones SCI ▸ Check list Buenas Prácticas (`/inspecciones-sci/checklist`).
 - **Cumplimiento:** igual que la hoja "Cumplimiento" del Excel: SI ÷ (SI + NO); los N/A no cuentan.
-  Colores: ≥ 80 % alto, ≥ 50 % medio, < 50 % bajo (umbrales en `checklist/calculo.ts`).
+  Colores: ≥ 80 % alto, ≥ 50 % medio, < 50 % bajo (umbrales en `checklist/logic/calculo.ts`).
 - **Plantilla:** tabla `checklist_bp_item` (migración `004_checklist_bp.sql`). Cada respuesta guarda una
   copia del texto del requisito, así el historial no cambia si se modifica la plantilla.
 - **Fotos de evidencia:** solo en requisitos marcados **NO**, hasta 4 por requisito. En celular: "Tomar foto"
   (abre la cámara trasera) o "Galería"; en el PC: "Agregar foto".
-  El navegador las reduce a JPEG de máx. 1600 px antes de enviarlas (`utils/imagen.ts`); se guardan en
+  El navegador las reduce a JPEG de máx. 1600 px antes de enviarlas (`services/storage/imagenes.ts`); se guardan en
   `checklist_bp_foto` (migración `005`) y se borran con su revisión o si la respuesta deja de ser NO.
 - **API:** `GET /api/checklist-bp/plantilla`, CRUD en `/api/checklist-bp/revisiones` (cada respuesta
   lleva `fotos`: `{ id }` las guardadas, `{ datos: "data:image/jpeg;base64,…" }` las nuevas) y
@@ -150,7 +201,9 @@ HTTPS y, si son correctas, crea una sesión propia (cookie firmada, válida 7 d�
 - Tras 10 intentos fallidos desde la misma IP, se bloquea el ingreso durante 15 minutos.
 - Solo `/api/health` es público; el resto de la API exige sesión.
 - **Desarrollo:** `AUTH_DISABLED=true` en `server/.env` desactiva el inicio de sesión.
-- **Código:** `server/src/modules/auth/auth.ts`, `client/src/context/AuthContext.tsx` y `client/src/pages/LoginPage.tsx`.
+- **Código:** servidor en `server/src/modules/auth/` (sesion, limiteIntentos, auth.service) y
+  `server/src/middleware/requiereSesion.ts`; cliente en `client/src/services/auth/`, `client/src/context/AuthContext.tsx`
+  y `client/src/modules/auth/` (LoginPage, ControlAcceso).
 
 ## Publicación (Render)
 

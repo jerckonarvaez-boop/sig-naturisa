@@ -1,5 +1,6 @@
 import { ESTADOS, TIPOS } from '../config';
-import { deISO, estadoVisual, textoRelativo } from '../logic/fechas';
+import { deISO, textoRelativo } from '@/utils/fechas';
+import { estadoVisual } from '../logic/eventos';
 import type { Evento } from '../types';
 
 interface EventoItemProps {

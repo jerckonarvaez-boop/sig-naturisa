@@ -45,3 +45,13 @@ export const ESTADOS: Record<EstadoVisual, { label: string; icono: LucideIcon; c
     badge: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-200',
   },
 };
+
+/** Pestañas de la vista de lista y su texto cuando no hay eventos */
+export type Pestana = 'proximos' | 'vencidos' | 'realizados' | 'todos';
+
+export const PESTANAS: { clave: Pestana; label: string; vacio: string }[] = [
+  { clave: 'proximos', label: 'Próximos', vacio: 'No hay fechas programadas.' },
+  { clave: 'vencidos', label: 'Vencidos', vacio: 'No hay eventos vencidos.' },
+  { clave: 'realizados', label: 'Realizados', vacio: 'Aún no hay eventos realizados.' },
+  { clave: 'todos', label: 'Todos', vacio: 'Aún no hay eventos registrados.' },
+];

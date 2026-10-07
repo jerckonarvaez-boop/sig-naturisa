@@ -1,10 +1,4 @@
-// Formatos numéricos del presupuesto: punto para miles y coma para decimales ($12.860,50)
-
-export const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-export const MESES_LARGO = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-];
+// Formatos numéricos: punto para miles y coma para decimales ($12.860,50)
 
 export function miles(n: number, decimales = 0): string {
   const [entero, dec] = Math.abs(n).toFixed(decimales).split('.');
@@ -26,10 +20,3 @@ export function dineroCorto(n: number): string {
 }
 
 export const porcentaje = (x: number) => (Number.isFinite(x) ? `${Math.round(x * 100)}%` : '—');
-
-/** AAAA-MM-DD -> DD/MM/AAAA */
-export function fechaCorta(iso: string): string {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}

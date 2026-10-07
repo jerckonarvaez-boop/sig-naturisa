@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { Smartphone } from 'lucide-react';
-import { apiGet } from '@/services/api/client';
+import { obtenerDireccionesRed } from '@/services/api/health';
 import { Modal } from '../ui/Modal';
 
 /** Botón del encabezado: muestra un código QR para abrir la plataforma en el móvil. */
@@ -31,7 +31,7 @@ function ModalQR({ onCerrar }: { onCerrar: () => void }) {
   useEffect(() => {
     // Si ya se abrió desde otra dirección (no localhost), se usa esa
     const actual = window.location.hostname === 'localhost' ? null : window.location.origin;
-    apiGet<{ urls: string[] }>('/health/red')
+    obtenerDireccionesRed()
       .then(({ urls }) => {
         const lista = actual ? [actual, ...urls.filter((u) => u !== actual)] : urls;
         setUrls(lista);

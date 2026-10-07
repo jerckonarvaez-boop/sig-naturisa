@@ -1,5 +1,5 @@
 import { BadgeCheck, FlaskConical, LayoutGrid, Leaf, X, type LucideIcon } from 'lucide-react';
-import { MESES_LARGO } from '../formato';
+import { MESES_LARGO } from '@/constants/fechas';
 import { AREA_GENERAL } from '../logic/logica';
 import type { Filtros } from '../types';
 

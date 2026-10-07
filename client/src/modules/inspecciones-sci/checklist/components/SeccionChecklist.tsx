@@ -1,19 +1,10 @@
 import { useState } from 'react';
 import { MessageSquarePlus } from 'lucide-react';
 import { contar } from '../logic/calculo';
-import type { Foto, ItemChecklist, Respuesta } from '../types';
+import { RESPUESTA_VACIA, type ItemChecklist, type RespuestaEditable } from '../types';
 import { BotonesRespuesta } from './BotonesRespuesta';
 import { BarraCumplimiento } from './Cumplimiento';
 import { FotosItem } from './FotosItem';
-
-export interface RespuestaEditable {
-  respuesta: Respuesta | null;
-  observacion: string;
-  /** Evidencia; solo se guarda si la respuesta es NO */
-  fotos: Foto[];
-}
-
-export const RESPUESTA_VACIA: RespuestaEditable = { respuesta: null, observacion: '', fotos: [] };
 
 interface SeccionChecklistProps {
   seccion: string;

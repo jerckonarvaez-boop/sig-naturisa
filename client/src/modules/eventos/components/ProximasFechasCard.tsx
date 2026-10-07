@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { TIPOS } from '../config';
-import { estadoVisual, esProximo, hoyISO } from '../logic/fechas';
+import { hoyISO } from '@/utils/fechas';
+import { estadoVisual, esProximo } from '../logic/eventos';
 import { useEventos } from '../hooks/useEventos';
 import { EventoItem } from './EventoItem';
 

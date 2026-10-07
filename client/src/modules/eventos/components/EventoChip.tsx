@@ -1,5 +1,5 @@
 import { ESTADOS, TIPOS } from '../config';
-import { estadoVisual, rangoFechas } from '../logic/fechas';
+import { estadoVisual, rangoFechas } from '../logic/eventos';
 import type { Evento } from '../types';
 
 interface EventoChipProps {

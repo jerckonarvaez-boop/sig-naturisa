@@ -1,7 +1,7 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { ProximasFechasCard } from '@/modules/eventos/components/ProximasFechasCard';
-import { formatLongDate } from '@/utils/format';
+import { formatLongDate } from '@/utils/fechas';
 import { DevelopmentPlanCard } from './components/DevelopmentPlanCard';
 import { SystemStatusCard } from './components/SystemStatusCard';
 

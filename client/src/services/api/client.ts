@@ -34,11 +34,3 @@ async function enviar<T>(metodo: 'POST' | 'PUT' | 'DELETE', path: string, body?:
 export const apiPost = <T>(path: string, body: unknown) => enviar<T>('POST', path, body);
 export const apiPut = <T>(path: string, body: unknown) => enviar<T>('PUT', path, body);
 export const apiDelete = (path: string) => enviar<void>('DELETE', path);
-
-export interface HealthResponse {
-  api: 'ok';
-  database: 'ok' | 'error';
-  timestamp: string;
-}
-
-export const getHealth = () => apiGet<HealthResponse>('/health');

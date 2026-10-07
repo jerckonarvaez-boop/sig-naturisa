@@ -85,3 +85,12 @@ export function buscar(registros: Registro[], texto: string): Registro[] {
     ).includes(q),
   );
 }
+
+/** Ordena por una columna: números de menor a mayor, textos alfabéticamente (dir -1 invierte) */
+export function ordenarRegistros(registros: Registro[], col: keyof Registro, dir: 1 | -1): Registro[] {
+  return [...registros].sort((a, b) => {
+    const x = a[col];
+    const y = b[col];
+    return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'es')) * dir;
+  });
+}

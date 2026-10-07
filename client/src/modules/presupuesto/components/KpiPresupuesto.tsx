@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Gauge } from '@/components/charts/Gauge';
-import { dinero, dineroCorto, miles, porcentaje } from '../formato';
+import { dinero, dineroCorto, miles, porcentaje } from '@/utils/numeros';
 
 interface KpiPresupuestoProps {
   titulo: string;

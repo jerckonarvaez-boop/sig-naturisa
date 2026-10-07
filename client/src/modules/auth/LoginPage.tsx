@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Eye, EyeOff, LoaderCircle, LockKeyhole } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
+import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { APP_CONFIG } from '@/config/app';
 
 interface LoginPageProps {
@@ -89,7 +90,7 @@ export function LoginPage({ onIngresar, errorInicial }: LoginPageProps) {
           <button
             type="submit"
             disabled={enviando}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-60 dark:bg-sky-600 dark:hover:bg-sky-500"
+            className={`${BOTON_PRIMARIO} flex w-full items-center justify-center gap-2 py-2.5`}
           >
             {enviando && <LoaderCircle size={16} className="animate-spin" />}
             {enviando ? 'Validando…' : 'Ingresar'}

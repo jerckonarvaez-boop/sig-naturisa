@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { getHealth } from '@/services/api/client';
+import { getHealth } from '@/services/api/health';
 
 type ConnectionState = 'verificando' | 'conectado' | 'desconectado';
 

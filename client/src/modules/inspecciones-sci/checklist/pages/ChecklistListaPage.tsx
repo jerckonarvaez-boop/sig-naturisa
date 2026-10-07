@@ -1,36 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ClipboardList, Plus } from 'lucide-react';
+import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { fechaCorta } from '@/modules/eventos/logic/fechas';
 import { meta } from '@/modules/inspecciones-sci/meta';
-import { listarRevisiones } from '../services/checklist.api';
-import { agruparPorSeccion, contar, nombreCorto } from '../logic/calculo';
-import { BarraCumplimiento } from '../components/Cumplimiento';
-import type { Revision } from '../types';
+import { TablaRevisiones } from '../components/TablaRevisiones';
+import { useRevisiones } from '../hooks/useRevisiones';
 
 /** Historial de revisiones del check list, con su cumplimiento por área. */
 export function ChecklistListaPage() {
-  const [revisiones, setRevisiones] = useState<Revision[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    listarRevisiones().then(setRevisiones).catch((e: Error) => setError(e.message));
-  }, []);
-
-  // Las columnas de áreas salen de las propias revisiones (en orden del formato)
-  const secciones = useMemo(
-    () => agruparPorSeccion(revisiones?.[0]?.respuestas ?? []).map((g) => g.seccion),
-    [revisiones],
-  );
+  const { revisiones, error } = useRevisiones();
 
   const botonNueva = (
-    <Link
-      to="nueva"
-      className="inline-flex items-center gap-1.5 rounded-lg bg-brand-900 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 dark:bg-sky-600 dark:hover:bg-sky-500"
-    >
+    <Link to="nueva" className={`${BOTON_PRIMARIO} inline-flex items-center gap-1.5 py-2`}>
       <Plus size={16} /> Nueva revisión
     </Link>
   );
@@ -59,63 +41,7 @@ export function ChecklistListaPage() {
         </Card>
       ) : (
         <Card compact>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-            <table className="w-full min-w-[900px] border-collapse text-[13px]">
-              <thead>
-                <tr className="bg-slate-50 text-left text-brand-900 dark:bg-slate-800/60 dark:text-slate-200">
-                  <th className="px-3 py-2 font-semibold">Fecha</th>
-                  <th className="px-3 py-2 font-semibold">Sucursal</th>
-                  <th className="px-3 py-2 font-semibold">Responsable</th>
-                  <th className="w-40 px-3 py-2 font-semibold">General</th>
-                  {secciones.map((s) => (
-                    <th key={s} className="px-2 py-2 text-xs font-semibold" title={s}>
-                      {nombreCorto(s)}
-                    </th>
-                  ))}
-                  <th className="px-3 py-2 text-right font-semibold" title="Requisitos que no cumplen">
-                    NO
-                  </th>
-                  <th className="px-3 py-2 text-right font-semibold" title="Requisitos sin responder">
-                    Pend.
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {revisiones.map((r) => {
-                  const general = contar(r.respuestas.map((x) => x.respuesta));
-                  const porSeccion = agruparPorSeccion(r.respuestas);
-                  return (
-                    <tr
-                      key={r.id}
-                      tabIndex={0}
-                      onClick={() => navigate(String(r.id))}
-                      onKeyDown={(e) => e.key === 'Enter' && navigate(String(r.id))}
-                      className="cursor-pointer border-t border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/40"
-                    >
-                      <td className="px-3 py-2 whitespace-nowrap">{fechaCorta(r.fecha)}</td>
-                      <td className="px-3 py-2 font-medium">{r.sucursal}</td>
-                      <td className="px-3 py-2">{r.responsable || '—'}</td>
-                      <td className="px-3 py-2">
-                        <BarraCumplimiento conteo={general} />
-                      </td>
-                      {secciones.map((s) => {
-                        const grupo = porSeccion.find((g) => g.seccion === s);
-                        return (
-                          <td key={s} className="px-2 py-2">
-                            {grupo ? <BarraCumplimiento conteo={contar(grupo.items.map((x) => x.respuesta))} compacta /> : '—'}
-                          </td>
-                        );
-                      })}
-                      <td className={`px-3 py-2 text-right tabular-nums ${general.no ? 'font-semibold text-red-600 dark:text-red-400' : ''}`}>
-                        {general.no}
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-500 tabular-nums">{general.sinResponder || '—'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <TablaRevisiones revisiones={revisiones} />
         </Card>
       )}
     </>

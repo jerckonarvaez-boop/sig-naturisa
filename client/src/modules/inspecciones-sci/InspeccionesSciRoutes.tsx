@@ -4,7 +4,7 @@ import { ChecklistFormPage } from './checklist/pages/ChecklistFormPage';
 import { ChecklistListaPage } from './checklist/pages/ChecklistListaPage';
 
 // Rutas internas del módulo Inspecciones SCI (relativas a /inspecciones-sci)
-export function InspeccionesSciPage() {
+export function InspeccionesSciRoutes() {
   return (
     <Routes>
       <Route index element={<CalendarioInspeccionesPage />} />

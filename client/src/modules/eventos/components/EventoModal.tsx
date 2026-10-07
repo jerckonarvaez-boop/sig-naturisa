@@ -1,5 +1,7 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Trash2 } from 'lucide-react';
+import { Campo, CLASE_CONTROL } from '@/components/forms/Campo';
+import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Modal } from '@/components/ui/Modal';
 import { ESTADOS, ESTADOS_EDITABLES, TIPOS } from '../config';
 import type { Evento, EventoDatos, TipoEvento } from '../types';
@@ -92,7 +94,7 @@ export function EventoModal({
             type="submit"
             form="form-evento"
             disabled={guardando}
-            className="rounded-lg bg-brand-900 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-60 dark:bg-sky-600 dark:hover:bg-sky-500"
+            className={`${BOTON_PRIMARIO} py-2`}
           >
             {guardando ? 'Guardando…' : 'Guardar'}
           </button>
@@ -101,8 +103,8 @@ export function EventoModal({
     >
       <form id="form-evento" onSubmit={enviar} className="grid gap-3 sm:grid-cols-2">
         {tiposPermitidos.length > 1 && (
-          <Campo etiqueta="Tipo" ancho>
-            <select value={datos.tipo} onChange={(e) => cambiar('tipo', e.target.value as TipoEvento)} className={CONTROL}>
+          <Campo etiqueta="Tipo" className="sm:col-span-2">
+            <select value={datos.tipo} onChange={(e) => cambiar('tipo', e.target.value as TipoEvento)} className={CLASE_CONTROL}>
               {tiposPermitidos.map((t) => (
                 <option key={t} value={t}>
                   {TIPOS[t].label}
@@ -112,7 +114,7 @@ export function EventoModal({
           </Campo>
         )}
 
-        <Campo etiqueta="Título *" ancho>
+        <Campo etiqueta="Título *" className="sm:col-span-2">
           <input
             required
             autoFocus
@@ -120,7 +122,7 @@ export function EventoModal({
             value={datos.titulo}
             onChange={(e) => cambiar('titulo', e.target.value)}
             placeholder={tiposPermitidos[0].startsWith('auditoria') ? 'Ej. Auditoría de seguimiento' : 'Ej. Inspección trimestral'}
-            className={CONTROL}
+            className={CLASE_CONTROL}
           />
         </Campo>
 
@@ -130,7 +132,7 @@ export function EventoModal({
             required
             value={datos.fechaInicio}
             onChange={(e) => cambiar('fechaInicio', e.target.value)}
-            className={CONTROL}
+            className={CLASE_CONTROL}
           />
         </Campo>
         <Campo etiqueta="Fecha de fin (opcional)">
@@ -139,7 +141,7 @@ export function EventoModal({
             min={datos.fechaInicio || undefined}
             value={datos.fechaFin ?? ''}
             onChange={(e) => cambiar('fechaFin', e.target.value || null)}
-            className={CONTROL}
+            className={CLASE_CONTROL}
           />
         </Campo>
 
@@ -149,7 +151,7 @@ export function EventoModal({
             maxLength={120}
             value={datos.sucursal}
             onChange={(e) => cambiar('sucursal', e.target.value)}
-            className={CONTROL}
+            className={CLASE_CONTROL}
           />
           <datalist id="sugerencias-sucursal">
             {sugerencias.sucursales.map((s) => (
@@ -163,7 +165,7 @@ export function EventoModal({
             maxLength={120}
             value={datos.responsable}
             onChange={(e) => cambiar('responsable', e.target.value)}
-            className={CONTROL}
+            className={CLASE_CONTROL}
           />
           <datalist id="sugerencias-responsable">
             {sugerencias.responsables.map((s) => (
@@ -172,7 +174,7 @@ export function EventoModal({
           </datalist>
         </Campo>
 
-        <Campo etiqueta="Estado" ancho>
+        <Campo etiqueta="Estado" className="sm:col-span-2">
           <div className="flex flex-wrap gap-2">
             {ESTADOS_EDITABLES.map((estado) => {
               const { label, icono: Icono, badge } = ESTADOS[estado];
@@ -195,31 +197,19 @@ export function EventoModal({
           </div>
         </Campo>
 
-        <Campo etiqueta="Resultado / observaciones" ancho>
+        <Campo etiqueta="Resultado / observaciones" className="sm:col-span-2">
           <textarea
             rows={3}
             maxLength={4000}
             value={datos.observaciones}
             onChange={(e) => cambiar('observaciones', e.target.value)}
             placeholder="Hallazgos, no conformidades, acuerdos…"
-            className={CONTROL}
+            className={CLASE_CONTROL}
           />
         </Campo>
 
         {error && <p className="text-sm text-red-600 sm:col-span-2 dark:text-red-400">{error}</p>}
       </form>
     </Modal>
-  );
-}
-
-const CONTROL =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950';
-
-function Campo({ etiqueta, ancho, children }: { etiqueta: string; ancho?: boolean; children: ReactNode }) {
-  return (
-    <label className={`block ${ancho ? 'sm:col-span-2' : ''}`}>
-      <span className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">{etiqueta}</span>
-      {children}
-    </label>
   );
 }

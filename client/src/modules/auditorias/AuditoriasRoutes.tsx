@@ -4,7 +4,7 @@ import { CertificacionAscPage } from './pages/CertificacionAscPage';
 import { CertificacionBapPage } from './pages/CertificacionBapPage';
 
 // Rutas internas del módulo Auditorías (relativas a /auditorias)
-export function AuditoriasPage() {
+export function AuditoriasRoutes() {
   return (
     <Routes>
       <Route index element={<AuditoriasInicio />} />

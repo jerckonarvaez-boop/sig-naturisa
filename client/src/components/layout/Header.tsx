@@ -4,7 +4,7 @@ import { Logo } from '@/components/layout/Logo';
 import { APP_CONFIG } from '@/config/app';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { getInitials } from '@/utils/format';
+import { getInitials } from '@/utils/texto';
 
 interface HeaderProps {
   onToggleMenu: () => void;

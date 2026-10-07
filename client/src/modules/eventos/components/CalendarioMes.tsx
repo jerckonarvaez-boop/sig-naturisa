@@ -1,4 +1,6 @@
-import { aISO, cubreDia, DIAS_SEMANA, hoyISO, semanasDelMes } from '../logic/fechas';
+import { DIAS_SEMANA } from '@/constants/fechas';
+import { aISO, hoyISO, semanasDelMes } from '@/utils/fechas';
+import { cubreDia } from '../logic/eventos';
 import type { Evento } from '../types';
 import { EventoChip } from './EventoChip';
 

@@ -1,29 +1,33 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { DEMO_USER } from '@/config/app';
-import { apiGet, apiPost, EVENTO_SESION_VENCIDA } from '@/services/api/client';
-import { LoginPage } from '@/modules/auth/LoginPage';
+import { EVENTO_SESION_VENCIDA } from '@/services/api/client';
+import * as authService from '@/services/auth/auth.service';
+import type { Usuario } from '@/services/auth/auth.service';
 
-export interface Usuario {
-  username: string;
-  nombre: string;
-}
+export type { Usuario };
 
 interface AuthContextValue {
-  /** Usuario con sesión iniciada (null si el inicio de sesión está desactivado) */
+  /** true mientras se consulta si hay una sesión abierta */
+  cargando: boolean;
+  /** Error al consultar el estado (ej. servidor caído) */
+  error?: string;
+  /** Usuario con sesión iniciada (null si no hay sesión o el inicio de sesión está desactivado) */
   usuario: Usuario | null;
   /** Nombre para mostrar en la interfaz */
   nombreVisible: string;
   /** Texto bajo el nombre (usuario de red o rol de demo) */
   detalle: string;
+  /** false solo si el servidor tiene el inicio de sesión desactivado */
   authActiva: boolean;
+  iniciarSesion: (username: string, password: string) => Promise<void>;
   cerrarSesion: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 /**
- * Controla el acceso: si el inicio de sesión está activo y no hay sesión, muestra la pantalla
- * de ingreso en lugar de la aplicación.
+ * Estado central de la sesión. Quién puede ver la app lo decide modules/auth/ControlAcceso;
+ * las llamadas HTTP están en services/auth/auth.service.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<{ cargando: boolean; activa: boolean; usuario: Usuario | null; error?: string }>({
@@ -34,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const consultar = useCallback(async () => {
     try {
-      const r = await apiGet<{ activa: boolean; usuario: Usuario | null }>('/auth/estado');
+      const r = await authService.consultarEstado();
       setEstado({ cargando: false, activa: r.activa, usuario: r.usuario });
     } catch {
       setEstado({ cargando: false, activa: true, usuario: null, error: 'No se pudo conectar con el servidor.' });
@@ -49,28 +53,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [consultar]);
 
   const iniciarSesion = async (username: string, password: string) => {
-    const r = await apiPost<{ usuario: Usuario }>('/auth/login', { username, password });
+    const r = await authService.iniciarSesion(username, password);
     setEstado({ cargando: false, activa: true, usuario: r.usuario });
   };
 
   const cerrarSesion = async () => {
-    await apiPost('/auth/logout', {}).catch(() => undefined);
+    await authService.cerrarSesion().catch(() => undefined);
     setEstado((e) => ({ ...e, usuario: null }));
   };
 
-  if (estado.cargando) {
-    return <div className="flex h-screen items-center justify-center bg-brand-950 text-sm text-white/70">Cargando…</div>;
-  }
-
-  if (estado.activa && !estado.usuario) {
-    return <LoginPage onIngresar={iniciarSesion} errorInicial={estado.error} />;
-  }
-
   const valor: AuthContextValue = {
+    cargando: estado.cargando,
+    error: estado.error,
     usuario: estado.usuario,
     nombreVisible: estado.usuario?.nombre ?? DEMO_USER.name,
     detalle: estado.usuario?.username ?? DEMO_USER.role,
     authActiva: estado.activa,
+    iniciarSesion,
     cerrarSesion,
   };
 

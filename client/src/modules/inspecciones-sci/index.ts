@@ -1,5 +1,5 @@
 import type { AppModule } from '../types';
 import { meta } from './meta';
-import { InspeccionesSciPage } from './InspeccionesSciRoutes';
+import { InspeccionesSciRoutes } from './InspeccionesSciRoutes';
 
-export const inspeccionesSciModule: AppModule = { ...meta, Page: InspeccionesSciPage };
+export const inspeccionesSciModule: AppModule = { ...meta, Page: InspeccionesSciRoutes };

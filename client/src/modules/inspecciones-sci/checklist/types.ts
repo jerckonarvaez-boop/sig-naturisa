@@ -46,3 +46,13 @@ export interface Revision {
   actualizadoEn: string;
   respuestas: RespuestaItem[];
 }
+
+/** Respuesta mientras se edita en el formulario (fotos guardadas o recién tomadas) */
+export interface RespuestaEditable {
+  respuesta: Respuesta | null;
+  observacion: string;
+  /** Evidencia; solo se guarda si la respuesta es NO */
+  fotos: Foto[];
+}
+
+export const RESPUESTA_VACIA: RespuestaEditable = { respuesta: null, observacion: '', fotos: [] };
