@@ -63,7 +63,7 @@ export function FotosItem({ fotos, onCambiar, numero }: FotosItemProps) {
 
         {disponibles > 0 &&
           (procesando ? (
-            <span className={`${BOTON} opacity-60`}>
+            <span className={`${BOTON} inline-flex opacity-60`}>
               <LoaderCircle size={18} className="animate-spin" /> Procesando…
             </span>
           ) : (
@@ -86,7 +86,8 @@ export function FotosItem({ fotos, onCambiar, numero }: FotosItemProps) {
 }
 
 const BOTON =
-  'inline-flex h-16 min-w-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-slate-400 px-3 text-[11px] font-semibold text-slate-600 dark:border-slate-600 dark:text-slate-300 print:hidden';
+  // Sin "display": cada botón decide si se muestra (inline-flex) u oculta (hidden)
+  'h-16 min-w-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-slate-400 px-3 text-[11px] font-semibold text-slate-600 dark:border-slate-600 dark:text-slate-300 print:hidden';
 
 /** Botón que abre la cámara (camara) o el selector de imágenes (varias a la vez). */
 function BotonArchivo({
