@@ -1,7 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type ReactNode } from 'react';
 import { Camera, ImagePlus, LoaderCircle, X } from 'lucide-react';
-import { reducirImagen } from '@/utils/imagen';
-import { urlFoto } from '../api';
+import { reducirImagen } from '@/services/storage/imagenes';
+import { urlFoto } from '../services/checklist.api';
 import { MAX_FOTOS_POR_ITEM, type Foto } from '../types';
 
 interface FotosItemProps {

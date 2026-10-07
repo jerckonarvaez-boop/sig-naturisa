@@ -1,0 +1,16 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { AuditoriasInicio } from './pages/AuditoriasInicio';
+import { CertificacionAscPage } from './pages/CertificacionAscPage';
+import { CertificacionBapPage } from './pages/CertificacionBapPage';
+
+// Rutas internas del módulo Auditorías (relativas a /auditorias)
+export function AuditoriasPage() {
+  return (
+    <Routes>
+      <Route index element={<AuditoriasInicio />} />
+      <Route path="asc/*" element={<CertificacionAscPage />} />
+      <Route path="bap/*" element={<CertificacionBapPage />} />
+      <Route path="*" element={<Navigate to="/auditorias" replace />} />
+    </Routes>
+  );
+}

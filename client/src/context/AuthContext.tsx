@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { DEMO_USER } from '@/config/app';
-import { apiGet, apiPost, EVENTO_SESION_VENCIDA } from '@/services/api';
-import { LoginPage } from '@/pages/LoginPage';
+import { apiGet, apiPost, EVENTO_SESION_VENCIDA } from '@/services/api/client';
+import { LoginPage } from '@/modules/auth/LoginPage';
 
 export interface Usuario {
   username: string;

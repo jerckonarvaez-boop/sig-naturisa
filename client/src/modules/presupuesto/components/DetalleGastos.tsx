@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Download, Search } from 'lucide-react';
-import { Card } from '@/components/Card';
+import { Card } from '@/components/ui/Card';
 import { dinero, fechaCorta, miles } from '../formato';
-import { totalGasto } from '../logica';
+import { totalGasto } from '../logic/logica';
 import type { Registro } from '../types';
 
 type ColumnaOrden = 'fechaSolped' | 'notaGeneral' | 'item' | 'subarea' | 'sucursalNombre' | 'estado' | 'cantidad' | 'precioUnitario' | 'total';

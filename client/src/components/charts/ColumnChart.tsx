@@ -1,5 +1,5 @@
 import { useTip } from './Tooltip';
-import { useElementWidth } from './useElementWidth';
+import { useElementWidth } from '@/hooks/useElementWidth';
 
 export interface ColumnItem {
   key: string;

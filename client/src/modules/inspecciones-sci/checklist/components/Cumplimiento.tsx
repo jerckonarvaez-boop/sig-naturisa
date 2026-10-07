@@ -1,4 +1,4 @@
-import { cumplimiento, nivel, NIVELES, type Conteo } from '../calculo';
+import { cumplimiento, nivel, NIVELES, type Conteo } from '../logic/calculo';
 
 /** Porcentaje de cumplimiento con barra (color según nivel; el % siempre va en texto). */
 export function BarraCumplimiento({ conteo, compacta = false }: { conteo: Conteo; compacta?: boolean }) {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MessageSquarePlus } from 'lucide-react';
-import { contar } from '../calculo';
+import { contar } from '../logic/calculo';
 import type { Foto, ItemChecklist, Respuesta } from '../types';
 import { BotonesRespuesta } from './BotonesRespuesta';
 import { BarraCumplimiento } from './Cumplimiento';

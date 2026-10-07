@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { FileSpreadsheet, LoaderCircle } from 'lucide-react';
-import { importarPresupuesto } from '../api';
-import { leerExcelPresupuesto } from '../excel';
+import { importarPresupuesto } from '../services/presupuesto.api';
+import { leerExcelPresupuesto } from '../logic/leerExcel';
 import { miles } from '../formato';
 
 interface ImportarExcelProps {

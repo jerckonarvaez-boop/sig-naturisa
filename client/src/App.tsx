@@ -1,7 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
-import { AppLayout } from './layout/AppLayout';
-import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { NotFoundPage } from './pages/NotFoundPage';
+import { AppLayout } from './components/layout/AppLayout';
+import { DashboardPage } from './modules/dashboard/DashboardPage';
+import { NotFoundPage } from './routes/NotFoundPage';
 import { MODULES } from './config/modules';
 
 export function App() {

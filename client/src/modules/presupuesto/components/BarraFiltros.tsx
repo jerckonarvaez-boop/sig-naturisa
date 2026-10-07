@@ -1,6 +1,6 @@
 import { BadgeCheck, FlaskConical, LayoutGrid, Leaf, X, type LucideIcon } from 'lucide-react';
 import { MESES_LARGO } from '../formato';
-import { AREA_GENERAL } from '../logica';
+import { AREA_GENERAL } from '../logic/logica';
 import type { Filtros } from '../types';
 
 // Íconos de las pestañas por área (las áreas nuevas aparecen sin ícono)
