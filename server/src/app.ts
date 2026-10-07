@@ -3,12 +3,11 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import { env } from './config/env.js';
-import { authRouter, requiereSesion } from './modules/auth/auth.js';
-import { estadoSalud, healthRouter } from './modules/health/health.routes.js';
-import { checklistBpRouter } from './modules/checklist-bp/checklist-bp.routes.js';
-import { eventosRouter } from './modules/eventos/eventos.routes.js';
-import { presupuestoRouter } from './modules/presupuesto/presupuesto.routes.js';
-import { errorHandler, notFound } from './shared/middlewares.js';
+import { errorHandler, notFound } from './middleware/errores.js';
+import { requiereSesion } from './middleware/requiereSesion.js';
+import { authRouter } from './modules/auth/auth.routes.js';
+import { estadoSalud } from './modules/health/health.controller.js';
+import { MODULOS_API } from './modules/index.js';
 
 // Web compilada (client/dist). Existe solo en producción, tras `npm run build`.
 const WEB_DIR = fileURLToPath(new URL('../../client/dist', import.meta.url));
@@ -26,15 +25,11 @@ export function createApp() {
   app.use('/api/auth', authRouter);
   app.get('/api/health', estadoSalud);
 
-  // A partir de aquí, toda la API requiere sesión (si APP_PASSWORD está definida)
+  // A partir de aquí, toda la API requiere sesión (salvo AUTH_DISABLED=true)
   app.use('/api', requiereSesion);
 
-  // Rutas por módulo. Cada módulo nuevo se registra aquí, por ejemplo:
-  // app.use('/api/auditorias', auditoriasRouter);
-  app.use('/api/health', healthRouter);
-  app.use('/api/presupuesto', presupuestoRouter);
-  app.use('/api/eventos', eventosRouter);
-  app.use('/api/checklist-bp', checklistBpRouter);
+  // Módulos de la API (registro en modules/index.ts)
+  for (const { ruta, router } of MODULOS_API) app.use(`/api${ruta}`, router);
 
   // En producción el mismo servidor entrega la web; cualquier ruta que no sea /api abre la app
   if (existsSync(WEB_DIR)) {

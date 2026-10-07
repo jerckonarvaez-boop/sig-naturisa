@@ -1,14 +1,14 @@
 // Check list de Buenas Prácticas (deben coincidir con client/src/modules/inspecciones-sci/checklist/types.ts)
+import type { Imagen } from '../../storage/evidencias.js';
 
 export const RESPUESTAS = ['SI', 'NO', 'N/A'] as const;
 export type Respuesta = (typeof RESPUESTAS)[number];
 
 /** Fotos de evidencia: solo en requisitos marcados NO */
 export const MAX_FOTOS_POR_ITEM = 4;
-export const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 /** Foto al guardar: una ya existente (id) o una nueva (contenido) */
-export type FotoEntrada = { id: number } | { tipo: string; datos: Buffer };
+export type FotoEntrada = { id: number } | Imagen;
 
 export interface ItemChecklist {
   id: number;
