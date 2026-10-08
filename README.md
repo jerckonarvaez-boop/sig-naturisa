@@ -131,6 +131,11 @@ Replica el dashboard `Dashboard_Presupuesto_SIG.html` dentro de la plataforma.
   pulse **Importar Excel** en el módulo Presupuesto. Cada importación reemplaza los datos anteriores.
 - **Dónde se guarda:** tablas `presupuesto_*` de la base de datos (migración `002_presupuesto.sql`).
 - **API:** `GET /api/presupuesto` (datos) y `POST /api/presupuesto/importar` (reemplazo).
+- **Datos iniciales en la web de prueba:** el plan gratuito de Render borra la base de datos cada vez
+  que el servicio se duerme o se publica. Al arrancar con el presupuesto vacío, el servidor carga el
+  último Excel importado en el PC desde `server/semillas/presupuesto.sig` (cifrado con AES-256, porque
+  el repositorio es público). Necesita la variable `SEMILLA_CLAVE` en Render, igual a la de `server/.env`.
+  Para actualizarlo: importe el Excel en la versión local, ejecute `npm run semilla -w server` y publique.
 - **Código:** `client/src/modules/presupuesto/`. Cálculos en `logic/logica.ts` y `logic/agregaciones.ts`
   (datos de cada gráfico), mapeo de columnas del Excel en `logic/leerExcel.ts`, estado de los filtros
   en `hooks/useTablero.ts` y la página en `pages/PresupuestoPage.tsx`.

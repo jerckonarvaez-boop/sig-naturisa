@@ -57,8 +57,11 @@ export function obtenerPresupuesto(): PresupuestoData {
   return { importacion, gastos, presupuestoArea, presupuestoSubarea };
 }
 
-/** Reemplaza todos los datos del presupuesto por los de la nueva importación. */
-export function importarPresupuesto(data: ImportarPresupuestoBody): Importacion {
+/**
+ * Reemplaza todos los datos del presupuesto por los de la nueva importación.
+ * `importadoEn` (opcional) conserva la fecha de una importación anterior (datos iniciales).
+ */
+export function importarPresupuesto(data: ImportarPresupuestoBody, importadoEn?: string): Importacion {
   return transaction(() => {
     db.exec('DELETE FROM presupuesto_gasto; DELETE FROM presupuesto_area; DELETE FROM presupuesto_subarea;');
 
@@ -87,10 +90,10 @@ export function importarPresupuesto(data: ImportarPresupuestoBody): Importacion 
     );
     for (const p of data.presupuestoSubarea) insertarSubarea.run(p.area, p.subarea, p.monto);
 
-    db.prepare('INSERT INTO presupuesto_importacion (archivo, registros) VALUES (?, ?)').run(
-      data.archivo,
-      data.gastos.length,
-    );
+    db.prepare(
+      `INSERT INTO presupuesto_importacion (archivo, registros, importado_en)
+       VALUES (?, ?, COALESCE(?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now')))`,
+    ).run(data.archivo, data.gastos.length, importadoEn ?? null);
 
     return obtenerPresupuesto().importacion!;
   });

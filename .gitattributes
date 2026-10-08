@@ -1,0 +1,2 @@
+# Datos cifrados: nunca convertir saltos de línea
+*.sig binary

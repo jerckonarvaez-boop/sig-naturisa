@@ -22,6 +22,10 @@ services:
       # Clave aleatoria para firmar las sesiones (Render la genera automáticamente)
       - key: SESSION_SECRET
         generateValue: true
+      # Clave de los datos iniciales cifrados (server/semillas). Se escribe a mano en el panel de
+      # Render (Environment), igual a SEMILLA_CLAVE de server/.env; nunca se sube a GitHub.
+      - key: SEMILLA_CLAVE
+        sync: false
       # - key: DB_PATH
       #   value: /var/data/sig.db
     # disk:
