@@ -22,5 +22,16 @@ export const ESTADOS: Record<EstadoReparacion, { label: string; icono: LucideIco
 
 export const ESTADOS_ORDEN: EstadoReparacion[] = ['reparado', 'en-reparacion', 'no-reparable'];
 
-/** Ítems del presupuesto que parecen repuestos de oxigenómetro: se muestran primero en la lista de partes */
-export const ES_REPUESTO_OXIGENOMETRO = /oxigen|sensor|sonda|membran|cable|board|pro20|proodo|electrodo/i;
+/** Partes de un oxigenómetro que se pueden registrar (lista validada; para agregar una, añádala aquí) */
+export const PARTES = [
+  'Sonda / sensor',
+  'Tapa del sensor (cap)',
+  'Membrana',
+  'Cable',
+  'Conector',
+  'Medidor (lector)',
+  'Tarjeta madre (board)',
+  'Pantalla',
+  'Teclado',
+  'Batería / pilas',
+];

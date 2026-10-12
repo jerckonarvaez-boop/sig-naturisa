@@ -25,7 +25,7 @@ export function KpisAhorro({ resumen }: { resumen: ResumenAhorro }) {
           </span>
         }
       />
-      <Indicador etiqueta="Ahorro promedio por parte" valor={dinero(promedioPorParte)} detalle="Precio de la última compra" />
+      <Indicador etiqueta="Ahorro promedio por parte" valor={dinero(promedioPorParte)} detalle="Según el precio de la parte nueva" />
     </div>
   );
 }

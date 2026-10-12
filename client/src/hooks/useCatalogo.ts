@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getCatalogo, type CatalogoPresupuesto } from '@/services/api/catalogo';
 
-const VACIO: CatalogoPresupuesto = { items: [], centrosCosto: [] };
+const VACIO: CatalogoPresupuesto = { centrosCosto: [] };
 
 /**
- * Ítems con precio y centros de costo del presupuesto, para formularios de cualquier módulo.
- * Mientras carga (o si falla) devuelve listas vacías y `cargado: false`.
+ * Centros de costo del presupuesto, para las listas validadas de cualquier módulo.
+ * Mientras carga (o si falla) devuelve la lista vacía y `cargado: false`.
  */
 export function useCatalogo() {
   const [catalogo, setCatalogo] = useState<CatalogoPresupuesto>(VACIO);

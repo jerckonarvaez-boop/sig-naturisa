@@ -3,9 +3,7 @@
 // en comprar la parte nueva.
 import type { BarListItem } from '@/components/charts/BarList';
 import { MESES } from '@/constants/fechas';
-import type { ItemCatalogo } from '@/services/api/catalogo';
 import { dinero, miles } from '@/utils/numeros';
-import { ES_REPUESTO_OXIGENOMETRO } from '../config';
 import type { Reparacion } from '../types';
 
 /** Ahorro de una reparación: precio de la parte nueva × cantidad (solo si quedó reparada) */
@@ -82,37 +80,10 @@ const unicos = (valores: string[]) => [...new Set(valores.filter(Boolean))].sort
 
 /** Sugerencias del formulario a partir de las reparaciones ya registradas */
 export function sugerenciasDe(lista: Reparacion[]) {
-  // La lista viene de la más reciente a la más antigua: el primer precio encontrado es el último usado
-  const ultimoPrecio = new Map<string, number>();
-  for (const r of lista) if (!ultimoPrecio.has(r.parte.toLowerCase())) ultimoPrecio.set(r.parte.toLowerCase(), r.precioNuevo);
   return {
-    partesUsadas: unicos(lista.map((r) => r.parte)),
     equipos: unicos(lista.map((r) => r.equipo)),
     responsables: unicos(lista.map((r) => r.responsable)),
-    ultimoPrecio,
   };
 }
 
 export type SugerenciasReparacion = ReturnType<typeof sugerenciasDe>;
-
-/**
- * Lista de partes para elegir: ítems del presupuesto (primero los que parecen repuestos de
- * oxigenómetro) y luego las partes ya registradas que no estén en el presupuesto.
- */
-export function partesParaElegir(items: ItemCatalogo[], partesUsadas: string[]): string[] {
-  const nombres = items.map((i) => i.nombre);
-  const primero = nombres.filter((n) => ES_REPUESTO_OXIGENOMETRO.test(n));
-  const resto = nombres.filter((n) => !ES_REPUESTO_OXIGENOMETRO.test(n));
-  const enCatalogo = new Set(nombres.map((n) => n.toLowerCase()));
-  return [...primero, ...partesUsadas.filter((p) => !enCatalogo.has(p.toLowerCase())), ...resto];
-}
-
-/** Precio sugerido para una parte: el de su última compra en el presupuesto o, si no está, el último usado */
-export function precioSugerido(parte: string, items: ItemCatalogo[], sugerencias: SugerenciasReparacion) {
-  const clave = parte.trim().toLowerCase();
-  if (!clave) return null;
-  const item = items.find((i) => i.nombre.toLowerCase() === clave);
-  if (item) return { precio: item.precioUnitario, origen: 'presupuesto' as const, fecha: item.ultimaCompra };
-  const usado = sugerencias.ultimoPrecio.get(clave);
-  return usado != null ? { precio: usado, origen: 'reparaciones' as const, fecha: '' } : null;
-}

@@ -17,7 +17,7 @@ export const importar: RequestHandler = async (req, res) => {
   res.status(201).json(await importarPresupuesto(req.body));
 };
 
-// GET /api/presupuesto/catalogo -> ítems con precio y centros de costo (listas para otros módulos)
+// GET /api/presupuesto/catalogo -> centros de costo (lista validada para otros módulos)
 export const catalogo: RequestHandler = async (_req, res) => {
   res.json(await obtenerCatalogo());
 };

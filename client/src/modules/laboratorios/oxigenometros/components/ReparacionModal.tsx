@@ -1,14 +1,15 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Campo, CLASE_CONTROL } from '@/components/forms/Campo';
 import { SelectCentroCosto } from '@/components/forms/SelectCentroCosto';
+import { SelectLista } from '@/components/forms/SelectLista';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Modal } from '@/components/ui/Modal';
 import { useCatalogo } from '@/hooks/useCatalogo';
-import { fechaNumerica, hoyISO } from '@/utils/fechas';
+import { hoyISO } from '@/utils/fechas';
 import { dinero } from '@/utils/numeros';
-import { ESTADOS, ESTADOS_ORDEN } from '../config';
-import { partesParaElegir, precioSugerido, type SugerenciasReparacion } from '../logic/ahorro';
+import { ESTADOS, ESTADOS_ORDEN, PARTES } from '../config';
+import type { SugerenciasReparacion } from '../logic/ahorro';
 import type { EstadoReparacion, Reparacion, ReparacionDatos } from '../types';
 
 interface ReparacionModalProps {
@@ -40,22 +41,10 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
     responsable: reparacion?.responsable ?? '',
     observaciones: reparacion?.observaciones ?? '',
   }));
-  // true mientras el precio venga de la sugerencia (si el usuario lo cambia a mano, ya no se reemplaza)
-  const [precioAutomatico, setPrecioAutomatico] = useState(!reparacion);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const partes = useMemo(() => partesParaElegir(catalogo.items, sugerencias.partesUsadas), [catalogo.items, sugerencias.partesUsadas]);
-  const sugerido = precioSugerido(datos.parte, catalogo.items, sugerencias);
-
   const cambiar = <K extends keyof Formulario>(campo: K, valor: Formulario[K]) => setDatos((d) => ({ ...d, [campo]: valor }));
-
-  /** Al elegir una parte conocida, pone el precio de su última compra (si no se escribió otro a mano) */
-  function cambiarParte(parte: string) {
-    const precio = precioSugerido(parte, catalogo.items, sugerencias);
-    setDatos((d) => ({ ...d, parte, precioNuevo: precio && (precioAutomatico || !d.precioNuevo) ? String(precio.precio) : d.precioNuevo }));
-    if (precio) setPrecioAutomatico(true);
-  }
 
   const cantidad = numero(datos.cantidad);
   const precio = numero(datos.precioNuevo);
@@ -121,17 +110,7 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
     >
       <form id="form-reparacion" onSubmit={enviar} className="grid gap-3 sm:grid-cols-2">
         <Campo etiqueta="Parte reparada *" className="sm:col-span-2">
-          <input
-            required
-            autoFocus
-            list="partes-oxigenometro"
-            maxLength={120}
-            value={datos.parte}
-            onChange={(e) => cambiarParte(e.target.value)}
-            placeholder="Escriba o elija un ítem del presupuesto (ej. Cable, Sensor, Board…)"
-            className={CLASE_CONTROL}
-          />
-          <Sugerencias id="partes-oxigenometro" valores={partes} />
+          <SelectLista required value={datos.parte} onChange={(v) => cambiar('parte', v)} opciones={PARTES} />
         </Campo>
 
         <div className="grid grid-cols-2 gap-3">
@@ -150,20 +129,10 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
             step="0.01"
             inputMode="decimal"
             value={datos.precioNuevo}
-            onChange={(e) => {
-              setPrecioAutomatico(false);
-              cambiar('precioNuevo', e.target.value);
-            }}
+            onChange={(e) => cambiar('precioNuevo', e.target.value)}
             placeholder="Lo que costaría comprarla"
             className={CLASE_CONTROL}
           />
-          {sugerido && (
-            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
-              {sugerido.origen === 'presupuesto'
-                ? `Última compra en el presupuesto: ${dinero(sugerido.precio, 2)}${sugerido.fecha ? ` (${fechaNumerica(sugerido.fecha)})` : ''}`
-                : `Último precio registrado: ${dinero(sugerido.precio, 2)}`}
-            </span>
-          )}
         </Campo>
 
         {/* Ahorro calculado en vivo */}
