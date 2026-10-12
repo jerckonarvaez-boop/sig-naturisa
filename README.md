@@ -141,6 +141,30 @@ Replica el dashboard `Dashboard_Presupuesto_SIG.html` dentro de la plataforma.
   (datos de cada gráfico), mapeo de columnas del Excel en `logic/leerExcel.ts`, estado de los filtros
   en `hooks/useTablero.ts` y la página en `pages/PresupuestoPage.tsx`.
 
+## Informes de laboratorio (Agua, Suelo, Patologías en fresco)
+
+Registro de los informes de ensayo con el mismo formato del Excel: parámetros en filas y una columna por
+muestra (piscina, precría…).
+
+| Sección | Código | Tipos de informe |
+|---|---|---|
+| Análisis de Agua (`/laboratorios/agua`) | AA-AAAA-NNN | Con químicos y bacteriología · Básico (salinidad, pH, alcalinidad) |
+| Análisis de Suelo (`/laboratorios/suelo`) | AS-AAAA-NNN | Materia orgánica (humedad, pH seco, % MO) |
+| Patologías en fresco (`/laboratorios/patologias`) | AF-AAAA-NNN | Una o varias muestras, con o sin bacteriología |
+
+- **Definición única:** parámetros, unidades, grupos, tipos y referencias están en
+  `server/src/modules/laboratorio/laboratorio.secciones.ts`; la interfaz la pide a `GET /api/laboratorio/secciones`
+  y dibuja el formulario. Para agregar un parámetro o una sección basta con editar ese archivo.
+- **Ayudas:** valores de agua fuera de referencia (pH 7–8, alcalinidad 100–140, amonio, fosfato) se marcan
+  ▲ alto / ▼ bajo; Ca, Mg y K muestran su referencia (factor × salinidad); en patología cada grado muestra su
+  nivel (ausencia, bajo, medio, alto, muy alto); el total de fitoplancton se calcula solo.
+- **Identificación de la muestra:** lista validada de centros de costo del presupuesto + clientes del laboratorio
+  (`CLIENTES_LABORATORIO`, hoy Kamaclusa y Pesjoya).
+- **Código:** se sugiere el siguiente número del año (también entiende rangos como "AF-2026-128 al 133").
+- **API:** `GET/POST /api/laboratorio/informes` (`?seccion=agua|suelo|patologia`), `GET/PUT/DELETE
+  /api/laboratorio/informes/:id`. **Base de datos:** `lab_informe` y `lab_muestra` (valores en JSON),
+  migración `007_laboratorio.sql`. **Código:** `client/src/modules/laboratorios/analisis/`.
+
 ## Oxigenómetros (Laboratorios de análisis)
 
 Registro de las partes de oxigenómetros que repara el propio personal (sin costo) en lugar de comprarlas nuevas.
