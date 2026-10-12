@@ -141,6 +141,19 @@ Replica el dashboard `Dashboard_Presupuesto_SIG.html` dentro de la plataforma.
   (datos de cada gráfico), mapeo de columnas del Excel en `logic/leerExcel.ts`, estado de los filtros
   en `hooks/useTablero.ts` y la página en `pages/PresupuestoPage.tsx`.
 
+## Oxigenómetros (Laboratorios de análisis)
+
+Registro de las partes de oxigenómetros que se reparan en lugar de comprarlas nuevas y del ahorro obtenido.
+
+- **Ruta:** Laboratorios de análisis ▸ Oxigenómetros (`/laboratorios/oxigenometros`).
+- **Ahorro** de cada reparación = (precio de la parte nueva − costo de reparar) × cantidad. Solo cuenta si el
+  estado es *Reparado* (no las que están *En reparación* o son *No reparables*).
+- **Tablero:** partes reparadas, ahorro, costo de comprar nuevo, costo de reparar, ahorro por mes y por tipo de
+  parte, filtrable por año. El formulario propone el último precio usado para cada parte.
+- **API:** CRUD en `/api/oxigenometros/reparaciones`. **Base de datos:** tabla `oxigenometro_reparacion`
+  (migración `006_oxigenometros.sql`). **Código:** `client/src/modules/laboratorios/oxigenometros/` y
+  `server/src/modules/oxigenometros/`.
+
 ## Calendario de eventos (Auditorías ASC/BAP e Inspecciones SCI)
 
 - **Dónde aparece:** en Certificación ASC, Certificación BAP e Inspecciones SCI (cada uno con su

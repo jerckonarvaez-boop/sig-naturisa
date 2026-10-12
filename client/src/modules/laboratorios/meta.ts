@@ -1,5 +1,12 @@
 import { FlaskConical } from 'lucide-react';
-import type { ModuleMeta } from '../types';
+import type { ModuleMeta, SubSection } from '../types';
+
+export const OXIGENOMETROS: SubSection = {
+  id: 'oxigenometros',
+  label: 'Oxigenómetros',
+  description: 'Reparación de partes y ahorro frente a comprar partes nuevas.',
+  path: '/laboratorios/oxigenometros',
+};
 
 export const meta: ModuleMeta = {
   id: 'laboratorios',
@@ -8,4 +15,5 @@ export const meta: ModuleMeta = {
   path: '/laboratorios',
   icon: FlaskConical,
   status: 'activo',
+  children: [OXIGENOMETROS],
 };

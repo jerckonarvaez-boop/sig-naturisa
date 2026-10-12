@@ -1,5 +1,5 @@
 import type { AppModule } from '../types';
 import { meta } from './meta';
-import { LaboratoriosPage } from './pages/LaboratoriosPage';
+import { LaboratoriosRoutes } from './LaboratoriosRoutes';
 
-export const laboratoriosModule: AppModule = { ...meta, Page: LaboratoriosPage };
+export const laboratoriosModule: AppModule = { ...meta, Page: LaboratoriosRoutes };
