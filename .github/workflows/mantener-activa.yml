@@ -1,0 +1,19 @@
+# Mantiene despierta la web de prueba en Render (el plan gratuito la duerme tras 15 min sin visitas
+# y luego tarda ~1 min en abrir). Solo en horario laboral para no pasar las 750 h gratis al mes.
+name: Mantener activa la web de prueba
+
+on:
+  schedule:
+    # Cada 5 minutos de 06:00 a 18:59 hora de Ecuador (UTC-5), de lunes a sábado
+    - cron: '*/5 11-23 * * 1-6'
+  workflow_dispatch: # permite ejecutarlo a mano desde la pestaña Actions
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Consultar el estado de la web
+        run: curl -fsS --max-time 120 --retry 3 --retry-delay 15 https://sig-naturisa.onrender.com/api/health

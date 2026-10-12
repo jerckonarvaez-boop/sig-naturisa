@@ -222,3 +222,9 @@ El archivo `render.yaml` define el despliegue y Render vuelve a publicar con cad
 **Datos:** con el plan gratuito, la base de datos se **borra en cada despliegue o reinicio**, y el
 servicio se duerme tras unos minutos sin uso. Para conservar los datos, en `render.yaml` cambie
 `plan: free` por `starter` y descomente `disk` y `DB_PATH`. Es de pago.
+
+**Apertura rápida (plan gratuito):** Render duerme el servicio tras 15 minutos sin visitas y luego
+tarda ~1 minuto en abrir. La acción de GitHub `.github/workflows/mantener-activa.yml` consulta
+`/api/health` cada 5 minutos de 06:00 a 18:59 (hora de Ecuador), de lunes a sábado, para que no se
+duerma en horario laboral sin pasar las 750 horas gratuitas al mes. Se puede ejecutar a mano desde la
+pestaña *Actions* de GitHub. GitHub desactiva las tareas programadas si el repositorio pasa 60 días sin cambios.
