@@ -16,8 +16,6 @@ export function validarReparacion(body: Record<string, unknown> | undefined): Va
   if (typeof cantidad !== 'number' || !Number.isInteger(cantidad) || cantidad < 1 || cantidad > 1000) {
     return { error: 'La cantidad debe ser un número entero entre 1 y 1000.' };
   }
-  const costoReparacion = monto(body.costoReparacion);
-  if (costoReparacion === null) return { error: 'El costo de la reparación no es válido.' };
   const precioNuevo = monto(body.precioNuevo);
   if (precioNuevo === null) return { error: 'El precio de la parte nueva no es válido.' };
   if (!esUnoDe(ESTADOS_REPARACION, body.estado)) return { error: 'Estado no válido.' };
@@ -30,7 +28,6 @@ export function validarReparacion(body: Record<string, unknown> | undefined): Va
       equipo: texto(body.equipo, 120),
       sucursal: texto(body.sucursal, 120),
       trabajo: texto(body.trabajo, 1000),
-      costoReparacion,
       precioNuevo,
       estado: body.estado,
       responsable: texto(body.responsable, 120),

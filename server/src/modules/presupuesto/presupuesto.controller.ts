@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import { importarPresupuesto, obtenerPresupuesto } from './presupuesto.service.js';
+import { importarPresupuesto, obtenerCatalogo, obtenerPresupuesto } from './presupuesto.service.js';
 import { validarImportacion } from './presupuesto.validator.js';
 
 // GET /api/presupuesto -> todos los datos del presupuesto (gastos + montos presupuestados)
@@ -15,4 +15,9 @@ export const importar: RequestHandler = async (req, res) => {
     return;
   }
   res.status(201).json(await importarPresupuesto(req.body));
+};
+
+// GET /api/presupuesto/catalogo -> ítems con precio y centros de costo (listas para otros módulos)
+export const catalogo: RequestHandler = async (_req, res) => {
+  res.json(await obtenerCatalogo());
 };

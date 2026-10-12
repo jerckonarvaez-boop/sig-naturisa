@@ -2,7 +2,7 @@
 
 export type EstadoReparacion = 'reparado' | 'en-reparacion' | 'no-reparable';
 
-/** Datos editables de una reparación (montos unitarios en USD) */
+/** Datos editables de una reparación (USD). Reparar no tiene costo: lo hace el personal de la empresa. */
 export interface ReparacionDatos {
   fecha: string;
   parte: string;
@@ -10,9 +10,7 @@ export interface ReparacionDatos {
   equipo: string;
   sucursal: string;
   trabajo: string;
-  /** Costo de reparar UNA parte (repuestos + mano de obra) */
-  costoReparacion: number;
-  /** Precio de comprar UNA parte nueva */
+  /** Precio de comprar UNA parte nueva = ahorro por cada unidad reparada */
   precioNuevo: number;
   estado: EstadoReparacion;
   responsable: string;

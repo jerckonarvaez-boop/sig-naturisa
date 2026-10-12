@@ -1,6 +1,7 @@
 import type { InStatement } from '@libsql/client';
 import { consultar, consultarUna, lote } from '../../db/database.js';
 import type {
+  CatalogoPresupuesto,
   Gasto,
   ImportarPresupuestoBody,
   Importacion,
@@ -112,4 +113,26 @@ export async function importarPresupuesto(data: ImportarPresupuestoBody, importa
 
   await lote(sentencias);
   return (await ultimaImportacion())!;
+}
+
+/** Ítems (con el precio de su última compra) y centros de costo del presupuesto, para otros módulos */
+export async function obtenerCatalogo(): Promise<CatalogoPresupuesto> {
+  const [filasItems, filasCentros] = await Promise.all([
+    consultar(
+      `SELECT item, precio_unitario, fecha_solped FROM presupuesto_gasto
+       WHERE item <> '' ORDER BY fecha_solped DESC, id DESC`,
+    ),
+    consultar(`SELECT DISTINCT sucursal FROM presupuesto_gasto WHERE sucursal <> '' ORDER BY sucursal`),
+  ]);
+  const items = new Map<string, CatalogoPresupuesto['items'][number]>();
+  for (const r of filasItems) {
+    const nombre = texto(r.item).trim();
+    if (nombre && !items.has(nombre)) {
+      items.set(nombre, { nombre, precioUnitario: Number(r.precio_unitario), ultimaCompra: texto(r.fecha_solped) });
+    }
+  }
+  return {
+    items: [...items.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
+    centrosCosto: filasCentros.map((r) => texto(r.sucursal).trim()).filter(Boolean),
+  };
 }

@@ -51,3 +51,18 @@ export interface PresupuestoData {
   presupuestoArea: PresupuestoArea[];
   presupuestoSubarea: PresupuestoSubarea[];
 }
+
+/** Ítem comprado según el presupuesto, con el precio unitario de su última compra */
+export interface ItemCatalogo {
+  nombre: string;
+  precioUnitario: number;
+  /** Fecha de la última compra (AAAA-MM-DD) */
+  ultimaCompra: string;
+}
+
+/** Respuesta de GET /api/presupuesto/catalogo: listas que usan otros módulos */
+export interface CatalogoPresupuesto {
+  items: ItemCatalogo[];
+  /** Sucursales / centros de costo definidos en el presupuesto */
+  centrosCosto: string[];
+}

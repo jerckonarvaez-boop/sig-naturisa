@@ -1,7 +1,7 @@
 import { consultar, consultarUna, ejecutar, type Fila } from '../../db/database.js';
 import type { EstadoReparacion, Reparacion, ReparacionDatos } from './oxigenometros.types.js';
 
-const COLUMNAS = `id, fecha, parte, cantidad, equipo, sucursal, trabajo, costo_reparacion, precio_nuevo, estado,
+const COLUMNAS = `id, fecha, parte, cantidad, equipo, sucursal, trabajo, precio_nuevo, estado,
                   responsable, observaciones, creado_en, actualizado_en`;
 
 function aReparacion(r: Fila): Reparacion {
@@ -13,7 +13,6 @@ function aReparacion(r: Fila): Reparacion {
     equipo: String(r.equipo ?? ''),
     sucursal: String(r.sucursal ?? ''),
     trabajo: String(r.trabajo ?? ''),
-    costoReparacion: Number(r.costo_reparacion),
     precioNuevo: Number(r.precio_nuevo),
     estado: String(r.estado) as EstadoReparacion,
     responsable: String(r.responsable ?? ''),
@@ -24,7 +23,7 @@ function aReparacion(r: Fila): Reparacion {
 }
 
 const valores = (d: ReparacionDatos) => [
-  d.fecha, d.parte, d.cantidad, d.equipo, d.sucursal, d.trabajo, d.costoReparacion, d.precioNuevo, d.estado,
+  d.fecha, d.parte, d.cantidad, d.equipo, d.sucursal, d.trabajo, d.precioNuevo, d.estado,
   d.responsable, d.observaciones,
 ];
 
@@ -40,8 +39,8 @@ export async function obtenerReparacion(id: number): Promise<Reparacion | null> 
 
 export async function crearReparacion(d: ReparacionDatos): Promise<Reparacion> {
   const { id } = await ejecutar(
-    `INSERT INTO oxigenometro_reparacion (fecha, parte, cantidad, equipo, sucursal, trabajo, costo_reparacion,
-       precio_nuevo, estado, responsable, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO oxigenometro_reparacion (fecha, parte, cantidad, equipo, sucursal, trabajo, precio_nuevo,
+       estado, responsable, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     valores(d),
   );
   return (await obtenerReparacion(id))!;
@@ -50,7 +49,7 @@ export async function crearReparacion(d: ReparacionDatos): Promise<Reparacion> {
 export async function actualizarReparacion(id: number, d: ReparacionDatos): Promise<Reparacion | null> {
   const { cambios } = await ejecutar(
     `UPDATE oxigenometro_reparacion SET fecha = ?, parte = ?, cantidad = ?, equipo = ?, sucursal = ?, trabajo = ?,
-       costo_reparacion = ?, precio_nuevo = ?, estado = ?, responsable = ?, observaciones = ?,
+       precio_nuevo = ?, estado = ?, responsable = ?, observaciones = ?,
        actualizado_en = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
      WHERE id = ?`,
     [...valores(d), id],

@@ -1,12 +1,14 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Campo, CLASE_CONTROL } from '@/components/forms/Campo';
+import { SelectCentroCosto } from '@/components/forms/SelectCentroCosto';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Modal } from '@/components/ui/Modal';
-import { hoyISO } from '@/utils/fechas';
-import { dinero, porcentaje } from '@/utils/numeros';
+import { useCatalogo } from '@/hooks/useCatalogo';
+import { fechaNumerica, hoyISO } from '@/utils/fechas';
+import { dinero } from '@/utils/numeros';
 import { ESTADOS, ESTADOS_ORDEN } from '../config';
-import type { SugerenciasReparacion } from '../logic/ahorro';
+import { partesParaElegir, precioSugerido, type SugerenciasReparacion } from '../logic/ahorro';
 import type { EstadoReparacion, Reparacion, ReparacionDatos } from '../types';
 
 interface ReparacionModalProps {
@@ -18,17 +20,14 @@ interface ReparacionModalProps {
   onCerrar: () => void;
 }
 
-/** Los montos se editan como texto para permitir dejar el campo vacío mientras se escribe */
-type Formulario = Omit<ReparacionDatos, 'cantidad' | 'costoReparacion' | 'precioNuevo'> & {
-  cantidad: string;
-  costoReparacion: string;
-  precioNuevo: string;
-};
+/** Cantidad y precio se editan como texto para permitir dejar el campo vacío mientras se escribe */
+type Formulario = Omit<ReparacionDatos, 'cantidad' | 'precioNuevo'> & { cantidad: string; precioNuevo: string };
 
 const numero = (v: string) => (v.trim() === '' ? NaN : Number(v.replace(',', '.')));
 
 /** Formulario para registrar o editar la reparación de una parte de oxigenómetro. */
 export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar, onCerrar }: ReparacionModalProps) {
+  const catalogo = useCatalogo();
   const [datos, setDatos] = useState<Formulario>(() => ({
     fecha: reparacion?.fecha ?? hoyISO(),
     parte: reparacion?.parte ?? '',
@@ -36,30 +35,32 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
     equipo: reparacion?.equipo ?? '',
     sucursal: reparacion?.sucursal ?? '',
     trabajo: reparacion?.trabajo ?? '',
-    costoReparacion: reparacion ? String(reparacion.costoReparacion) : '',
     precioNuevo: reparacion ? String(reparacion.precioNuevo) : '',
     estado: reparacion?.estado ?? 'reparado',
     responsable: reparacion?.responsable ?? '',
     observaciones: reparacion?.observaciones ?? '',
   }));
+  // true mientras el precio venga de la sugerencia (si el usuario lo cambia a mano, ya no se reemplaza)
+  const [precioAutomatico, setPrecioAutomatico] = useState(!reparacion);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const partes = useMemo(() => partesParaElegir(catalogo.items, sugerencias.partesUsadas), [catalogo.items, sugerencias.partesUsadas]);
+  const sugerido = precioSugerido(datos.parte, catalogo.items, sugerencias);
+
   const cambiar = <K extends keyof Formulario>(campo: K, valor: Formulario[K]) => setDatos((d) => ({ ...d, [campo]: valor }));
 
-  /** Al elegir una parte ya registrada, propone sus últimos precios si aún no se han escrito */
-  const cambiarParte = (parte: string) =>
-    setDatos((d) => {
-      const previo = sugerencias.ultimoPrecio.get(parte.trim().toLowerCase());
-      if (!previo || d.precioNuevo || d.costoReparacion) return { ...d, parte };
-      return { ...d, parte, precioNuevo: String(previo.precioNuevo), costoReparacion: String(previo.costoReparacion) };
-    });
+  /** Al elegir una parte conocida, pone el precio de su última compra (si no se escribió otro a mano) */
+  function cambiarParte(parte: string) {
+    const precio = precioSugerido(parte, catalogo.items, sugerencias);
+    setDatos((d) => ({ ...d, parte, precioNuevo: precio && (precioAutomatico || !d.precioNuevo) ? String(precio.precio) : d.precioNuevo }));
+    if (precio) setPrecioAutomatico(true);
+  }
 
   const cantidad = numero(datos.cantidad);
-  const costo = numero(datos.costoReparacion);
-  const nuevo = numero(datos.precioNuevo);
-  const ahorro = (nuevo - costo) * cantidad;
-  const calculable = [cantidad, costo, nuevo].every(Number.isFinite);
+  const precio = numero(datos.precioNuevo);
+  const calculable = Number.isFinite(cantidad) && Number.isFinite(precio);
+  const ahorro = precio * cantidad;
 
   async function ejecutar(accion: () => Promise<void>) {
     setGuardando(true);
@@ -76,10 +77,10 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
   function enviar(e: FormEvent) {
     e.preventDefault();
     if (!calculable) {
-      setError('Complete la cantidad, el costo de la reparación y el precio de la parte nueva.');
+      setError('Complete la cantidad y el precio de la parte nueva.');
       return;
     }
-    ejecutar(() => onGuardar({ ...datos, cantidad, costoReparacion: costo, precioNuevo: nuevo }, reparacion?.id));
+    ejecutar(() => onGuardar({ ...datos, cantidad, precioNuevo: precio }, reparacion?.id));
   }
 
   function borrar() {
@@ -119,7 +120,7 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
       }
     >
       <form id="form-reparacion" onSubmit={enviar} className="grid gap-3 sm:grid-cols-2">
-        <Campo etiqueta="Parte reparada *">
+        <Campo etiqueta="Parte reparada *" className="sm:col-span-2">
           <input
             required
             autoFocus
@@ -127,11 +128,12 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
             maxLength={120}
             value={datos.parte}
             onChange={(e) => cambiarParte(e.target.value)}
-            placeholder="Ej. Sonda / sensor"
+            placeholder="Escriba o elija un ítem del presupuesto (ej. Cable, Sensor, Board…)"
             className={CLASE_CONTROL}
           />
-          <Sugerencias id="partes-oxigenometro" valores={sugerencias.partes} />
+          <Sugerencias id="partes-oxigenometro" valores={partes} />
         </Campo>
+
         <div className="grid grid-cols-2 gap-3">
           <Campo etiqueta="Cantidad *">
             <input type="number" required min={1} max={1000} step={1} value={datos.cantidad} onChange={(e) => cambiar('cantidad', e.target.value)} className={CLASE_CONTROL} />
@@ -140,21 +142,7 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
             <input type="date" required value={datos.fecha} onChange={(e) => cambiar('fecha', e.target.value)} className={CLASE_CONTROL} />
           </Campo>
         </div>
-
-        <Campo etiqueta="Costo de reparar (USD por unidad) *">
-          <input
-            type="number"
-            required
-            min={0}
-            step="0.01"
-            inputMode="decimal"
-            value={datos.costoReparacion}
-            onChange={(e) => cambiar('costoReparacion', e.target.value)}
-            placeholder="Repuestos + mano de obra"
-            className={CLASE_CONTROL}
-          />
-        </Campo>
-        <Campo etiqueta="Precio de la parte nueva (USD por unidad) *">
+        <Campo etiqueta="Precio de la parte nueva (USD c/u) *">
           <input
             type="number"
             required
@@ -162,25 +150,33 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
             step="0.01"
             inputMode="decimal"
             value={datos.precioNuevo}
-            onChange={(e) => cambiar('precioNuevo', e.target.value)}
+            onChange={(e) => {
+              setPrecioAutomatico(false);
+              cambiar('precioNuevo', e.target.value);
+            }}
             placeholder="Lo que costaría comprarla"
             className={CLASE_CONTROL}
           />
+          {sugerido && (
+            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+              {sugerido.origen === 'presupuesto'
+                ? `Última compra en el presupuesto: ${dinero(sugerido.precio, 2)}${sugerido.fecha ? ` (${fechaNumerica(sugerido.fecha)})` : ''}`
+                : `Último precio registrado: ${dinero(sugerido.precio, 2)}`}
+            </span>
+          )}
         </Campo>
 
         {/* Ahorro calculado en vivo */}
         <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm sm:col-span-2 dark:bg-slate-800/50">
           {!calculable ? (
-            <span className="text-slate-500 dark:text-slate-400">El ahorro se calcula al completar cantidad y montos.</span>
+            <span className="text-slate-500 dark:text-slate-400">El ahorro se calcula al completar la cantidad y el precio.</span>
           ) : datos.estado !== 'reparado' ? (
             <span className="text-slate-500 dark:text-slate-400">
               El ahorro ({dinero(ahorro, 2)}) se contará cuando la parte quede <b>reparada</b>.
             </span>
           ) : (
             <span>
-              Ahorro: <b className={ahorro < 0 ? 'text-red-600 dark:text-red-400' : ''}>{dinero(ahorro, 2)}</b>
-              {nuevo > 0 && ` · ${porcentaje(ahorro / (nuevo * cantidad))} menos que comprar nueva`}
-              {ahorro < 0 && ' (reparar costó más que comprar nueva)'}
+              Ahorro: <b>{dinero(ahorro, 2)}</b> · lo que habría costado comprar {cantidad === 1 ? 'la parte nueva' : `las ${cantidad} partes nuevas`}
             </span>
           )}
         </div>
@@ -194,13 +190,12 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
             ))}
           </select>
         </Campo>
-        <Campo etiqueta="Equipo (modelo / serie)">
-          <input list="equipos-oxigenometro" maxLength={120} value={datos.equipo} onChange={(e) => cambiar('equipo', e.target.value)} placeholder="Ej. YSI ProODO · 21A100123" className={CLASE_CONTROL} />
-          <Sugerencias id="equipos-oxigenometro" valores={sugerencias.equipos} />
+        <Campo etiqueta="Sucursal / centro de costo">
+          <SelectCentroCosto value={datos.sucursal} onChange={(v) => cambiar('sucursal', v)} opciones={catalogo.centrosCosto} />
         </Campo>
-        <Campo etiqueta="Sucursal / finca">
-          <input list="sucursales-oxigenometro" maxLength={120} value={datos.sucursal} onChange={(e) => cambiar('sucursal', e.target.value)} className={CLASE_CONTROL} />
-          <Sugerencias id="sucursales-oxigenometro" valores={sugerencias.sucursales} />
+        <Campo etiqueta="Equipo (modelo / serie)">
+          <input list="equipos-oxigenometro" maxLength={120} value={datos.equipo} onChange={(e) => cambiar('equipo', e.target.value)} placeholder="Ej. YSI Pro20 · 21A100123" className={CLASE_CONTROL} />
+          <Sugerencias id="equipos-oxigenometro" valores={sugerencias.equipos} />
         </Campo>
         <Campo etiqueta="Responsable">
           <input list="responsables-oxigenometro" maxLength={120} value={datos.responsable} onChange={(e) => cambiar('responsable', e.target.value)} className={CLASE_CONTROL} />

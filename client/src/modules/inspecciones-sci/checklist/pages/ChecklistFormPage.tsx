@@ -25,7 +25,7 @@ export function ChecklistFormPage() {
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 pb-20 xl:grid-cols-[minmax(0,1fr)_280px] xl:pb-0 print:pb-0">
         <div className="flex flex-col gap-4">
-          <FormDatosRevision datos={form.datos} onCambiar={form.cambiarDatos} sucursales={form.sucursales} />
+          <FormDatosRevision datos={form.datos} onCambiar={form.cambiarDatos} />
 
           {form.secciones.map((s) => (
             <SeccionChecklist key={s.seccion} seccion={s.seccion} items={s.items} respuestas={form.respuestas} onCambiar={form.cambiarRespuesta} />

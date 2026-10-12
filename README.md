@@ -143,16 +143,25 @@ Replica el dashboard `Dashboard_Presupuesto_SIG.html` dentro de la plataforma.
 
 ## Oxigenómetros (Laboratorios de análisis)
 
-Registro de las partes de oxigenómetros que se reparan en lugar de comprarlas nuevas y del ahorro obtenido.
+Registro de las partes de oxigenómetros que repara el propio personal (sin costo) en lugar de comprarlas nuevas.
 
 - **Ruta:** Laboratorios de análisis ▸ Oxigenómetros (`/laboratorios/oxigenometros`).
-- **Ahorro** de cada reparación = (precio de la parte nueva − costo de reparar) × cantidad. Solo cuenta si el
-  estado es *Reparado* (no las que están *En reparación* o son *No reparables*).
-- **Tablero:** partes reparadas, ahorro, costo de comprar nuevo, costo de reparar, ahorro por mes y por tipo de
-  parte, filtrable por año. El formulario propone el último precio usado para cada parte.
+- **Ahorro** de cada reparación = precio de la parte nueva × cantidad. Solo cuenta si el estado es *Reparado*.
+- **Partes y precios:** la lista sale de los ítems del presupuesto (primero los repuestos de oxigenómetro); al
+  elegir uno se pone el precio unitario de su última compra. También se puede escribir una parte nueva.
+- **Tablero:** partes reparadas, ahorro total, ahorro promedio por parte, ahorro por mes y por tipo de parte,
+  filtrable por año.
 - **API:** CRUD en `/api/oxigenometros/reparaciones`. **Base de datos:** tabla `oxigenometro_reparacion`
   (migración `006_oxigenometros.sql`). **Código:** `client/src/modules/laboratorios/oxigenometros/` y
   `server/src/modules/oxigenometros/`.
+
+## Listas del presupuesto (centros de costo e ítems)
+
+`GET /api/presupuesto/catalogo` devuelve los ítems comprados (con el precio de su última compra) y las
+sucursales / centros de costo del presupuesto. En la interfaz: `hooks/useCatalogo.ts` y
+`components/forms/SelectCentroCosto.tsx`, una **lista validada** que se usa en el calendario de eventos, el
+check list SCI y Oxigenómetros. Si un registro antiguo tiene un centro que ya no está en el presupuesto, se
+conserva y se marca. Sin presupuesto importado, el campo permite escribir para no bloquear el formulario.
 
 ## Calendario de eventos (Auditorías ASC/BAP e Inspecciones SCI)
 

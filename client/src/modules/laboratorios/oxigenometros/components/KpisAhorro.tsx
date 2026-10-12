@@ -1,40 +1,31 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, PiggyBank } from 'lucide-react';
+import { PiggyBank } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { dinero, miles, porcentaje } from '@/utils/numeros';
+import { dinero, miles } from '@/utils/numeros';
 import type { ResumenAhorro } from '../logic/ahorro';
 
-/** Indicadores principales: partes reparadas, ahorro y la comparación reparar vs. comprar nuevo. */
+/** Indicadores principales: partes reparadas, ahorro total y ahorro promedio por parte. */
 export function KpisAhorro({ resumen }: { resumen: ResumenAhorro }) {
-  const { partesReparadas, ahorro, costoNuevo, costoReparacion, enReparacion, noReparables } = resumen;
+  const { partesReparadas, ahorro, promedioPorParte, enReparacion, noReparables } = resumen;
   const pendientes = [
     enReparacion ? `${miles(enReparacion)} en reparación` : '',
     noReparables ? `${miles(noReparables)} no reparables` : '',
   ].filter(Boolean);
 
   return (
-    <div className="mb-4 grid grid-cols-2 gap-4 xl:grid-cols-4">
+    <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-3">
       <Indicador etiqueta="Partes reparadas" valor={miles(partesReparadas)} detalle={pendientes.join(' · ') || 'Sin pendientes'} />
       <Indicador
         etiqueta="Ahorro"
         valor={dinero(ahorro)}
         destacado
         detalle={
-          ahorro < 0 ? (
-            <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
-              <AlertTriangle size={13} /> Reparar costó más que comprar nuevo
-            </span>
-          ) : costoNuevo > 0 ? (
-            <span className="inline-flex items-center gap-1">
-              <PiggyBank size={13} /> {porcentaje(resumen.porcentaje)} menos que comprar nuevo
-            </span>
-          ) : (
-            'Aún sin reparaciones terminadas'
-          )
+          <span className="inline-flex items-center gap-1">
+            <PiggyBank size={13} /> Lo que habría costado comprarlas nuevas
+          </span>
         }
       />
-      <Indicador etiqueta="Comprar nuevo habría costado" valor={dinero(costoNuevo)} detalle="Precio de las partes nuevas" />
-      <Indicador etiqueta="Costo de reparar" valor={dinero(costoReparacion)} detalle="Repuestos y mano de obra" />
+      <Indicador etiqueta="Ahorro promedio por parte" valor={dinero(promedioPorParte)} detalle="Precio de la última compra" />
     </div>
   );
 }

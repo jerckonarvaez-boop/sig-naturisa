@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hoyISO } from '@/utils/fechas';
 import { agruparPorSeccion, contar } from '../logic/calculo';
-import { actualizarRevision, crearRevision, eliminarRevision, listarRevisiones, obtenerPlantilla, obtenerRevision } from '../services/checklist.api';
+import { actualizarRevision, crearRevision, eliminarRevision, obtenerPlantilla, obtenerRevision } from '../services/checklist.api';
 import { RESPUESTA_VACIA, type ItemChecklist, type RespuestaEditable, type Revision } from '../types';
 
 export const RUTA_LISTA = '/inspecciones-sci/checklist';
@@ -26,7 +26,6 @@ export function useRevisionForm(revisionId: number | null) {
   const [plantilla, setPlantilla] = useState<ItemChecklist[]>([]);
   const [datos, setDatos] = useState<DatosRevision>({ fecha: hoyISO(), sucursal: '', responsable: '', observaciones: '' });
   const [respuestas, setRespuestas] = useState<Record<number, RespuestaEditable>>({});
-  const [sucursales, setSucursales] = useState<string[]>([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<Mensaje>(null);
@@ -35,14 +34,12 @@ export function useRevisionForm(revisionId: number | null) {
     let vigente = true;
     (async () => {
       try {
-        const [items, revisiones, revision] = await Promise.all([
+        const [items, revision] = await Promise.all([
           obtenerPlantilla(),
-          listarRevisiones(),
           revisionId ? obtenerRevision(revisionId) : Promise.resolve(null),
         ]);
         if (!vigente) return;
         setPlantilla(items);
-        setSucursales([...new Set(revisiones.map((r) => r.sucursal))].sort((a, b) => a.localeCompare(b, 'es')));
         if (revision) {
           setDatos({
             fecha: revision.fecha,
@@ -126,7 +123,6 @@ export function useRevisionForm(revisionId: number | null) {
     cambiarDatos,
     respuestas,
     cambiarRespuesta,
-    sucursales,
     secciones,
     conteoGeneral,
     conteoPorArea,

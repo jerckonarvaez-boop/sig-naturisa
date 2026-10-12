@@ -35,11 +35,10 @@ export function agruparEventos(eventos: Evento[], hoy = hoyISO()) {
 
 export type GruposEventos = ReturnType<typeof agruparEventos>;
 
-/** Sucursales y responsables ya usados, para sugerirlos en el formulario */
+/** Responsables ya usados, para sugerirlos en el formulario (las sucursales salen del presupuesto) */
 export function sugerenciasDe(eventos: Evento[]) {
   const unicos = (valores: string[]) => [...new Set(valores.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
   return {
-    sucursales: unicos(eventos.map((e) => e.sucursal)),
     responsables: unicos(eventos.map((e) => e.responsable)),
   };
 }

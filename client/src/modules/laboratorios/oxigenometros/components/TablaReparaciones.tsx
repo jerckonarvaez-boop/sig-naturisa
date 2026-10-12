@@ -15,16 +15,15 @@ export function TablaReparaciones({ reparaciones, onEditar }: TablaReparacionesP
   const totalAhorro = reparaciones.reduce((t, r) => t + ahorroDe(r), 0);
 
   return (
-    <Tabla anchoMinimo="min-w-[860px]">
+    <Tabla anchoMinimo="min-w-[820px]">
       <thead>
         <tr className={FILA_ENCABEZADO}>
           <th className="px-3 py-2 font-semibold">Fecha</th>
           <th className="px-3 py-2 font-semibold">Parte</th>
           <th className="px-3 py-2 text-right font-semibold">Cant.</th>
-          <th className="px-3 py-2 font-semibold">Sucursal</th>
+          <th className="px-3 py-2 text-right font-semibold">Precio nuevo c/u</th>
+          <th className="px-3 py-2 font-semibold">Centro de costo</th>
           <th className="px-3 py-2 font-semibold">Estado</th>
-          <th className="px-3 py-2 text-right font-semibold">Costo reparar</th>
-          <th className="px-3 py-2 text-right font-semibold">Comprar nuevo</th>
           <th className="px-3 py-2 text-right font-semibold">Ahorro</th>
         </tr>
       </thead>
@@ -45,16 +44,13 @@ export function TablaReparaciones({ reparaciones, onEditar }: TablaReparacionesP
                 {r.equipo && <span className="block text-xs text-slate-500 dark:text-slate-400">{r.equipo}</span>}
               </td>
               <td className="px-3 py-2 text-right tabular-nums">{miles(r.cantidad)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{dinero(r.precioNuevo, 2)}</td>
               <td className="px-3 py-2">{r.sucursal || '—'}</td>
               <td className="px-3 py-2">
                 <EstadoReparacionBadge estado={r.estado} />
               </td>
-              <td className="px-3 py-2 text-right tabular-nums">{dinero(r.costoReparacion * r.cantidad, 2)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{dinero(r.precioNuevo * r.cantidad, 2)}</td>
               <td
-                className={`px-3 py-2 text-right font-semibold tabular-nums ${
-                  r.estado !== 'reparado' ? 'text-slate-400 dark:text-slate-500' : ahorro < 0 ? 'text-red-600 dark:text-red-400' : ''
-                }`}
+                className={`px-3 py-2 text-right font-semibold tabular-nums ${r.estado !== 'reparado' ? 'text-slate-400 dark:text-slate-500' : ''}`}
                 title={r.estado !== 'reparado' ? 'Solo cuenta el ahorro de las partes ya reparadas' : undefined}
               >
                 {r.estado === 'reparado' ? dinero(ahorro, 2) : '—'}
@@ -65,7 +61,7 @@ export function TablaReparaciones({ reparaciones, onEditar }: TablaReparacionesP
       </tbody>
       <tfoot>
         <tr className="bg-slate-50 font-semibold dark:bg-slate-800/60">
-          <td colSpan={7} className="px-3 py-2">
+          <td colSpan={6} className="px-3 py-2">
             Ahorro total
           </td>
           <td className="px-3 py-2 text-right tabular-nums">{dinero(totalAhorro, 2)}</td>

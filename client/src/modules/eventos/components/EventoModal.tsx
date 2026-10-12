@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Campo, CLASE_CONTROL } from '@/components/forms/Campo';
+import { SelectCentroCosto } from '@/components/forms/SelectCentroCosto';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Modal } from '@/components/ui/Modal';
+import { useCatalogo } from '@/hooks/useCatalogo';
 import { ESTADOS, ESTADOS_EDITABLES, TIPOS } from '../config';
 import type { Evento, EventoDatos, TipoEvento } from '../types';
 
@@ -13,7 +15,7 @@ interface EventoModalProps {
   inicial?: Partial<EventoDatos>;
   tiposPermitidos: TipoEvento[];
   /** Sugerencias para los campos de texto */
-  sugerencias: { sucursales: string[]; responsables: string[] };
+  sugerencias: { responsables: string[] };
   onGuardar: (datos: EventoDatos, id?: number) => Promise<void>;
   onEliminar: (id: number) => Promise<void>;
   onCerrar: () => void;
@@ -38,6 +40,7 @@ export function EventoModal({
     estado: evento?.estado ?? 'programado',
     observaciones: evento?.observaciones ?? '',
   }));
+  const { centrosCosto } = useCatalogo();
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,19 +148,8 @@ export function EventoModal({
           />
         </Campo>
 
-        <Campo etiqueta="Sucursal / lugar">
-          <input
-            list="sugerencias-sucursal"
-            maxLength={120}
-            value={datos.sucursal}
-            onChange={(e) => cambiar('sucursal', e.target.value)}
-            className={CLASE_CONTROL}
-          />
-          <datalist id="sugerencias-sucursal">
-            {sugerencias.sucursales.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
+        <Campo etiqueta="Sucursal / centro de costo">
+          <SelectCentroCosto value={datos.sucursal} onChange={(v) => cambiar('sucursal', v)} opciones={centrosCosto} />
         </Campo>
         <Campo etiqueta="Responsable">
           <input
