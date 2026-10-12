@@ -4,10 +4,10 @@ import { env } from '../../config/env.js';
 import { isDatabaseConnected } from '../../db/database.js';
 
 // GET /api/health -> estado de la API y de la base de datos (público: lo usa el hosting para vigilar la app)
-export const estadoSalud: RequestHandler = (_req, res) => {
+export const estadoSalud: RequestHandler = async (_req, res) => {
   res.json({
     api: 'ok',
-    database: isDatabaseConnected() ? 'ok' : 'error',
+    database: (await isDatabaseConnected()) ? 'ok' : 'error',
     timestamp: new Date().toISOString(),
   });
 };

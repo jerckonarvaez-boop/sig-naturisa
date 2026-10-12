@@ -4,9 +4,8 @@ services:
   - type: web
     name: sig-naturisa
     runtime: node
-    # Plan gratuito: sirve para probar, pero se duerme sin uso y BORRA la base de datos
-    # en cada despliegue o reinicio. Para conservar los datos, cambie a "starter" y
-    # descomente el bloque "disk" y la variable DB_PATH de abajo.
+    # Plan gratuito: se duerme sin uso (ver .github/workflows/mantener-activa.yml) y su disco se
+    # borra al reiniciar; por eso los datos se guardan en Turso (TURSO_DATABASE_URL/TOKEN).
     plan: free
     region: oregon
     branch: main
@@ -22,6 +21,12 @@ services:
       # Clave aleatoria para firmar las sesiones (Render la genera automáticamente)
       - key: SESSION_SECRET
         generateValue: true
+      # Base de datos en la nube (Turso): los datos ya no se pierden al dormirse o publicar.
+      # El token se escribe a mano en el panel de Render (Environment); nunca se sube a GitHub.
+      - key: TURSO_DATABASE_URL
+        value: libsql://sig-naturisa-jerckonarvaez-boop.aws-us-west-2.turso.io
+      - key: TURSO_AUTH_TOKEN
+        sync: false
       # Clave de los datos iniciales cifrados (server/semillas). Se escribe a mano en el panel de
       # Render (Environment), igual a SEMILLA_CLAVE de server/.env; nunca se sube a GitHub.
       - key: SEMILLA_CLAVE

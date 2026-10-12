@@ -11,6 +11,7 @@
     "semilla": "tsx --env-file-if-exists=.env src/scripts/generarSemilla.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.18.0",
     "cors": "^2.8.5",
     "express": "^5.2.1"
   },

@@ -16,7 +16,7 @@ if (!clave) {
   console.log('Se creó una clave nueva en server/.env (SEMILLA_CLAVE).');
 }
 
-const { contenido, registros, archivo } = generarSemillaPresupuesto(clave);
+const { contenido, registros, archivo } = await generarSemillaPresupuesto(clave);
 mkdirSync(dirname(ARCHIVO_SEMILLA), { recursive: true });
 writeFileSync(ARCHIVO_SEMILLA, contenido);
 console.log(`Semilla generada: ${registros} registros de «${archivo}» → semillas/presupuesto.sig (${contenido.length} bytes, cifrada).`);

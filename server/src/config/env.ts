@@ -24,4 +24,10 @@ export const env = {
    * de datos vacía (ej. plan gratuito de Render) se cargan solos los datos del presupuesto.
    */
   semillaClave: process.env.SEMILLA_CLAVE ?? '',
+  /**
+   * Base de datos en la nube (Turso). Si se define, se usa en lugar del archivo DB_PATH.
+   * En el PC se deja vacía para trabajar con una copia local y no tocar los datos reales.
+   */
+  tursoUrl: process.env.TURSO_DATABASE_URL ?? '',
+  tursoToken: process.env.TURSO_AUTH_TOKEN ?? '',
 };

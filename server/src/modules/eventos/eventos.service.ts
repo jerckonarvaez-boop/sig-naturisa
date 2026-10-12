@@ -1,10 +1,10 @@
-import { db } from '../../db/database.js';
+import { consultar, consultarUna, ejecutar, type Fila } from '../../db/database.js';
 import type { EstadoEvento, Evento, EventoDatos, TipoEvento } from './eventos.types.js';
 
 const COLUMNAS = `id, tipo, titulo, fecha_inicio, fecha_fin, sucursal, responsable, estado, observaciones,
                   creado_en, actualizado_en`;
 
-function aEvento(r: Record<string, unknown>): Evento {
+function aEvento(r: Fila): Evento {
   return {
     id: Number(r.id),
     tipo: String(r.tipo) as TipoEvento,
@@ -21,40 +21,35 @@ function aEvento(r: Record<string, unknown>): Evento {
 }
 
 /** Lista los eventos de los tipos indicados (todos si no se indica ninguno), por fecha. */
-export function listarEventos(tipos: TipoEvento[]): Evento[] {
+export async function listarEventos(tipos: TipoEvento[]): Promise<Evento[]> {
   const filtro = tipos.length ? `WHERE tipo IN (${tipos.map(() => '?').join(', ')})` : '';
-  return db
-    .prepare(`SELECT ${COLUMNAS} FROM evento ${filtro} ORDER BY fecha_inicio, id`)
-    .all(...tipos)
-    .map(aEvento);
+  return (await consultar(`SELECT ${COLUMNAS} FROM evento ${filtro} ORDER BY fecha_inicio, id`, tipos)).map(aEvento);
 }
 
-export function obtenerEvento(id: number): Evento | null {
-  const fila = db.prepare(`SELECT ${COLUMNAS} FROM evento WHERE id = ?`).get(id);
+export async function obtenerEvento(id: number): Promise<Evento | null> {
+  const fila = await consultarUna(`SELECT ${COLUMNAS} FROM evento WHERE id = ?`, [id]);
   return fila ? aEvento(fila) : null;
 }
 
-export function crearEvento(d: EventoDatos): Evento {
-  const { lastInsertRowid } = db
-    .prepare(
-      `INSERT INTO evento (tipo, titulo, fecha_inicio, fecha_fin, sucursal, responsable, estado, observaciones)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(d.tipo, d.titulo, d.fechaInicio, d.fechaFin, d.sucursal, d.responsable, d.estado, d.observaciones);
-  return obtenerEvento(Number(lastInsertRowid))!;
+export async function crearEvento(d: EventoDatos): Promise<Evento> {
+  const { id } = await ejecutar(
+    `INSERT INTO evento (tipo, titulo, fecha_inicio, fecha_fin, sucursal, responsable, estado, observaciones)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [d.tipo, d.titulo, d.fechaInicio, d.fechaFin, d.sucursal, d.responsable, d.estado, d.observaciones],
+  );
+  return (await obtenerEvento(id))!;
 }
 
-export function actualizarEvento(id: number, d: EventoDatos): Evento | null {
-  const { changes } = db
-    .prepare(
-      `UPDATE evento SET tipo = ?, titulo = ?, fecha_inicio = ?, fecha_fin = ?, sucursal = ?, responsable = ?,
-         estado = ?, observaciones = ?, actualizado_en = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-       WHERE id = ?`,
-    )
-    .run(d.tipo, d.titulo, d.fechaInicio, d.fechaFin, d.sucursal, d.responsable, d.estado, d.observaciones, id);
-  return changes ? obtenerEvento(id) : null;
+export async function actualizarEvento(id: number, d: EventoDatos): Promise<Evento | null> {
+  const { cambios } = await ejecutar(
+    `UPDATE evento SET tipo = ?, titulo = ?, fecha_inicio = ?, fecha_fin = ?, sucursal = ?, responsable = ?,
+       estado = ?, observaciones = ?, actualizado_en = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+     WHERE id = ?`,
+    [d.tipo, d.titulo, d.fechaInicio, d.fechaFin, d.sucursal, d.responsable, d.estado, d.observaciones, id],
+  );
+  return cambios ? obtenerEvento(id) : null;
 }
 
-export function eliminarEvento(id: number): boolean {
-  return db.prepare('DELETE FROM evento WHERE id = ?').run(id).changes > 0;
+export async function eliminarEvento(id: number): Promise<boolean> {
+  return (await ejecutar('DELETE FROM evento WHERE id = ?', [id])).cambios > 0;
 }

@@ -12,7 +12,7 @@ npm run dev
 - Web: http://localhost:5173
 - API: http://localhost:4000/api/health
 
-Requiere Node 24 o superior (usa el SQLite integrado en Node, `node:sqlite`).
+Requiere Node 24 o superior. Base de datos: libSQL (compatible con SQLite) mediante `@libsql/client`.
 
 ## Arquitectura
 
@@ -119,7 +119,8 @@ puntos, que es donde se agregarán los roles cuando se definan: `client/src/modu
 
 - **Logo:** coloca la imagen en `client/public/` y pon su ruta en `logoUrl` de `client/src/config/app.ts`.
 - **Colores:** variables `--color-brand-*` en `client/src/styles/index.css`.
-- **Base de datos:** SQLite en `server/data/sig.db` (configurable con `DB_PATH` en `server/.env`).
+- **Base de datos:** en el PC, archivo SQLite `server/data/sig.db` (configurable con `DB_PATH`); en la web
+  publicada, Turso (`TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`). Ver *Publicación*.
 
 ## Módulo Presupuesto
 
@@ -131,11 +132,11 @@ Replica el dashboard `Dashboard_Presupuesto_SIG.html` dentro de la plataforma.
   pulse **Importar Excel** en el módulo Presupuesto. Cada importación reemplaza los datos anteriores.
 - **Dónde se guarda:** tablas `presupuesto_*` de la base de datos (migración `002_presupuesto.sql`).
 - **API:** `GET /api/presupuesto` (datos) y `POST /api/presupuesto/importar` (reemplazo).
-- **Datos iniciales en la web de prueba:** el plan gratuito de Render borra la base de datos cada vez
-  que el servicio se duerme o se publica. Al arrancar con el presupuesto vacío, el servidor carga el
-  último Excel importado en el PC desde `server/semillas/presupuesto.sig` (cifrado con AES-256, porque
-  el repositorio es público). Necesita la variable `SEMILLA_CLAVE` en Render, igual a la de `server/.env`.
-  Para actualizarlo: importe el Excel en la versión local, ejecute `npm run semilla -w server` y publique.
+- **Datos iniciales:** si el servidor arranca con el presupuesto vacío (base nueva), carga el último
+  Excel importado en el PC desde `server/semillas/presupuesto.sig` (cifrado con AES-256, porque el
+  repositorio es público; clave `SEMILLA_CLAVE`, igual en `server/.env` y en Render). Nunca reemplaza
+  datos existentes. Para regenerarlo: importe el Excel en la versión local y ejecute `npm run semilla -w server`.
+  En la web, lo normal es importar el Excel nuevo directamente con el botón **Importar Excel**.
 - **Código:** `client/src/modules/presupuesto/`. Cálculos en `logic/logica.ts` y `logic/agregaciones.ts`
   (datos de cada gráfico), mapeo de columnas del Excel en `logic/leerExcel.ts`, estado de los filtros
   en `hooks/useTablero.ts` y la página en `pages/PresupuestoPage.tsx`.
@@ -219,9 +220,12 @@ El archivo `render.yaml` define el despliegue y Render vuelve a publicar con cad
 2. Pulse **New ▸ Blueprint** y elija el repositorio `sig-naturisa`.
 3. Pulse **Apply**. Render compila y publica la app en `https://sig-naturisa.onrender.com` (o similar).
 
-**Datos:** con el plan gratuito, la base de datos se **borra en cada despliegue o reinicio**, y el
-servicio se duerme tras unos minutos sin uso. Para conservar los datos, en `render.yaml` cambie
-`plan: free` por `starter` y descomente `disk` y `DB_PATH`. Es de pago.
+**Datos (gratis y permanentes):** el plan gratuito de Render borra su disco al dormirse o publicar, por
+eso la web guarda todo en **Turso** (base de datos libSQL en la nube, plan gratuito, región Oregon como
+Render). En Render: `TURSO_DATABASE_URL` (en `render.yaml`) y `TURSO_AUTH_TOKEN` (se escribe a mano en
+*Environment*; nunca en GitHub). Sin el token, el servidor usa una base local temporal y avisa en el
+registro. En el PC se deja vacío para trabajar con `server/data/sig.db` sin tocar los datos reales.
+Las migraciones (`server/migrations`) se aplican solas en Turso al arrancar.
 
 **Apertura rápida (plan gratuito):** Render duerme el servicio tras 15 minutos sin visitas y luego
 tarda ~1 minuto en abrir. La acción de GitHub `.github/workflows/mantener-activa.yml` consulta
