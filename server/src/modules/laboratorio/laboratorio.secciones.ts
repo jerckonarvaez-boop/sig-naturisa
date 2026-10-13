@@ -62,7 +62,8 @@ const QUIMICO = ['quimico'];
 const BACTERIOLOGICO = ['bacteriologia'];
 /** Salinidad, pH y alcalinidad: van en la tabla química o, si no hay análisis químico, junto al fitoplancton */
 const BASICOS = ['fitoplancton', 'quimico'];
-const CON_BACTERIOLOGIA = ['una-bact', 'varias-bact'];
+// Patologías: análisis en fresco y/o bacteriología (una o varias muestras, según cuántas se agreguen)
+const FRESCO = ['fresco'];
 
 const agua: SeccionLab = {
   id: 'agua',
@@ -136,7 +137,16 @@ const suelo: SeccionLab = {
   metodos: [],
 };
 
-const grado = (clave: string, etiqueta: string): CampoLab => ({ clave, etiqueta, tipo: 'numero', grupo: 'fresco', escala: 'patologia', min: 0, max: 4 });
+const grado = (clave: string, etiqueta: string): CampoLab => ({
+  clave,
+  etiqueta,
+  tipo: 'numero',
+  grupo: 'fresco',
+  soloTipos: FRESCO,
+  escala: 'patologia',
+  min: 0,
+  max: 4,
+});
 
 const patologia: SeccionLab = {
   id: 'patologia',
@@ -146,31 +156,31 @@ const patologia: SeccionLab = {
   etiquetaFechaMuestra: 'Fecha de recepción',
   matrices: ['Camarones', 'Camarones juveniles', 'Camarones adultos'],
   tipos: [
-    { id: 'una-bact', nombre: 'Patología, una sola muestra, con bacteriología', unaMuestra: true },
-    { id: 'una', nombre: 'Patología, una sola muestra', unaMuestra: true },
-    { id: 'varias', nombre: 'Patología, varias muestras, sin bacteriología' },
-    { id: 'varias-bact', nombre: 'Patología, varias muestras, con bacteriología' },
+    { id: 'fresco', nombre: 'Patología en fresco', corto: 'Patología' },
+    { id: 'bacteriologia', nombre: 'Bacteriología', corto: 'Bacteriología' },
   ],
+  combinable: true,
   grupos: [
     {
       id: 'bacteriologia',
       nombre: 'Bacteriología',
-      soloTipos: CON_BACTERIOLOGIA,
+      soloTipos: BACTERIOLOGICO,
       nota: 'Siembra en medio sólido TCBS (Vibrios sp) de macerado de hepatopáncreas y estómago · UFC/g',
     },
     {
       id: 'fresco',
       nombre: 'Análisis en fresco',
+      soloTipos: FRESCO,
       nota: 'Grado: 0 = ausencia · 0,1–0,9 = bajo · 1,0–1,9 = medio · 2,0–2,9 = alto · 3,0–4,0 = muy alto',
     },
   ],
   campos: [
-    { clave: 'hp_amarillas', etiqueta: 'Hepatopáncreas: colonias amarillas', tipo: 'numero', unidad: 'UFC/g', grupo: 'bacteriologia', soloTipos: CON_BACTERIOLOGIA },
-    { clave: 'hp_verdes', etiqueta: 'Hepatopáncreas: colonias verdes', tipo: 'numero', unidad: 'UFC/g', grupo: 'bacteriologia', soloTipos: CON_BACTERIOLOGIA },
-    { clave: 'est_amarillas', etiqueta: 'Estómago: colonias amarillas', tipo: 'numero', unidad: 'UFC/g', grupo: 'bacteriologia', soloTipos: CON_BACTERIOLOGIA },
-    { clave: 'est_verdes', etiqueta: 'Estómago: colonias verdes', tipo: 'numero', unidad: 'UFC/g', grupo: 'bacteriologia', soloTipos: CON_BACTERIOLOGIA },
-    { clave: 'hem_amarillas', etiqueta: 'Hemolinfa: colonias amarillas', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: CON_BACTERIOLOGIA },
-    { clave: 'hem_verdes', etiqueta: 'Hemolinfa: colonias verdes', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: CON_BACTERIOLOGIA },
+    { clave: 'hp_amarillas', etiqueta: 'Hepatopáncreas: colonias amarillas', tipo: 'numero', unidad: 'UFC/g', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO },
+    { clave: 'hp_verdes', etiqueta: 'Hepatopáncreas: colonias verdes', tipo: 'numero', unidad: 'UFC/g', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO },
+    { clave: 'est_amarillas', etiqueta: 'Estómago: colonias amarillas', tipo: 'numero', unidad: 'UFC/g', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO },
+    { clave: 'est_verdes', etiqueta: 'Estómago: colonias verdes', tipo: 'numero', unidad: 'UFC/g', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO },
+    { clave: 'hem_amarillas', etiqueta: 'Hemolinfa: colonias amarillas', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO },
+    { clave: 'hem_verdes', etiqueta: 'Hemolinfa: colonias verdes', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO },
     grado('deformidad_tubulos', 'Deformidad en túbulos del hepatopáncreas'),
     grado('lipidos', 'Lípidos en hepatopáncreas'),
     grado('baculovirus', 'Hepatopáncreas: baculovirus'),
@@ -182,9 +192,9 @@ const patologia: SeccionLab = {
     grado('vermiformes_intestino', 'Cuerpos vermiformes en intestino'),
     grado('diatomeas_td', 'Tracto digestivo: diatomeas'),
     grado('cianofitas_td', 'Tracto digestivo: cianofitas'),
-    { clave: 'otros', etiqueta: 'Otros', tipo: 'texto', grupo: 'fresco' },
-    { clave: 'apariencia', etiqueta: 'Apariencia externa', tipo: 'texto', grupo: 'fresco' },
-    { clave: 'notas', etiqueta: 'Observaciones de la muestra', tipo: 'texto', grupo: 'fresco' },
+    { clave: 'otros', etiqueta: 'Otros', tipo: 'texto', grupo: 'fresco', soloTipos: FRESCO },
+    { clave: 'apariencia', etiqueta: 'Apariencia externa', tipo: 'texto', grupo: 'fresco', soloTipos: FRESCO },
+    { clave: 'notas', etiqueta: 'Observaciones de la muestra', tipo: 'texto', grupo: 'fresco', soloTipos: FRESCO },
   ],
   metodos: [
     'Patología en fresco: observación directa al microscopio de montajes en fresco de muestras de camarón.',

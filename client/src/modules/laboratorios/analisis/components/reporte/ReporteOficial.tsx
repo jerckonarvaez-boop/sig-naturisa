@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { camposDelTipo, nombreTipo } from '../../logic/laboratorio';
+import { camposDelTipo, nombreTipo, partesDelTipo } from '../../logic/laboratorio';
 import { horizontal, type InformeVista } from '../../logic/reporte';
 import type { SeccionLab } from '../../types';
 import { ReporteAgua } from './ReporteAgua';
@@ -29,7 +29,8 @@ export const ReporteOficial = forwardRef<HTMLDivElement, ReporteOficialProps>(fu
           <ReportePatologia
             informe={informe}
             condiciones={camposDelTipo(seccion, informe.tipo).filter((c) => c.escala === 'patologia')}
-            conBacteriologia={informe.tipo.endsWith('bact')}
+            conFresco={partesDelTipo(informe.tipo).includes('fresco')}
+            conBacteriologia={partesDelTipo(informe.tipo).includes('bacteriologia')}
           />
         )}
       </div>
