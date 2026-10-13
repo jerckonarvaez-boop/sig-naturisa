@@ -148,7 +148,7 @@ muestra (piscina, precría…).
 
 | Sección | Código | Tipos de informe |
 |---|---|---|
-| Análisis de Agua (`/laboratorios/agua`) | AA-AAAA-NNN | Con químicos y bacteriología · Básico (salinidad, pH, alcalinidad) |
+| Análisis de Agua (`/laboratorios/agua`) | AA-AAAA-NNN | Con químicos y bacteriología · Con todos los químicos · Básico (salinidad, pH, alcalinidad) |
 | Análisis de Suelo (`/laboratorios/suelo`) | AS-AAAA-NNN | Materia orgánica (humedad, pH seco, % MO) |
 | Patologías en fresco (`/laboratorios/patologias`) | AF-AAAA-NNN | Una o varias muestras, con o sin bacteriología |
 

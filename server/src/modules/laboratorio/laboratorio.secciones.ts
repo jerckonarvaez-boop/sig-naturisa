@@ -53,6 +53,8 @@ export interface SeccionLab {
 }
 
 const COMPLETO = ['completo'];
+/** Tipos de agua con todos los químicos (con o sin bacteriología) */
+const TODOS_QUIMICOS = ['completo', 'quimicos'];
 const CON_BACTERIOLOGIA = ['una-bact', 'varias-bact'];
 
 const agua: SeccionLab = {
@@ -64,6 +66,7 @@ const agua: SeccionLab = {
   matrices: ['Agua'],
   tipos: [
     { id: 'completo', nombre: 'Agua con químicos y bacteriología' },
+    { id: 'quimicos', nombre: 'Agua con todos los químicos' },
     { id: 'basico', nombre: 'Análisis de agua básico' },
   ],
   grupos: [
@@ -90,13 +93,13 @@ const agua: SeccionLab = {
     { clave: 'salinidad', etiqueta: 'Salinidad', tipo: 'numero', unidad: 'ppt', grupo: 'quimica' },
     { clave: 'ph', etiqueta: 'pH', tipo: 'numero', grupo: 'quimica', min: 7, max: 8 },
     { clave: 'alcalinidad', etiqueta: 'Alcalinidad', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', min: 100, max: 140 },
-    { clave: 'fosfato', etiqueta: 'Fosfato PO₄³⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: COMPLETO, min: 0.6, max: 1.5 },
-    { clave: 'amonio', etiqueta: 'Amonio N-NH₄', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: COMPLETO, min: 0.1, max: 1 },
-    { clave: 'nitrito', etiqueta: 'Nitrito NO₂⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: COMPLETO },
-    { clave: 'nitrato', etiqueta: 'Nitrato NO₃⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: COMPLETO },
-    { clave: 'calcio', etiqueta: 'Calcio Ca²⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: COMPLETO, factorSalinidad: 11.6 },
-    { clave: 'magnesio', etiqueta: 'Magnesio Mg²⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: COMPLETO, factorSalinidad: 39.1 },
-    { clave: 'potasio', etiqueta: 'Potasio K⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: COMPLETO, factorSalinidad: 10.7 },
+    { clave: 'fosfato', etiqueta: 'Fosfato PO₄³⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS, min: 0.6, max: 1.5 },
+    { clave: 'amonio', etiqueta: 'Amonio N-NH₄', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS, min: 0.1, max: 1 },
+    { clave: 'nitrito', etiqueta: 'Nitrito NO₂⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS },
+    { clave: 'nitrato', etiqueta: 'Nitrato NO₃⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS },
+    { clave: 'calcio', etiqueta: 'Calcio Ca²⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS, factorSalinidad: 11.6 },
+    { clave: 'magnesio', etiqueta: 'Magnesio Mg²⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS, factorSalinidad: 39.1 },
+    { clave: 'potasio', etiqueta: 'Potasio K⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS, factorSalinidad: 10.7 },
     { clave: 'vibrios_amarillas', etiqueta: 'Vibrios: colonias amarillas', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: COMPLETO },
     { clave: 'vibrios_verdes', etiqueta: 'Vibrios: colonias verdes', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: COMPLETO },
   ],

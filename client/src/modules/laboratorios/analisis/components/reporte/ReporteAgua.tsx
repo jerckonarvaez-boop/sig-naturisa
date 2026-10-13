@@ -45,9 +45,10 @@ function CeldaFito({ m, conteo, generos }: { m: Muestra; conteo: string; generos
   );
 }
 
-/** Informe de Análisis de Agua (AA): completo (químicos + bacteriología) o básico */
+/** Informe de Análisis de Agua (AA): con químicos y bacteriología, con todos los químicos, o básico */
 export function ReporteAgua({ informe }: { informe: InformeVista }) {
   const basico = informe.tipo === 'basico';
+  const conBacteriologia = informe.tipo === 'completo';
   return (
     <>
       {/* Encabezado */}
@@ -179,40 +180,44 @@ export function ReporteAgua({ informe }: { informe: InformeVista }) {
             </tbody>
           </table>
 
-          {/* 3. Bacteriología */}
-          <div className="rep-subtitulo" style={{ textDecoration: 'underline', marginTop: 8 }}>
-            3.- Análisis Bacteriológico del Agua.
-          </div>
-          <table className="rep-tabla rep-gruesa rep-compacta" style={{ minWidth: 190 }}>
-            <thead>
-              <tr>
-                <th colSpan={3}>TCBS (Vibrios sp)</th>
-              </tr>
-              <tr>
-                <th rowSpan={2}>Muestras</th>
-                <th colSpan={2}>Ufc/ml</th>
-              </tr>
-              <tr>
-                <th>A</th>
-                <th>V</th>
-              </tr>
-            </thead>
-            <tbody>
-              {informe.muestras.map((m, i) => (
-                <tr key={i} className="rep-centro">
-                  <td className="rep-muestra" style={{ padding: '0 5px' }}>
-                    {m.nombre}
-                  </td>
-                  <td>{cientifico(num(m.valores.vibrios_amarillas), 2)}</td>
-                  <td>{cientifico(num(m.valores.vibrios_verdes), 2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* 3. Bacteriología (solo en el informe completo) */}
+          {conBacteriologia && (
+            <>
+              <div className="rep-subtitulo" style={{ textDecoration: 'underline', marginTop: 8 }}>
+                3.- Análisis Bacteriológico del Agua.
+              </div>
+              <table className="rep-tabla rep-gruesa rep-compacta" style={{ minWidth: 190 }}>
+                <thead>
+                  <tr>
+                    <th colSpan={3}>TCBS (Vibrios sp)</th>
+                  </tr>
+                  <tr>
+                    <th rowSpan={2}>Muestras</th>
+                    <th colSpan={2}>Ufc/ml</th>
+                  </tr>
+                  <tr>
+                    <th>A</th>
+                    <th>V</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {informe.muestras.map((m, i) => (
+                    <tr key={i} className="rep-centro">
+                      <td className="rep-muestra" style={{ padding: '0 5px' }}>
+                        {m.nombre}
+                      </td>
+                      <td>{cientifico(num(m.valores.vibrios_amarillas), 2)}</td>
+                      <td>{cientifico(num(m.valores.vibrios_verdes), 2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
           <div className="rep-centro rep-pequeno" style={{ marginTop: 4 }}>
             <div>Análisis de Fitoplancton.- Conteo directo al microscopio en Cámara New Bauer</div>
             <div>Análisis Químico.- Espectrofotometría (YSI-9300)</div>
-            <div>Análisis Bacteriológico.- Siembra directa del agua en medio sólido TCBS</div>
+            {conBacteriologia && <div>Análisis Bacteriológico.- Siembra directa del agua en medio sólido TCBS</div>}
           </div>
         </>
       )}
@@ -290,26 +295,28 @@ export function ReporteAgua({ informe }: { informe: InformeVista }) {
                 <b>Observaciones:</b> Multiplicar el valor determinado por el de la salinidad para obtener el número referencial.
               </div>
             </div>
-            <table className="rep-ref celeste">
-              <thead>
-                <tr>
-                  <th>Parámetro</th>
-                  <th>
-                    Rango
-                    <br />
-                    óptimo
-                  </th>
-                  <th>Unidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Vibrio</td>
-                  <td>500 - 1000</td>
-                  <td>UFC/ml</td>
-                </tr>
-              </tbody>
-            </table>
+            {conBacteriologia && (
+              <table className="rep-ref celeste">
+                <thead>
+                  <tr>
+                    <th>Parámetro</th>
+                    <th>
+                      Rango
+                      <br />
+                      óptimo
+                    </th>
+                    <th>Unidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Vibrio</td>
+                    <td>500 - 1000</td>
+                    <td>UFC/ml</td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
           </>
         )}
       </div>
