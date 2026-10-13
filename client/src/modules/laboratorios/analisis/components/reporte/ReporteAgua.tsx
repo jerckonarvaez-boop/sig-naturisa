@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { CLAVES_FITOPLANCTON, partesDelTipo } from '../../logic/laboratorio';
+import { CLAVES_FITOPLANCTON, ESTADOS_REFERENCIA, estadoReferencia, partesDelTipo, type EstadoReferencia } from '../../logic/laboratorio';
 import { cientifico, fechaInforme, fmt, num, txt, type InformeVista } from '../../logic/reporte';
+import type { CampoLab } from '../../types';
 import { Firma, LEYENDA_FITOPLANCTON, LOGO, Pie } from './comunes';
 
 type Muestra = InformeVista['muestras'][number];
@@ -49,6 +50,16 @@ function CeldaFito({ m, conteo, generos }: { m: Muestra; conteo: string; generos
   );
 }
 
+/** Celda de un valor con referencia: fuera de ella lleva fondo de color, negrita y flecha (▲ supera / ▼ no llega) */
+function CeldaValor({ estado, className = '', children }: { estado: EstadoReferencia | null; className?: string; children: ReactNode }) {
+  return (
+    <td className={`${className} ${estado ? `rep-${estado}` : ''}`}>
+      {children}
+      {estado && <span className="rep-flecha">{ESTADOS_REFERENCIA[estado].flecha}</span>}
+    </td>
+  );
+}
+
 /** Título de una tabla del informe; la primera lleva el código a la derecha, como en el formato oficial */
 function TituloSeccion({ children, codigo, style }: { children: ReactNode; codigo?: string; style?: CSSProperties }) {
   return (
@@ -66,7 +77,14 @@ function TituloSeccion({ children, codigo, style }: { children: ReactNode; codig
 }
 
 /** Informe de Análisis de Agua (AA): una, dos o las tres tablas (fitoplancton, químico, bacteriológico) */
-export function ReporteAgua({ informe }: { informe: InformeVista }) {
+export function ReporteAgua({ informe, campos }: { informe: InformeVista; campos: CampoLab[] }) {
+  const porClave = new Map(campos.map((c) => [c.clave, c]));
+  /** Indicador del valor frente a su referencia (pH, alcalinidad, amonio, fosfato, Ca, Mg, K, Vibrios) */
+  const estado = (m: Muestra, clave: string) => {
+    const campo = porClave.get(clave);
+    return campo ? estadoReferencia(campo, num(m.valores[clave]), num(m.valores.salinidad)) : null;
+  };
+  const hayFuera = informe.muestras.some((m) => campos.some((c) => estado(m, c.clave)));
   const partes = partesDelTipo(informe.tipo);
   const conFito = partes.includes('fitoplancton');
   const conQuimico = partes.includes('quimico');
@@ -150,8 +168,12 @@ export function ReporteAgua({ informe }: { informe: InformeVista }) {
                     {basicosEnFito && (
                       <>
                         <td className="rep-centro rep-negrita">{fmt(num(m.valores.salinidad))}</td>
-                        <td className="rep-centro rep-negrita">{fmt(num(m.valores.ph), 2)}</td>
-                        <td className="rep-centro rep-negrita">{fmt(num(m.valores.alcalinidad))}</td>
+                        <CeldaValor estado={estado(m, 'ph')} className="rep-centro rep-negrita">
+                          {fmt(num(m.valores.ph), 2)}
+                        </CeldaValor>
+                        <CeldaValor estado={estado(m, 'alcalinidad')} className="rep-centro rep-negrita">
+                          {fmt(num(m.valores.alcalinidad))}
+                        </CeldaValor>
                       </>
                     )}
                     {GRUPOS.map(([c, g]) => (
@@ -202,10 +224,12 @@ export function ReporteAgua({ informe }: { informe: InformeVista }) {
                 <tr key={i} className="rep-centro">
                   <td className="rep-negrita">{m.nombre}</td>
                   <td>{fmt(num(m.valores.salinidad))}</td>
-                  <td>{fmt(num(m.valores.ph), 2)}</td>
-                  <td>{fmt(num(m.valores.alcalinidad))}</td>
+                  <CeldaValor estado={estado(m, 'ph')}>{fmt(num(m.valores.ph), 2)}</CeldaValor>
+                  <CeldaValor estado={estado(m, 'alcalinidad')}>{fmt(num(m.valores.alcalinidad))}</CeldaValor>
                   {QUIMICOS.map(([c]) => (
-                    <td key={c}>{fmt(num(m.valores[c]))}</td>
+                    <CeldaValor key={c} estado={estado(m, c)}>
+                      {fmt(num(m.valores[c]))}
+                    </CeldaValor>
                   ))}
                 </tr>
               ))}
@@ -240,8 +264,8 @@ export function ReporteAgua({ informe }: { informe: InformeVista }) {
                   <td className="rep-muestra" style={{ padding: '0 5px' }}>
                     {m.nombre}
                   </td>
-                  <td>{cientifico(num(m.valores.vibrios_amarillas), 2)}</td>
-                  <td>{cientifico(num(m.valores.vibrios_verdes), 2)}</td>
+                  <CeldaValor estado={estado(m, 'vibrios_amarillas')}>{cientifico(num(m.valores.vibrios_amarillas), 2)}</CeldaValor>
+                  <CeldaValor estado={estado(m, 'vibrios_verdes')}>{cientifico(num(m.valores.vibrios_verdes), 2)}</CeldaValor>
                 </tr>
               ))}
             </tbody>
@@ -264,6 +288,15 @@ export function ReporteAgua({ informe }: { informe: InformeVista }) {
           <div className="rep-subtitulo" style={{ marginTop: 8 }}>
             Valores {basico ? 'referenciales' : 'Referenciales'}
           </div>
+          {hayFuera && (
+            <div className="rep-indicador">
+              {(['alto', 'bajo'] as const).map((e) => (
+                <span key={e}>
+                  <span className={`rep-muestra-color rep-${e}`}>{ESTADOS_REFERENCIA[e].flecha}</span> {ESTADOS_REFERENCIA[e].texto}
+                </span>
+              ))}
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: referencias > 1 ? 'space-between' : 'center', alignItems: 'flex-start', gap: 12 }}>
             {refBasicas && (
               <table className="rep-ref verde">

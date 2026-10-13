@@ -23,7 +23,7 @@ export const ReporteOficial = forwardRef<HTMLDivElement, ReporteOficialProps>(fu
       {/* Tamaño de hoja al imprimir */}
       <style>{`@media print { @page { size: A4 ${apaisado ? 'landscape' : 'portrait'}; margin: 9mm; } }`}</style>
       <div ref={ref} className={`rep-pagina ${apaisado ? 'rep-horizontal' : ''}`}>
-        {seccion.id === 'agua' && <ReporteAgua informe={informe} />}
+        {seccion.id === 'agua' && <ReporteAgua informe={informe} campos={seccion.campos} />}
         {seccion.id === 'suelo' && <ReporteSuelo informe={informe} analisis={nombreTipo(seccion, informe.tipo)} />}
         {seccion.id === 'patologia' && (
           <ReportePatologia

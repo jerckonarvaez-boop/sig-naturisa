@@ -9,6 +9,9 @@
   font-family: Calibri, 'Segoe UI', Arial, sans-serif;
   font-size: 11px;
   line-height: 1.25;
+  /* Los fondos de color (valores referenciales e indicadores) salen también al imprimir */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 .rep-pagina.rep-horizontal {
   width: 1123px; /* A4 horizontal */
@@ -206,6 +209,36 @@
 }
 .rep-ref.celeste td {
   background: #b7dee8;
+}
+
+/* Indicador de valores fuera de la referencia: fondo + negrita + flecha (nunca solo color) */
+.rep-pagina .rep-alto {
+  background: #fbd5d5;
+  color: #c00000;
+  font-weight: 700;
+}
+.rep-pagina .rep-bajo {
+  background: #d6e4f7;
+  color: #1f4e9c;
+  font-weight: 700;
+}
+.rep-flecha {
+  margin-left: 2px;
+  font-size: 0.8em;
+}
+.rep-indicador {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin: 0 0 5px;
+  font-size: 9px;
+}
+.rep-muestra-color {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 3px;
+  border: 1px solid currentColor;
+  text-align: center;
 }
 
 /* Firma y pie */

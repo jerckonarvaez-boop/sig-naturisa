@@ -14,7 +14,7 @@ export interface CampoLab {
   grupo: string;
   /** Solo aparece en estos tipos de informe (si no se indica, en todos) */
   soloTipos?: string[];
-  /** Rango de referencia: fuera de él la interfaz lo marca */
+  /** Rango de referencia: fuera de él el formulario y el informe impreso lo marcan (▲ alto en rojo / ▼ bajo en azul) */
   min?: number;
   max?: number;
   /** Valor de referencia = factor × salinidad (Ca, Mg, K) */
@@ -109,8 +109,8 @@ const agua: SeccionLab = {
     { clave: 'calcio', etiqueta: 'Calcio Ca²⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO, factorSalinidad: 11.6 },
     { clave: 'magnesio', etiqueta: 'Magnesio Mg²⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO, factorSalinidad: 39.1 },
     { clave: 'potasio', etiqueta: 'Potasio K⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO, factorSalinidad: 10.7 },
-    { clave: 'vibrios_amarillas', etiqueta: 'Vibrios: colonias amarillas', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO },
-    { clave: 'vibrios_verdes', etiqueta: 'Vibrios: colonias verdes', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO },
+    { clave: 'vibrios_amarillas', etiqueta: 'Vibrios: colonias amarillas', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO, max: 1000 },
+    { clave: 'vibrios_verdes', etiqueta: 'Vibrios: colonias verdes', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO, max: 1000 },
   ],
   metodos: [
     'Análisis de fitoplancton: conteo directo al microscopio en cámara New Bauer.',

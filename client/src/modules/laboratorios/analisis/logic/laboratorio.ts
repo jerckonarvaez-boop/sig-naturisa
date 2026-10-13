@@ -89,21 +89,46 @@ export function textoReferencia(campo: CampoLab): string {
   if (campo.escala) return '';
   if (campo.factorSalinidad) return `Ref. = ${String(campo.factorSalinidad).replace('.', ',')} × salinidad`;
   if (campo.min != null && campo.max != null) return `Ref. ${fmt(campo.min)} – ${fmt(campo.max)}`;
+  if (campo.max != null) return `Ref. máx. ${fmt(campo.max)}`;
   return '';
 }
 
 const fmt = (n: number) => String(n).replace('.', ',');
 
-/** Comparación con la referencia: bajo, alto, o el valor de referencia calculado con la salinidad */
+/** Valor fuera de su referencia: supera el máximo ('alto') o no llega al mínimo ('bajo') */
+export type EstadoReferencia = 'alto' | 'bajo';
+
+/** Indicador de color (siempre con flecha y texto, nunca solo color); el informe impreso usa los mismos colores */
+export const ESTADOS_REFERENCIA: Record<EstadoReferencia, { flecha: string; texto: string; clase: string }> = {
+  alto: { flecha: '▲', texto: 'Sobre el valor referencial', clase: 'text-red-600 dark:text-red-400' },
+  bajo: { flecha: '▼', texto: 'Bajo el valor referencial', clase: 'text-blue-600 dark:text-blue-400' },
+};
+
+/**
+ * Compara un valor con su referencia: el rango min – max del parámetro o, en Ca, Mg y K,
+ * el valor referencial de la muestra (factor × salinidad). null si está dentro o no tiene referencia.
+ */
+export function estadoReferencia(campo: CampoLab, valor: number | null, salinidad: number | null): EstadoReferencia | null {
+  if (valor == null || campo.escala) return null;
+  if (campo.factorSalinidad) {
+    if (!salinidad) return null;
+    const referencia = campo.factorSalinidad * salinidad;
+    return valor > referencia ? 'alto' : valor < referencia ? 'bajo' : null;
+  }
+  if (campo.min != null && valor < campo.min) return 'bajo';
+  if (campo.max != null && valor > campo.max) return 'alto';
+  return null;
+}
+
+/** Ayuda bajo cada valor del formulario: nivel de patología, o referencia calculada y si está fuera de ella */
 export function evaluarReferencia(campo: CampoLab, valor: number | null, salinidad: number | null) {
   if (valor == null) return null;
   if (campo.escala === 'patologia') return { tipo: 'nivel' as const, nivel: nivelPatologia(valor) };
-  if (campo.factorSalinidad && salinidad) {
-    return { tipo: 'referencia' as const, texto: `ref. ${miles(campo.factorSalinidad * salinidad)}` };
-  }
-  if (campo.min != null && valor < campo.min) return { tipo: 'fuera' as const, texto: '▼ bajo' };
-  if (campo.max != null && valor > campo.max) return { tipo: 'fuera' as const, texto: '▲ alto' };
-  return null;
+  const estado = estadoReferencia(campo, valor, salinidad);
+  const calculada = campo.factorSalinidad && salinidad ? `ref. ${miles(campo.factorSalinidad * salinidad)}` : '';
+  if (!estado && !calculada) return null;
+  const fuera = estado ? `${ESTADOS_REFERENCIA[estado].flecha} ${estado}` : '';
+  return { tipo: 'referencia' as const, estado, texto: [calculada, fuera].filter(Boolean).join(' · ') };
 }
 
 /** Total de fitoplancton (suma de los grupos) de una muestra de agua */

@@ -160,9 +160,12 @@ muestra (piscina, precría…).
   química, salinidad/pH/alcalinidad salen en la tabla de fitoplancton (formato del informe básico). Las tablas
   impresas se numeran según las que lleve el informe (migración `009_laboratorio_agua_combinable.sql` convirtió
   los tipos anteriores).
-- **Ayudas:** valores de agua fuera de referencia (pH 7–8, alcalinidad 100–140, amonio, fosfato) se marcan
-  ▲ alto / ▼ bajo; Ca, Mg y K muestran su referencia (factor × salinidad); en patología cada grado muestra su
-  nivel (ausencia, bajo, medio, alto, muy alto); el total de fitoplancton se calcula solo.
+- **Ayudas:** valores de agua fuera de referencia (pH 7–8, alcalinidad 100–140, amonio 0,1–1,0, fosfato 0,6–1,5,
+  Vibrios máx. 1000; Ca, Mg y K frente a factor × salinidad de la muestra) se marcan ▲ alto / ▼ bajo; en patología
+  cada grado muestra su nivel (ausencia, bajo, medio, alto, muy alto); el total de fitoplancton se calcula solo.
+- **Indicador en el informe impreso** (y en el PDF del correo): la misma regla (`estadoReferencia` en
+  `analisis/logic/laboratorio.ts`, con los `min`/`max`/`factorSalinidad` de la definición) pinta la celda en rojo ▲
+  si supera la referencia o en azul ▼ si no llega, con leyenda junto a los valores referenciales.
 - **Identificación de la muestra:** lista validada de centros de costo del presupuesto + clientes del laboratorio
   (`CLIENTES_LABORATORIO`, hoy Kamaclusa y Pesjoya).
 - **Código:** se sugiere el siguiente número del año (también entiende rangos como "AF-2026-128 al 133").

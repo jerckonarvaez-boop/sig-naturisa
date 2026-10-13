@@ -7,6 +7,7 @@ import {
   aNumero,
   camposDelTipo,
   CLAVES_FITOPLANCTON,
+  ESTADOS_REFERENCIA,
   evaluarReferencia,
   gruposDelTipo,
   NIVELES_PATOLOGIA,
@@ -118,8 +119,13 @@ function FilaCampo({ campo, muestras, onValor }: { campo: CampoLab; muestras: Mu
             {evaluacion?.tipo === 'nivel' && (
               <span className={`block text-[11px] font-semibold ${NIVELES_PATOLOGIA[evaluacion.nivel].clase}`}>{NIVELES_PATOLOGIA[evaluacion.nivel].label}</span>
             )}
-            {evaluacion?.tipo === 'fuera' && <span className="block text-[11px] font-semibold text-red-600 dark:text-red-400">{evaluacion.texto}</span>}
-            {evaluacion?.tipo === 'referencia' && <span className="block text-[11px] text-slate-500 dark:text-slate-400">{evaluacion.texto}</span>}
+            {evaluacion?.tipo === 'referencia' && (
+              <span
+                className={`block text-[11px] ${evaluacion.estado ? `font-semibold ${ESTADOS_REFERENCIA[evaluacion.estado].clase}` : 'text-slate-500 dark:text-slate-400'}`}
+              >
+                {evaluacion.texto}
+              </span>
+            )}
           </td>
         );
       })}
