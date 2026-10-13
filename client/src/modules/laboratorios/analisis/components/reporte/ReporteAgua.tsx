@@ -1,4 +1,5 @@
-import { CLAVES_FITOPLANCTON } from '../../logic/laboratorio';
+import type { CSSProperties, ReactNode } from 'react';
+import { CLAVES_FITOPLANCTON, partesDelTipo } from '../../logic/laboratorio';
 import { cientifico, fechaInforme, fmt, num, txt, type InformeVista } from '../../logic/reporte';
 import { Firma, LEYENDA_FITOPLANCTON, LOGO, Pie } from './comunes';
 
@@ -23,6 +24,9 @@ const QUIMICOS: [string, string, string | null][] = [
   ['potasio', 'K+', 'mg/L'],
 ];
 
+/** Salinidad, pH y alcalinidad */
+const BASICOS = ['salinidad', 'ph', 'alcalinidad'];
+
 const totalFito = (m: Muestra) => CLAVES_FITOPLANCTON.reduce((t, c) => t + (num(m.valores[c]) ?? 0), 0);
 
 /** Celda de un grupo de fitoplancton: conteo, % del total y géneros ("+" si hay géneros sin conteo, "-" si no se encontró) */
@@ -45,10 +49,39 @@ function CeldaFito({ m, conteo, generos }: { m: Muestra; conteo: string; generos
   );
 }
 
-/** Informe de Análisis de Agua (AA): con químicos y bacteriología, con todos los químicos, o básico */
+/** Título de una tabla del informe; la primera lleva el código a la derecha, como en el formato oficial */
+function TituloSeccion({ children, codigo, style }: { children: ReactNode; codigo?: string; style?: CSSProperties }) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <div className="rep-subtitulo" style={style}>
+        {children}
+      </div>
+      {codigo && (
+        <span className="rep-codigo" style={{ position: 'absolute', right: '6%', top: 0 }}>
+          {codigo}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Informe de Análisis de Agua (AA): una, dos o las tres tablas (fitoplancton, químico, bacteriológico) */
 export function ReporteAgua({ informe }: { informe: InformeVista }) {
-  const basico = informe.tipo === 'basico';
-  const conBacteriologia = informe.tipo === 'completo';
+  const partes = partesDelTipo(informe.tipo);
+  const conFito = partes.includes('fitoplancton');
+  const conQuimico = partes.includes('quimico');
+  const conBacteriologia = partes.includes('bacteriologia');
+  /** Formato del informe básico (solo fitoplancton) */
+  const basico = conFito && !conQuimico && !conBacteriologia;
+  /** Sin análisis químico, la salinidad, el pH y la alcalinidad (si se midieron) van en la tabla de fitoplancton */
+  const basicosEnFito = conFito && !conQuimico && informe.muestras.some((m) => BASICOS.some((c) => num(m.valores[c]) != null));
+  // Las tablas se numeran en el orden en que aparecen; la primera lleva el código
+  const tablas = [conFito && 'fito', conQuimico && 'quimico', conBacteriologia && 'bact'].filter(Boolean);
+  const numero = (t: string) => tablas.indexOf(t) + 1;
+  const codigoEn = (t: string) => (tablas[0] === t ? informe.codigo : undefined);
+  const refBasicas = conQuimico || basicosEnFito;
+  const referencias = [refBasicas, conQuimico, conBacteriologia].filter(Boolean).length;
+
   return (
     <>
       {/* Encabezado */}
@@ -81,75 +114,74 @@ export function ReporteAgua({ informe }: { informe: InformeVista }) {
       </table>
 
       <div className="rep-titulo">Resultados</div>
-      <div style={{ position: 'relative' }}>
-        <div className="rep-subtitulo">1.- Análisis de Fitoplancton</div>
-        <span className="rep-codigo" style={{ position: 'absolute', right: '6%', top: 0 }}>
-          {informe.codigo}
-        </span>
-      </div>
-      <div className="rep-centro rep-negrita rep-pequeno" style={{ marginLeft: basico ? 120 : 60 }}>
-        Cel / ml (000)
-      </div>
 
-      {/* 1. Fitoplancton */}
-      <table className="rep-tabla rep-gruesa">
-        <thead>
-          <tr>
-            <th>Muestras</th>
-            {basico && (
-              <>
-                <th>ppt</th>
-                <th>.pH</th>
-                <th>Alk</th>
-              </>
-            )}
-            {GRUPOS.map(([c, , completo, corto]) => (
-              <th key={c}>{basico ? corto : completo}</th>
-            ))}
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {informe.muestras.map((m, i) => {
-            const total = totalFito(m);
-            return (
-              <tr key={i}>
-                <td className="rep-muestra" style={{ minWidth: 62 }}>
-                  {m.nombre}
-                </td>
-                {basico && (
+      {/* Fitoplancton */}
+      {conFito && (
+        <>
+          <TituloSeccion codigo={codigoEn('fito')}>{numero('fito')}.- Análisis de Fitoplancton</TituloSeccion>
+          <div className="rep-centro rep-negrita rep-pequeno" style={{ marginLeft: basicosEnFito ? 120 : 60 }}>
+            Cel / ml (000)
+          </div>
+          <table className="rep-tabla rep-gruesa">
+            <thead>
+              <tr>
+                <th>Muestras</th>
+                {basicosEnFito && (
                   <>
-                    <td className="rep-centro rep-negrita">{fmt(num(m.valores.salinidad))}</td>
-                    <td className="rep-centro rep-negrita">{fmt(num(m.valores.ph), 2)}</td>
-                    <td className="rep-centro rep-negrita">{fmt(num(m.valores.alcalinidad))}</td>
+                    <th>ppt</th>
+                    <th>.pH</th>
+                    <th>Alk</th>
                   </>
                 )}
-                {GRUPOS.map(([c, g]) => (
-                  <CeldaFito key={c} m={m} conteo={c} generos={g} />
+                {GRUPOS.map(([c, , completo, corto]) => (
+                  <th key={c}>{basicosEnFito ? corto : completo}</th>
                 ))}
-                <td className="rep-centro rep-negrita" style={{ verticalAlign: 'top' }}>
-                  <div>{total ? fmt(total) : '-'}</div>
-                  <div>{total ? '100%' : ''}</div>
-                </td>
+                <th>Total</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <div className="rep-muy-pequeno" style={{ width: 360, margin: '3px auto 0' }}>
-        {LEYENDA_FITOPLANCTON.map(([s, t]) => (
-          <div key={s}>
-            <span style={{ display: 'inline-block', width: 18, textAlign: 'right' }}>{s}</span> {t}
+            </thead>
+            <tbody>
+              {informe.muestras.map((m, i) => {
+                const total = totalFito(m);
+                return (
+                  <tr key={i}>
+                    <td className="rep-muestra" style={{ minWidth: 62 }}>
+                      {m.nombre}
+                    </td>
+                    {basicosEnFito && (
+                      <>
+                        <td className="rep-centro rep-negrita">{fmt(num(m.valores.salinidad))}</td>
+                        <td className="rep-centro rep-negrita">{fmt(num(m.valores.ph), 2)}</td>
+                        <td className="rep-centro rep-negrita">{fmt(num(m.valores.alcalinidad))}</td>
+                      </>
+                    )}
+                    {GRUPOS.map(([c, g]) => (
+                      <CeldaFito key={c} m={m} conteo={c} generos={g} />
+                    ))}
+                    <td className="rep-centro rep-negrita" style={{ verticalAlign: 'top' }}>
+                      <div>{total ? fmt(total) : '-'}</div>
+                      <div>{total ? '100%' : ''}</div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div className="rep-muy-pequeno" style={{ width: 360, margin: '3px auto 0' }}>
+            {LEYENDA_FITOPLANCTON.map(([s, t]) => (
+              <div key={s}>
+                <span style={{ display: 'inline-block', width: 18, textAlign: 'right' }}>{s}</span> {t}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
-      {!basico && (
+      {/* Químico */}
+      {conQuimico && (
         <>
-          {/* 2. Químico */}
-          <div className="rep-subtitulo" style={{ textDecoration: 'underline' }}>
-            2.- Análisis Químico de Agua.
-          </div>
+          <TituloSeccion codigo={codigoEn('quimico')} style={{ textDecoration: 'underline' }}>
+            {numero('quimico')}.- Análisis Químico de Agua.
+          </TituloSeccion>
           <table className="rep-tabla rep-gruesa rep-compacta" style={{ width: '100%' }}>
             <thead>
               <tr>
@@ -179,122 +211,130 @@ export function ReporteAgua({ informe }: { informe: InformeVista }) {
               ))}
             </tbody>
           </table>
-
-          {/* 3. Bacteriología (solo en el informe completo) */}
-          {conBacteriologia && (
-            <>
-              <div className="rep-subtitulo" style={{ textDecoration: 'underline', marginTop: 8 }}>
-                3.- Análisis Bacteriológico del Agua.
-              </div>
-              <table className="rep-tabla rep-gruesa rep-compacta" style={{ minWidth: 190 }}>
-                <thead>
-                  <tr>
-                    <th colSpan={3}>TCBS (Vibrios sp)</th>
-                  </tr>
-                  <tr>
-                    <th rowSpan={2}>Muestras</th>
-                    <th colSpan={2}>Ufc/ml</th>
-                  </tr>
-                  <tr>
-                    <th>A</th>
-                    <th>V</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {informe.muestras.map((m, i) => (
-                    <tr key={i} className="rep-centro">
-                      <td className="rep-muestra" style={{ padding: '0 5px' }}>
-                        {m.nombre}
-                      </td>
-                      <td>{cientifico(num(m.valores.vibrios_amarillas), 2)}</td>
-                      <td>{cientifico(num(m.valores.vibrios_verdes), 2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-          <div className="rep-centro rep-pequeno" style={{ marginTop: 4 }}>
-            <div>Análisis de Fitoplancton.- Conteo directo al microscopio en Cámara New Bauer</div>
-            <div>Análisis Químico.- Espectrofotometría (YSI-9300)</div>
-            {conBacteriologia && <div>Análisis Bacteriológico.- Siembra directa del agua en medio sólido TCBS</div>}
-          </div>
         </>
       )}
 
-      {/* Valores referenciales */}
-      <div className="rep-subtitulo" style={{ marginTop: 8 }}>
-        Valores {basico ? 'referenciales' : 'Referenciales'}
-      </div>
-      <div style={{ display: 'flex', justifyContent: basico ? 'center' : 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <table className="rep-ref verde">
-          <thead>
-            <tr>
-              <th>Parámetro</th>
-              <th>Fórmula</th>
-              <th>Valor {basico ? '' : 'referencial'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>pH</td>
-              <td className="rep-negrita">pH</td>
-              <td>7 – 8</td>
-            </tr>
-            <tr>
-              <td>Alcalinidad</td>
-              <td className="rep-negrita">Alk</td>
-              <td>100-140 mg/l</td>
-            </tr>
-            {!basico && (
-              <>
-                <tr>
-                  <td>Amonio</td>
-                  <td className="rep-negrita">NH₄</td>
-                  <td>0.1 – 1.0 mg/l</td>
+      {/* Bacteriológico */}
+      {conBacteriologia && (
+        <>
+          <TituloSeccion codigo={codigoEn('bact')} style={{ textDecoration: 'underline', marginTop: 8 }}>
+            {numero('bact')}.- Análisis Bacteriológico del Agua.
+          </TituloSeccion>
+          <table className="rep-tabla rep-gruesa rep-compacta" style={{ minWidth: 190 }}>
+            <thead>
+              <tr>
+                <th colSpan={3}>TCBS (Vibrios sp)</th>
+              </tr>
+              <tr>
+                <th rowSpan={2}>Muestras</th>
+                <th colSpan={2}>Ufc/ml</th>
+              </tr>
+              <tr>
+                <th>A</th>
+                <th>V</th>
+              </tr>
+            </thead>
+            <tbody>
+              {informe.muestras.map((m, i) => (
+                <tr key={i} className="rep-centro">
+                  <td className="rep-muestra" style={{ padding: '0 5px' }}>
+                    {m.nombre}
+                  </td>
+                  <td>{cientifico(num(m.valores.vibrios_amarillas), 2)}</td>
+                  <td>{cientifico(num(m.valores.vibrios_verdes), 2)}</td>
                 </tr>
-                <tr>
-                  <td>Fosfato</td>
-                  <td className="rep-negrita">PO₄</td>
-                  <td>0.6 – 1.5 mg/l</td>
-                </tr>
-              </>
-            )}
-          </tbody>
-        </table>
-        {!basico && (
-          <>
-            <div>
-              <table className="rep-ref morado">
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {/* Métodos (en el básico van al final, con título) */}
+      {!basico && (
+        <div className="rep-centro rep-pequeno" style={{ marginTop: 4 }}>
+          {conFito && <div>Análisis de Fitoplancton.- Conteo directo al microscopio en Cámara New Bauer</div>}
+          {refBasicas && <div>Análisis Químico.- Espectrofotometría (YSI-9300)</div>}
+          {conBacteriologia && <div>Análisis Bacteriológico.- Siembra directa del agua en medio sólido TCBS</div>}
+        </div>
+      )}
+
+      {/* Valores referenciales de las tablas que lleva el informe */}
+      {referencias > 0 && (
+        <>
+          <div className="rep-subtitulo" style={{ marginTop: 8 }}>
+            Valores {basico ? 'referenciales' : 'Referenciales'}
+          </div>
+          <div style={{ display: 'flex', justifyContent: referencias > 1 ? 'space-between' : 'center', alignItems: 'flex-start', gap: 12 }}>
+            {refBasicas && (
+              <table className="rep-ref verde">
                 <thead>
                   <tr>
                     <th>Parámetro</th>
-                    <th>Nomenclatura</th>
-                    <th className="rep-muy-pequeno">
-                      Valor determinado
-                      <br />
-                      dependiendo la salinidad
-                    </th>
+                    <th>Fórmula</th>
+                    <th>Valor {basico ? '' : 'referencial'}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    ['Calcio', 'Ca', '11,6'],
-                    ['Potasio', 'K', '10,7'],
-                    ['Magnesio', 'Mg', '39,1'],
-                  ].map(([p, n, v]) => (
-                    <tr key={p}>
-                      <td>{p}</td>
-                      <td className="rep-negrita">{n}</td>
-                      <td>{v}</td>
-                    </tr>
-                  ))}
+                  <tr>
+                    <td>pH</td>
+                    <td className="rep-negrita">pH</td>
+                    <td>7 – 8</td>
+                  </tr>
+                  <tr>
+                    <td>Alcalinidad</td>
+                    <td className="rep-negrita">Alk</td>
+                    <td>100-140 mg/l</td>
+                  </tr>
+                  {conQuimico && (
+                    <>
+                      <tr>
+                        <td>Amonio</td>
+                        <td className="rep-negrita">NH₄</td>
+                        <td>0.1 – 1.0 mg/l</td>
+                      </tr>
+                      <tr>
+                        <td>Fosfato</td>
+                        <td className="rep-negrita">PO₄</td>
+                        <td>0.6 – 1.5 mg/l</td>
+                      </tr>
+                    </>
+                  )}
                 </tbody>
               </table>
-              <div className="rep-muy-pequeno" style={{ width: 230, marginTop: 6 }}>
-                <b>Observaciones:</b> Multiplicar el valor determinado por el de la salinidad para obtener el número referencial.
+            )}
+            {conQuimico && (
+              <div>
+                <table className="rep-ref morado">
+                  <thead>
+                    <tr>
+                      <th>Parámetro</th>
+                      <th>Nomenclatura</th>
+                      <th className="rep-muy-pequeno">
+                        Valor determinado
+                        <br />
+                        dependiendo la salinidad
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ['Calcio', 'Ca', '11,6'],
+                      ['Potasio', 'K', '10,7'],
+                      ['Magnesio', 'Mg', '39,1'],
+                    ].map(([p, n, v]) => (
+                      <tr key={p}>
+                        <td>{p}</td>
+                        <td className="rep-negrita">{n}</td>
+                        <td>{v}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="rep-muy-pequeno" style={{ width: 230, marginTop: 6 }}>
+                  <b>Observaciones:</b> Multiplicar el valor determinado por el de la salinidad para obtener el número referencial.
+                </div>
               </div>
-            </div>
+            )}
             {conBacteriologia && (
               <table className="rep-ref celeste">
                 <thead>
@@ -317,15 +357,15 @@ export function ReporteAgua({ informe }: { informe: InformeVista }) {
                 </tbody>
               </table>
             )}
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
       {basico && (
         <div className="rep-centro rep-pequeno" style={{ marginTop: 8 }}>
           <div className="rep-subtitulo">Métodos de análisis utilizado:</div>
           <div>Análisis de Fitoplancton.- Conteo directo al microscopio en Cámara New Bauer</div>
-          <div>Análisis Químico.- Espectrofotometría (YSI 9300)</div>
+          {basicosEnFito && <div>Análisis Químico.- Espectrofotometría (YSI 9300)</div>}
         </div>
       )}
 

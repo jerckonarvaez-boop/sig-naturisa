@@ -1,5 +1,5 @@
 import { esFecha, esUnoDe, texto, type Validado } from '../../utils/validacion.js';
-import { camposDelTipo, SECCIONES, type SeccionId } from './laboratorio.secciones.js';
+import { camposDelTipo, SECCIONES, tiposDelInforme, type SeccionId } from './laboratorio.secciones.js';
 import type { InformeDatos, MuestraLab, ValorLab } from './laboratorio.types.js';
 
 const SECCIONES_IDS = Object.keys(SECCIONES) as SeccionId[];
@@ -9,8 +9,10 @@ export function validarInforme(body: Record<string, unknown> | undefined): Valid
   if (!body) return { error: 'Faltan los datos del informe.' };
   if (!esUnoDe(SECCIONES_IDS, body.seccion)) return { error: 'Sección de laboratorio no válida.' };
   const seccion = SECCIONES[body.seccion];
-  const tipo = seccion.tipos.find((t) => t.id === body.tipo);
-  if (!tipo) return { error: 'Tipo de informe no válido.' };
+  const tipos = tiposDelInforme(seccion, body.tipo);
+  if (!tipos) return { error: 'Tipo de informe no válido.' };
+  const tipo = tipos.map((t) => t.id).join('+'); // en el orden de la definición
+  const unaMuestra = tipos.find((t) => t.unaMuestra);
 
   const codigo = texto(body.codigo, 80);
   if (!codigo) return { error: 'Indique el código del informe.' };
@@ -22,9 +24,9 @@ export function validarInforme(body: Record<string, unknown> | undefined): Valid
 
   if (!Array.isArray(body.muestras) || !body.muestras.length) return { error: 'Agregue al menos una muestra.' };
   if (body.muestras.length > MAX_MUESTRAS) return { error: `Máximo ${MAX_MUESTRAS} muestras por informe.` };
-  if (tipo.unaMuestra && body.muestras.length !== 1) return { error: `El tipo "${tipo.nombre}" lleva una sola muestra.` };
+  if (unaMuestra && body.muestras.length !== 1) return { error: `El tipo "${unaMuestra.nombre}" lleva una sola muestra.` };
 
-  const campos = new Map(camposDelTipo(seccion, tipo.id).map((c) => [c.clave, c]));
+  const campos = new Map(camposDelTipo(seccion, tipo).map((c) => [c.clave, c]));
   const muestras: MuestraLab[] = [];
   for (const [i, m] of (body.muestras as Record<string, unknown>[]).entries()) {
     const nombre = texto(m?.nombre, 40);
@@ -50,7 +52,7 @@ export function validarInforme(body: Record<string, unknown> | undefined): Valid
   return {
     datos: {
       seccion: seccion.id,
-      tipo: tipo.id,
+      tipo,
       codigo,
       fechaEmision: body.fechaEmision,
       fechaMuestra: fechaMuestra as string,

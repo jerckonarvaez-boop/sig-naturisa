@@ -27,6 +27,8 @@ export interface GrupoLab {
 export interface TipoInforme {
   id: string;
   nombre: string;
+  /** Nombre corto para la lista de informes (secciones combinables) */
+  corto?: string;
   unaMuestra?: boolean;
 }
 
@@ -38,6 +40,8 @@ export interface SeccionLab {
   etiquetaFechaMuestra: string;
   matrices: string[];
   tipos: TipoInforme[];
+  /** Los tipos son análisis que se combinan: el informe lleva uno o varios, guardados como "a+b+c" */
+  combinable?: boolean;
   grupos: GrupoLab[];
   campos: CampoLab[];
   metodos: string[];

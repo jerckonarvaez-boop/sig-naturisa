@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hoyISO } from '@/utils/fechas';
-import { aNumero, camposDelTipo, nombreTipo, RUTA_SECCION, siguienteCodigo } from '../logic/laboratorio';
+import { aNumero, camposDelTipo, nombreTipo, RUTA_SECCION, siguienteCodigo, tipoInicial, tipoUnaMuestra } from '../logic/laboratorio';
 import { actualizarInforme, crearInforme, eliminarInforme, listarInformes, obtenerInforme } from '../services/laboratorio.api';
 import type { Informe, InformeDatos, SeccionLab } from '../types';
 
@@ -68,7 +68,7 @@ export function useInformeForm(seccion: SeccionLab | null, informeId: number | n
         const anteriores = await listarInformes(seccion.id);
         if (!vigente) return;
         setForm({
-          tipo: seccion.tipos[0].id,
+          tipo: tipoInicial(seccion),
           codigo: siguienteCodigo(seccion.prefijo, anteriores.map((i) => i.codigo)),
           fechaEmision: hoyISO(),
           fechaMuestra: hoyISO(),
@@ -105,9 +105,9 @@ export function useInformeForm(seccion: SeccionLab | null, informeId: number | n
 
   async function guardar() {
     if (!seccion || !form) return;
-    const tipo = seccion.tipos.find((t) => t.id === form.tipo);
-    if (tipo?.unaMuestra && form.muestras.length !== 1) {
-      setMensaje({ texto: `El tipo "${tipo.nombre}" lleva una sola muestra: quite las demás.`, error: true });
+    const unaMuestra = tipoUnaMuestra(seccion, form.tipo);
+    if (unaMuestra && form.muestras.length !== 1) {
+      setMensaje({ texto: `El tipo "${unaMuestra.nombre}" lleva una sola muestra: quite las demás.`, error: true });
       return;
     }
     const campos = camposDelTipo(seccion, form.tipo);

@@ -11,6 +11,7 @@ import {
   gruposDelTipo,
   NIVELES_PATOLOGIA,
   textoReferencia,
+  tipoUnaMuestra,
 } from '../logic/laboratorio';
 import type { CampoLab, SeccionLab } from '../types';
 
@@ -30,7 +31,7 @@ const CELDA = 'w-full min-w-24 rounded border border-slate-300 bg-white px-2 py-
 export function EditorMuestras({ seccion, tipo, muestras, onAgregar, onQuitar, onRenombrar, onValor }: EditorMuestrasProps) {
   const campos = camposDelTipo(seccion, tipo);
   const grupos = gruposDelTipo(seccion, tipo);
-  const unaMuestra = seccion.tipos.find((t) => t.id === tipo)?.unaMuestra;
+  const unaMuestra = tipoUnaMuestra(seccion, tipo);
   const columnas = muestras.length + 1;
 
   return (

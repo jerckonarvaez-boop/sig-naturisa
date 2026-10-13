@@ -148,13 +148,18 @@ muestra (piscina, precría…).
 
 | Sección | Código | Tipos de informe |
 |---|---|---|
-| Análisis de Agua (`/laboratorios/agua`) | AA-AAAA-NNN | Con químicos y bacteriología · Con todos los químicos · Básico (salinidad, pH, alcalinidad) |
+| Análisis de Agua (`/laboratorios/agua`) | AA-AAAA-NNN | Tablas combinables (una, dos o las tres): Fitoplancton · Químico · Bacteriológico |
 | Análisis de Suelo (`/laboratorios/suelo`) | AS-AAAA-NNN | Materia orgánica (humedad, pH seco, % MO) |
 | Patologías en fresco (`/laboratorios/patologias`) | AF-AAAA-NNN | Una o varias muestras, con o sin bacteriología |
 
 - **Definición única:** parámetros, unidades, grupos, tipos y referencias están en
   `server/src/modules/laboratorio/laboratorio.secciones.ts`; la interfaz la pide a `GET /api/laboratorio/secciones`
   y dibuja el formulario. Para agregar un parámetro o una sección basta con editar ese archivo.
+- **Agua, tablas combinables** (`combinable: true`): el tipo se guarda como la combinación marcada, ej.
+  `fitoplancton+quimico`; cada parámetro aparece si su `soloTipos` coincide con alguna de las tablas. Sin la tabla
+  química, salinidad/pH/alcalinidad salen en la tabla de fitoplancton (formato del informe básico). Las tablas
+  impresas se numeran según las que lleve el informe (migración `009_laboratorio_agua_combinable.sql` convirtió
+  los tipos anteriores).
 - **Ayudas:** valores de agua fuera de referencia (pH 7–8, alcalinidad 100–140, amonio, fosfato) se marcan
   ▲ alto / ▼ bajo; Ca, Mg y K muestran su referencia (factor × salinidad); en patología cada grado muestra su
   nivel (ausencia, bajo, medio, alto, muy alto); el total de fitoplancton se calcula solo.

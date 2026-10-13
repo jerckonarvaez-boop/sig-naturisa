@@ -9,13 +9,41 @@ export const RUTA_SECCION: Record<SeccionLab['id'], string> = {
   patologia: '/laboratorios/patologias',
 };
 
-export const camposDelTipo = (seccion: SeccionLab, tipo: string) =>
-  seccion.campos.filter((c) => !c.soloTipos || c.soloTipos.includes(tipo));
+/** Análisis que forman el tipo guardado: "fitoplancton+quimico" → ['fitoplancton', 'quimico'] */
+export const partesDelTipo = (tipo: string) => tipo.split('+');
 
-export const gruposDelTipo = (seccion: SeccionLab, tipo: string) =>
-  seccion.grupos.filter((g) => !g.soloTipos || g.soloTipos.includes(tipo));
+const aplica = (soloTipos: string[] | undefined, tipo: string) => !soloTipos || soloTipos.some((t) => partesDelTipo(tipo).includes(t));
 
-export const nombreTipo = (seccion: SeccionLab, tipo: string) => seccion.tipos.find((t) => t.id === tipo)?.nombre ?? tipo;
+/** Campos que aplican a un tipo de informe (en las secciones combinables, los de cualquiera de sus análisis) */
+export const camposDelTipo = (seccion: SeccionLab, tipo: string) => seccion.campos.filter((c) => aplica(c.soloTipos, tipo));
+
+export const gruposDelTipo = (seccion: SeccionLab, tipo: string) => seccion.grupos.filter((g) => aplica(g.soloTipos, tipo));
+
+const tiposDe = (seccion: SeccionLab, tipo: string) => seccion.tipos.filter((t) => partesDelTipo(tipo).includes(t.id));
+
+/** Ej. "Patología, una sola muestra" o, en las combinables, "Fitoplancton + Químico" */
+export function nombreTipo(seccion: SeccionLab, tipo: string) {
+  const tipos = tiposDe(seccion, tipo);
+  if (!tipos.length) return tipo;
+  return seccion.combinable ? tipos.map((t) => t.corto ?? t.nombre).join(' + ') : tipos[0].nombre;
+}
+
+/** Tipo de un informe nuevo: en las combinables, todos los análisis marcados */
+export const tipoInicial = (seccion: SeccionLab) => (seccion.combinable ? seccion.tipos.map((t) => t.id).join('+') : seccion.tipos[0].id);
+
+/** Marca o desmarca un análisis (queda al menos uno, en el orden de la definición) */
+export function alternarTipo(seccion: SeccionLab, tipo: string, id: string) {
+  const partes = partesDelTipo(tipo);
+  const nuevas = partes.includes(id) ? partes.filter((p) => p !== id) : [...partes, id];
+  if (!nuevas.length) return tipo;
+  return seccion.tipos
+    .filter((t) => nuevas.includes(t.id))
+    .map((t) => t.id)
+    .join('+');
+}
+
+/** Tipo del informe que exige una sola muestra (si lo hay) */
+export const tipoUnaMuestra = (seccion: SeccionLab, tipo: string) => tiposDe(seccion, tipo).find((t) => t.unaMuestra);
 
 /** Siguiente código de la sección en el año: AA-2026-008 → AA-2026-009 (toma el mayor número usado) */
 export function siguienteCodigo(prefijo: string, codigos: string[], anio = new Date().getFullYear()): string {

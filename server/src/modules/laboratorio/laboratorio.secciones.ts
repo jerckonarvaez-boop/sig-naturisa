@@ -34,6 +34,8 @@ export interface GrupoLab {
 export interface TipoInforme {
   id: string;
   nombre: string;
+  /** Nombre corto para la lista de informes (secciones combinables) */
+  corto?: string;
   /** El informe tiene exactamente una muestra */
   unaMuestra?: boolean;
 }
@@ -47,14 +49,19 @@ export interface SeccionLab {
   etiquetaFechaMuestra: string;
   matrices: string[];
   tipos: TipoInforme[];
+  /** Los tipos son análisis que se combinan: el informe lleva uno o varios, guardados como "a+b+c" */
+  combinable?: boolean;
   grupos: GrupoLab[];
   campos: CampoLab[];
   metodos: string[];
 }
 
-const COMPLETO = ['completo'];
-/** Tipos de agua con todos los químicos (con o sin bacteriología) */
-const TODOS_QUIMICOS = ['completo', 'quimicos'];
+// Análisis de agua: se combinan una, dos o las tres tablas del informe
+const FITOPLANCTON = ['fitoplancton'];
+const QUIMICO = ['quimico'];
+const BACTERIOLOGICO = ['bacteriologia'];
+/** Salinidad, pH y alcalinidad: van en la tabla química o, si no hay análisis químico, junto al fitoplancton */
+const BASICOS = ['fitoplancton', 'quimico'];
 const CON_BACTERIOLOGIA = ['una-bact', 'varias-bact'];
 
 const agua: SeccionLab = {
@@ -65,43 +72,45 @@ const agua: SeccionLab = {
   etiquetaFechaMuestra: 'Fecha de análisis',
   matrices: ['Agua'],
   tipos: [
-    { id: 'completo', nombre: 'Agua con químicos y bacteriología' },
-    { id: 'quimicos', nombre: 'Agua con todos los químicos' },
-    { id: 'basico', nombre: 'Análisis de agua básico' },
+    { id: 'fitoplancton', nombre: 'Análisis de Fitoplancton', corto: 'Fitoplancton' },
+    { id: 'quimico', nombre: 'Análisis Químico de Agua', corto: 'Químico' },
+    { id: 'bacteriologia', nombre: 'Análisis Bacteriológico de Agua', corto: 'Bacteriológico' },
   ],
+  combinable: true,
   grupos: [
-    { id: 'fitoplancton', nombre: 'Análisis de fitoplancton', nota: 'Conteo directo al microscopio en cámara New Bauer · cel/ml (000)' },
-    { id: 'quimica', nombre: 'Análisis químico', nota: 'Espectrofotometría (YSI 9300)' },
+    { id: 'fitoplancton', nombre: 'Análisis de fitoplancton', soloTipos: FITOPLANCTON, nota: 'Conteo directo al microscopio en cámara New Bauer · cel/ml (000)' },
+    { id: 'basicos', nombre: 'Salinidad, pH y alcalinidad', soloTipos: BASICOS },
+    { id: 'quimica', nombre: 'Análisis químico', soloTipos: QUIMICO, nota: 'Espectrofotometría (YSI 9300)' },
     {
       id: 'bacteriologia',
       nombre: 'Análisis bacteriológico',
-      soloTipos: COMPLETO,
+      soloTipos: BACTERIOLOGICO,
       nota: 'Siembra directa del agua en medio sólido TCBS · Vibrios: rango óptimo 500 – 1000 UFC/ml',
     },
   ],
   campos: [
-    { clave: 'diatomeas', etiqueta: 'Diatomeas', tipo: 'numero', grupo: 'fitoplancton' },
-    { clave: 'cianofitas', etiqueta: 'Cianofitas', tipo: 'numero', grupo: 'fitoplancton' },
-    { clave: 'clorofitas', etiqueta: 'Clorofitas', tipo: 'numero', grupo: 'fitoplancton' },
-    { clave: 'dinoflagelados', etiqueta: 'Dinoflagelados', tipo: 'numero', grupo: 'fitoplancton' },
-    { clave: 'otros_fito', etiqueta: 'Otros', tipo: 'numero', grupo: 'fitoplancton' },
-    { clave: 'generos_diatomeas', etiqueta: 'Géneros de diatomeas', tipo: 'texto', grupo: 'fitoplancton' },
-    { clave: 'generos_cianofitas', etiqueta: 'Géneros de cianofitas', tipo: 'texto', grupo: 'fitoplancton' },
-    { clave: 'generos_clorofitas', etiqueta: 'Géneros de clorofitas', tipo: 'texto', grupo: 'fitoplancton' },
-    { clave: 'generos_dinoflagelados', etiqueta: 'Géneros de dinoflagelados', tipo: 'texto', grupo: 'fitoplancton' },
-    { clave: 'generos_otros', etiqueta: 'Géneros de otros', tipo: 'texto', grupo: 'fitoplancton' },
-    { clave: 'salinidad', etiqueta: 'Salinidad', tipo: 'numero', unidad: 'ppt', grupo: 'quimica' },
-    { clave: 'ph', etiqueta: 'pH', tipo: 'numero', grupo: 'quimica', min: 7, max: 8 },
-    { clave: 'alcalinidad', etiqueta: 'Alcalinidad', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', min: 100, max: 140 },
-    { clave: 'fosfato', etiqueta: 'Fosfato PO₄³⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS, min: 0.6, max: 1.5 },
-    { clave: 'amonio', etiqueta: 'Amonio N-NH₄', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS, min: 0.1, max: 1 },
-    { clave: 'nitrito', etiqueta: 'Nitrito NO₂⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS },
-    { clave: 'nitrato', etiqueta: 'Nitrato NO₃⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS },
-    { clave: 'calcio', etiqueta: 'Calcio Ca²⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS, factorSalinidad: 11.6 },
-    { clave: 'magnesio', etiqueta: 'Magnesio Mg²⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS, factorSalinidad: 39.1 },
-    { clave: 'potasio', etiqueta: 'Potasio K⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: TODOS_QUIMICOS, factorSalinidad: 10.7 },
-    { clave: 'vibrios_amarillas', etiqueta: 'Vibrios: colonias amarillas', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: COMPLETO },
-    { clave: 'vibrios_verdes', etiqueta: 'Vibrios: colonias verdes', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: COMPLETO },
+    { clave: 'diatomeas', etiqueta: 'Diatomeas', tipo: 'numero', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    { clave: 'cianofitas', etiqueta: 'Cianofitas', tipo: 'numero', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    { clave: 'clorofitas', etiqueta: 'Clorofitas', tipo: 'numero', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    { clave: 'dinoflagelados', etiqueta: 'Dinoflagelados', tipo: 'numero', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    { clave: 'otros_fito', etiqueta: 'Otros', tipo: 'numero', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    { clave: 'generos_diatomeas', etiqueta: 'Géneros de diatomeas', tipo: 'texto', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    { clave: 'generos_cianofitas', etiqueta: 'Géneros de cianofitas', tipo: 'texto', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    { clave: 'generos_clorofitas', etiqueta: 'Géneros de clorofitas', tipo: 'texto', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    { clave: 'generos_dinoflagelados', etiqueta: 'Géneros de dinoflagelados', tipo: 'texto', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    { clave: 'generos_otros', etiqueta: 'Géneros de otros', tipo: 'texto', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    { clave: 'salinidad', etiqueta: 'Salinidad', tipo: 'numero', unidad: 'ppt', grupo: 'basicos', soloTipos: BASICOS },
+    { clave: 'ph', etiqueta: 'pH', tipo: 'numero', grupo: 'basicos', soloTipos: BASICOS, min: 7, max: 8 },
+    { clave: 'alcalinidad', etiqueta: 'Alcalinidad', tipo: 'numero', unidad: 'mg/L', grupo: 'basicos', soloTipos: BASICOS, min: 100, max: 140 },
+    { clave: 'fosfato', etiqueta: 'Fosfato PO₄³⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO, min: 0.6, max: 1.5 },
+    { clave: 'amonio', etiqueta: 'Amonio N-NH₄', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO, min: 0.1, max: 1 },
+    { clave: 'nitrito', etiqueta: 'Nitrito NO₂⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO },
+    { clave: 'nitrato', etiqueta: 'Nitrato NO₃⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO },
+    { clave: 'calcio', etiqueta: 'Calcio Ca²⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO, factorSalinidad: 11.6 },
+    { clave: 'magnesio', etiqueta: 'Magnesio Mg²⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO, factorSalinidad: 39.1 },
+    { clave: 'potasio', etiqueta: 'Potasio K⁺', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO, factorSalinidad: 10.7 },
+    { clave: 'vibrios_amarillas', etiqueta: 'Vibrios: colonias amarillas', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO },
+    { clave: 'vibrios_verdes', etiqueta: 'Vibrios: colonias verdes', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO },
   ],
   metodos: [
     'Análisis de fitoplancton: conteo directo al microscopio en cámara New Bauer.',
@@ -188,6 +197,21 @@ export const SECCIONES: Record<SeccionId, SeccionLab> = { agua, suelo, patologia
 /** Laboratorios externos o clientes que no están en el presupuesto (se suman a los centros de costo) */
 export const CLIENTES_LABORATORIO = ['Kamaclusa', 'Pesjoya'];
 
-/** Campos que aplican a un tipo de informe */
-export const camposDelTipo = (seccion: SeccionLab, tipo: string) =>
-  seccion.campos.filter((c) => !c.soloTipos || c.soloTipos.includes(tipo));
+/** Análisis que forman el tipo guardado: "fitoplancton+quimico" → ['fitoplancton', 'quimico'] */
+export const partesDelTipo = (tipo: string) => tipo.split('+');
+
+/** Tipos que forman el valor recibido, en el orden de la definición; null si no es válido */
+export function tiposDelInforme(seccion: SeccionLab, tipo: unknown): TipoInforme[] | null {
+  if (typeof tipo !== 'string') return null;
+  const partes = partesDelTipo(tipo);
+  if (partes.length > 1 && !seccion.combinable) return null;
+  if (new Set(partes).size !== partes.length) return null;
+  const tipos = seccion.tipos.filter((t) => partes.includes(t.id));
+  return tipos.length === partes.length ? tipos : null;
+}
+
+/** Campos que aplican a un tipo de informe (en las secciones combinables, los de cualquiera de sus análisis) */
+export function camposDelTipo(seccion: SeccionLab, tipo: string) {
+  const partes = partesDelTipo(tipo);
+  return seccion.campos.filter((c) => !c.soloTipos || c.soloTipos.some((t) => partes.includes(t)));
+}
