@@ -74,7 +74,9 @@ function AnalisisCombinables({ seccion, tipo, onCambiar }: { seccion: SeccionLab
   const partes = partesDelTipo(tipo);
   return (
     <fieldset className="sm:col-span-2 lg:col-span-4">
-      <legend className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Tipo de informe * (marque una, dos o las tres tablas)</legend>
+      <legend className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">
+        Tipo de informe * ({seccion.tipos.length === 2 ? 'marque uno o los dos' : 'marque una, dos o las tres tablas'})
+      </legend>
       <div className="flex flex-wrap gap-x-5 gap-y-2">
         {seccion.tipos.map((t) => {
           const marcado = partes.includes(t.id);
