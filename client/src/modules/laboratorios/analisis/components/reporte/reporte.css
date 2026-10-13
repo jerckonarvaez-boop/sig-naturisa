@@ -1,0 +1,224 @@
+/* Informe de ensayo con el diseño oficial (igual al Excel). Colores fijos: se imprime siempre en claro. */
+
+.rep-pagina {
+  box-sizing: border-box;
+  width: 794px; /* A4 vertical a 96 ppp */
+  padding: 30px 34px;
+  background: #fff;
+  color: #000;
+  font-family: Calibri, 'Segoe UI', Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.25;
+}
+.rep-pagina.rep-horizontal {
+  width: 1123px; /* A4 horizontal */
+}
+.rep-pagina * {
+  box-sizing: border-box;
+  border-color: #000;
+}
+
+/* Fuera de pantalla: existe para imprimir y para generar el PDF, pero no se ve en la app */
+.rep-contenedor {
+  position: fixed;
+  left: -20000px;
+  top: 0;
+}
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  .rep-contenedor {
+    position: static;
+  }
+  .rep-pagina {
+    width: 100%;
+    padding: 0;
+  }
+}
+
+.rep-logo {
+  height: 64px;
+  width: auto;
+}
+.rep-negrita {
+  font-weight: 700;
+}
+.rep-centro {
+  text-align: center;
+}
+.rep-derecha {
+  text-align: right;
+}
+.rep-titulo {
+  margin: 10px 0 2px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+.rep-subtitulo {
+  margin: 2px 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.rep-pequeno {
+  font-size: 9px;
+}
+.rep-muy-pequeno {
+  font-size: 8px;
+  line-height: 1.15;
+}
+
+/* Recuadros del encabezado */
+.rep-caja {
+  border: 2px solid #000;
+}
+.rep-linea {
+  border-bottom: 2px solid #000;
+}
+.rep-codigo {
+  display: inline-block;
+  min-width: 130px;
+  border: 1.5px solid #000;
+  padding: 1px 8px;
+  text-align: center;
+}
+
+/* Tablas de resultados */
+.rep-tabla {
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+.rep-tabla th,
+.rep-tabla td {
+  border: 1px solid #000;
+  padding: 2px 5px;
+  vertical-align: middle;
+}
+.rep-tabla.rep-gruesa {
+  border: 2px solid #000;
+}
+.rep-tabla th {
+  background: #d9d9d9;
+  font-weight: 700;
+  text-align: center;
+}
+.rep-tabla .rep-muestra {
+  background: #d9d9d9;
+  font-weight: 700;
+  text-align: center;
+}
+.rep-tabla .rep-sin-borde td,
+.rep-tabla td.rep-sin-borde {
+  border: none;
+}
+.rep-celda-fito {
+  text-align: center;
+  vertical-align: top;
+  min-width: 74px;
+}
+.rep-celda-fito .rep-generos {
+  display: block;
+  margin-top: 3px;
+  font-size: 8px;
+  line-height: 1.15;
+}
+
+/* Tablas con filas bajas (químico y bacteriología del agua) */
+.rep-tabla.rep-compacta td {
+  padding: 0 4px;
+  font-size: 10px;
+}
+.rep-tabla.rep-compacta th {
+  padding: 1px 4px;
+  font-size: 10px;
+}
+
+/* Barra de sección (patología) */
+.rep-barra {
+  background: #f2f2f2;
+  border-top: 1.5px solid #000;
+  border-bottom: 1.5px solid #000;
+  padding: 2px 4px;
+  font-weight: 700;
+}
+.rep-leyenda {
+  background: #ddd9c4;
+  border-top: 1.5px solid #000;
+  padding: 3px 4px;
+  font-weight: 700;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+}
+
+/* Grados de patología */
+.rep-grado-medio {
+  font-weight: 700;
+}
+.rep-grado-alto {
+  font-weight: 700;
+  color: #f2a900;
+}
+.rep-grado-muy-alto {
+  font-weight: 700;
+  color: #e00000;
+}
+
+/* Valores referenciales (agua) */
+.rep-ref {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-size: 9px;
+}
+.rep-ref th {
+  color: #fff;
+  font-weight: 700;
+  padding: 3px 6px;
+}
+.rep-ref td {
+  padding: 1px 6px;
+  text-align: center;
+}
+.rep-ref td:first-child {
+  color: #fff;
+  font-style: italic;
+  font-weight: 700;
+}
+.rep-ref.verde th,
+.rep-ref.verde td:first-child {
+  background: #9bbb59;
+}
+.rep-ref.verde td {
+  background: #d7e4bc;
+}
+.rep-ref.morado th,
+.rep-ref.morado td:first-child {
+  background: #8064a2;
+}
+.rep-ref.morado td {
+  background: #ccc0da;
+}
+.rep-ref.celeste th,
+.rep-ref.celeste td:first-child {
+  background: #4bacc6;
+}
+.rep-ref.celeste td {
+  background: #b7dee8;
+}
+
+/* Firma y pie */
+.rep-firma {
+  margin: 26px auto 0;
+  width: 270px;
+  border-top: 1.5px solid #000;
+  padding-top: 2px;
+  text-align: center;
+}
+.rep-pie {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 8px;
+  line-height: 1.5;
+}

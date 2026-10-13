@@ -161,6 +161,15 @@ muestra (piscina, precría…).
 - **Identificación de la muestra:** lista validada de centros de costo del presupuesto + clientes del laboratorio
   (`CLIENTES_LABORATORIO`, hoy Kamaclusa y Pesjoya).
 - **Código:** se sugiere el siguiente número del año (también entiende rangos como "AF-2026-128 al 133").
+- **Imprimir:** sale el informe con el diseño oficial de cada formato (igual al Excel: encabezado, tablas, leyendas,
+  valores referenciales, firma y pie), en `analisis/components/reporte/`. Patología con más de 6 muestras sale en
+  horizontal para que quepa en una hoja.
+- **Enviar por correo:** genera el PDF del informe (la misma vista de impresión, con `html-to-image` + `jspdf`) y
+  descarga un `.eml` con el PDF adjunto y `X-Unsent: 1`; al abrirlo, Outlook (escritorio) lo muestra como borrador
+  listo para enviar. El texto predeterminado (asunto y mensaje, con `{codigo}`, `{identificacion}`, `{seccion}`,
+  `{fecha}`) se edita desde la misma ventana y se guarda en la tabla `configuracion`; los destinatarios se recuerdan
+  por centro de costo en `lab_destinatario` (migración `008_laboratorio_correo.sql`). Funciones genéricas en
+  `client/src/services/documentos/` (`pdf.ts`, `correo.ts`).
 - **API:** `GET/POST /api/laboratorio/informes` (`?seccion=agua|suelo|patologia`), `GET/PUT/DELETE
   /api/laboratorio/informes/:id`. **Base de datos:** `lab_informe` y `lab_muestra` (valores en JSON),
   migración `007_laboratorio.sql`. **Código:** `client/src/modules/laboratorios/analisis/`.
