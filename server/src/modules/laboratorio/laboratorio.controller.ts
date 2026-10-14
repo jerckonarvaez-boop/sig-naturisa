@@ -1,11 +1,10 @@
 import type { RequestHandler } from 'express';
-import { esUnoDe } from '../../utils/validacion.js';
+import { esUnoDe, normalizarCorreos } from '../../utils/validacion.js';
 import { CLIENTES_LABORATORIO, SECCIONES, type SeccionId } from './laboratorio.secciones.js';
 import { actualizarInforme, crearInforme, eliminarInforme, listarInformes, obtenerInforme } from './laboratorio.service.js';
 import {
   guardarDestinatarios,
   guardarPlantilla,
-  normalizarCorreos,
   obtenerDestinatarios,
   obtenerPlantilla,
   validarPlantilla,

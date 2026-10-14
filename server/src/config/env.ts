@@ -30,4 +30,16 @@ export const env = {
    */
   tursoUrl: process.env.TURSO_DATABASE_URL ?? '',
   tursoToken: process.env.TURSO_AUTH_TOKEN ?? '',
+  /**
+   * Cuenta que envía los avisos del calendario (SMTP). Sin host, usuario y clave no se envían avisos.
+   * Ej. Gmail: smtp.gmail.com, puerto 465, usuario = la cuenta, clave = "contraseña de aplicación".
+   */
+  smtpHost: process.env.SMTP_HOST ?? '',
+  smtpPort: Number(process.env.SMTP_PORT ?? 465),
+  smtpUser: process.env.SMTP_USER ?? '',
+  smtpPass: process.env.SMTP_PASS ?? '',
+  /** Remitente visible, ej. "SIG Naturisa <sig@empresa.com>" (por defecto, la cuenta SMTP_USER) */
+  smtpFrom: process.env.SMTP_FROM ?? '',
+  /** Dirección pública de la web, para los enlaces de los correos */
+  appUrl: process.env.APP_URL ?? 'https://sig-naturisa.onrender.com',
 };

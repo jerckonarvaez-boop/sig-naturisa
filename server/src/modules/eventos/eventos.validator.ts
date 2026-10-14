@@ -30,6 +30,7 @@ export function validarEvento(body: Record<string, unknown> | undefined): Valida
       responsable: texto(body.responsable, 120),
       estado: body.estado,
       observaciones: texto(body.observaciones, 4000),
+      avisar: body.avisar !== false,
     },
   };
 }

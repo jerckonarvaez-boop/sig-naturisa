@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Award, ChevronRight } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { CalendarioEventos } from '@/modules/eventos/components/CalendarioEventos';
+import { ProximasFechasCard } from '@/modules/eventos/components/ProximasFechasCard';
 import { meta } from '../meta';
 
-// Página de entrada de Auditorías: acceso a cada certificación + calendario conjunto ASC y BAP
+// Página de entrada de Auditorías: acceso a cada certificación + próximas auditorías (las fechas se gestionan en Calendario)
 export function AuditoriasInicio() {
   return (
     <>
@@ -27,7 +27,7 @@ export function AuditoriasInicio() {
           </Link>
         ))}
       </div>
-      <CalendarioEventos tipos={['auditoria-asc', 'auditoria-bap']} titulo="Calendario de auditorías" />
+      <ProximasFechasCard tipos={['auditoria-asc', 'auditoria-bap']} titulo="Próximas auditorías" />
     </>
   );
 }

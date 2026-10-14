@@ -8,9 +8,11 @@ interface CardProps {
   className?: string;
   /** Versión compacta (menos relleno y título más pequeño), para tableros con muchos gráficos */
   compact?: boolean;
+  /** Enlace o botón a la derecha del título */
+  actions?: ReactNode;
 }
 
-export function Card({ title, subtitle, children, className = '', compact = false }: CardProps) {
+export function Card({ title, subtitle, children, className = '', compact = false, actions }: CardProps) {
   return (
     <section
       className={`rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 ${
@@ -18,9 +20,12 @@ export function Card({ title, subtitle, children, className = '', compact = fals
       } ${className}`}
     >
       {title && (
-        <div className={compact ? 'mb-2' : 'mb-4'}>
-          <h2 className={`font-semibold ${compact ? 'text-base' : 'text-lg'}`}>{title}</h2>
-          {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
+        <div className={`flex items-start justify-between gap-3 ${compact ? 'mb-2' : 'mb-4'}`}>
+          <div>
+            <h2 className={`font-semibold ${compact ? 'text-base' : 'text-lg'}`}>{title}</h2>
+            {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
+          </div>
+          {actions}
         </div>
       )}
       {children}

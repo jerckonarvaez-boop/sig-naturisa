@@ -1,13 +1,6 @@
 import { SearchCheck } from 'lucide-react';
 import type { ModuleMeta, SubSection } from '../types';
 
-export const CALENDARIO_SCI: SubSection = {
-  id: 'calendario-sci',
-  label: 'Calendario',
-  description: 'Inspecciones programadas y realizadas.',
-  path: '/inspecciones-sci',
-};
-
 export const CHECKLIST_BP: SubSection = {
   id: 'checklist-bp',
   label: 'Check list Buenas Prácticas',
@@ -22,5 +15,6 @@ export const meta: ModuleMeta = {
   path: '/inspecciones-sci',
   icon: SearchCheck,
   status: 'activo',
-  children: [CALENDARIO_SCI, CHECKLIST_BP],
+  // Las fechas de inspección se programan en el Calendario general
+  children: [CHECKLIST_BP],
 };

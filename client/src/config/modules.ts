@@ -1,5 +1,6 @@
 import type { AppModule } from '@/modules/types';
 import { auditoriasModule } from '@/modules/auditorias';
+import { calendarioModule } from '@/modules/calendario';
 import { laboratoriosModule } from '@/modules/laboratorios';
 import { inspeccionesSciModule } from '@/modules/inspecciones-sci';
 import { gestionDesechosModule } from '@/modules/gestion-desechos';
@@ -12,6 +13,7 @@ import { presupuestoModule } from '@/modules/presupuesto';
  * Con status 'proximamente' aparece en el menú deshabilitado.
  */
 export const MODULES: AppModule[] = [
+  calendarioModule,
   auditoriasModule,
   laboratoriosModule,
   inspeccionesSciModule,

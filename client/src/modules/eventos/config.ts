@@ -1,13 +1,22 @@
 import { AlertTriangle, CalendarClock, CheckCircle2, History, XCircle, type LucideIcon } from 'lucide-react';
 import type { EstadoEvento, EstadoVisual, TipoEvento } from './types';
 
-/** Tipos de evento: nombre, abreviatura y página del módulo al que pertenecen */
-export const TIPOS: Record<TipoEvento, { label: string; corto: string; ruta: string }> = {
-  'auditoria-asc': { label: 'Auditoría ASC', corto: 'ASC', ruta: '/auditorias/asc' },
-  'auditoria-bap': { label: 'Auditoría BAP', corto: 'BAP', ruta: '/auditorias/bap' },
+/** Tipos de evento del calendario general: nombre y abreviatura (en el orden de los filtros) */
+export const TIPOS: Record<TipoEvento, { label: string; corto: string }> = {
+  'auditoria-asc': { label: 'Auditoría ASC', corto: 'ASC' },
+  'auditoria-bap': { label: 'Auditoría BAP', corto: 'BAP' },
   // SCI = Subsecretaría de Calidad e Inocuidad
-  'inspeccion-sci': { label: 'Inspección SCI', corto: 'SCI', ruta: '/inspecciones-sci' },
+  'inspeccion-sci': { label: 'Inspección SCI', corto: 'SCI' },
+  capacitacion: { label: 'Capacitación', corto: 'Capac.' },
+  mantenimiento: { label: 'Mantenimiento / calibración', corto: 'Mant.' },
+  vencimiento: { label: 'Vencimiento / renovación', corto: 'Venc.' },
+  otro: { label: 'Otro', corto: 'Otro' },
 };
+
+export const TODOS_LOS_TIPOS = Object.keys(TIPOS) as TipoEvento[];
+
+/** Ruta del calendario general, filtrado por tipos (sin tipos muestra todo) */
+export const rutaCalendario = (tipos: TipoEvento[] = []) => (tipos.length ? `/calendario?tipo=${tipos.join(',')}` : '/calendario');
 
 /** Estados que el usuario puede elegir en el formulario */
 export const ESTADOS_EDITABLES: EstadoEvento[] = ['programado', 'realizado', 'reprogramado', 'cancelado'];

@@ -42,10 +42,11 @@ sig-naturisa/
 │   ├── modules/                    Un módulo funcional por carpeta
 │   │   ├── auth/                   LoginPage · ControlAcceso (quién puede ver la app)
 │   │   ├── dashboard/
-│   │   ├── eventos/                Calendario compartido (Auditorías, SCI y Dashboard)
+│   │   ├── calendario/             Calendario general (todas las fechas + avisos por correo)
+│   │   ├── eventos/                Componentes y datos del calendario (usados por Calendario, módulos y Dashboard)
 │   │   ├── auditorias/             asc y bap
 │   │   ├── laboratorios/
-│   │   ├── inspecciones-sci/       calendario + checklist/
+│   │   ├── inspecciones-sci/       checklist/ (las fechas están en Calendario)
 │   │   ├── gestion-desechos/
 │   │   └── presupuesto/
 │   ├── utils/                      Funciones puras: fechas, numeros, texto, csv, excel
@@ -204,18 +205,31 @@ genérica), que se usa en el calendario de eventos, el
 check list SCI y Oxigenómetros. Si un registro antiguo tiene un centro que ya no está en el presupuesto, se
 conserva y se marca. Sin presupuesto importado, el campo permite escribir para no bloquear el formulario.
 
-## Calendario de eventos (Auditorías ASC/BAP e Inspecciones SCI)
+## Calendario general y avisos por correo
 
-- **Dónde aparece:** en Certificación ASC, Certificación BAP e Inspecciones SCI (cada uno con su
-  calendario), en Auditorías (calendario conjunto ASC + BAP) y en el Dashboard (tarjeta "Próximas fechas").
+- **Dónde:** menú **Calendario** (`/calendario`): todas las fechas en vista mensual o lista, con filtro por tipo
+  (`/calendario?tipo=auditoria-asc,auditoria-bap`). Auditorías, Inspecciones SCI y el Dashboard ya no tienen
+  calendario propio: muestran la tarjeta "Próximas fechas" de sus tipos, que enlaza al Calendario.
+- **Tipos:** Auditoría ASC, Auditoría BAP, Inspección SCI, Capacitación, Mantenimiento / calibración,
+  Vencimiento / renovación y Otro. Para agregar uno: `config.ts` (cliente) y `eventos.types.ts` (servidor).
 - **Datos de cada evento:** tipo, título, fecha de inicio/fin, sucursal, responsable, estado
-  (programado, realizado, reprogramado, cancelado) y observaciones. Un evento programado cuya fecha
-  ya pasó se muestra como **vencido**.
-- **Código:** `client/src/modules/eventos/` (reglas en `logic/eventos.ts`, estado en `hooks/useCalendario.ts`). Para usarlo en otro módulo:
-  `<CalendarioEventos tipos={['mi-tipo']} />`, después de añadir el tipo en `config.ts` (cliente)
-  y en `eventos.types.ts` (servidor).
-- **API:** `GET /api/eventos?tipo=...`, `POST /api/eventos`, `PUT /api/eventos/:id`, `DELETE /api/eventos/:id`.
-- **Base de datos:** tabla `evento` (migración `003_eventos.sql`).
+  (programado, realizado, reprogramado, cancelado), observaciones y **"Avisarme por correo"**. Un evento
+  programado cuya fecha ya pasó se muestra como **vencido**.
+- **Avisos por correo** (`server/src/modules/eventos/eventos.avisos.ts`): el servidor revisa cada 30 minutos
+  (1 minuto después de arrancar y luego periódicamente; GitHub lo mantiene despierto en horario laboral) y envía
+  **un correo** con los eventos programados/reprogramados que empiezan entre hoy y hoy + N días (7 por defecto) y
+  aún no se avisaron; luego los marca (`aviso_enviado_en`). Si se cambia la fecha de un evento, vuelve a avisar.
+  Destinatarios y días se editan en Calendario ▸ **Avisos por correo** (con "Enviar prueba"); se guardan en
+  `configuracion` (clave `eventos.avisos`).
+- **Cuenta de envío (SMTP):** variables `SMTP_HOST`, `SMTP_PORT` (465 o 587), `SMTP_USER`, `SMTP_PASS`, opcional
+  `SMTP_FROM` y `APP_URL` (enlace del correo). Sin ellas no se envía nada (el log lo indica). En Render se escriben en
+  el panel (Environment), nunca en GitHub. Ej. Gmail: `smtp.gmail.com`, 465, la cuenta y una "contraseña de
+  aplicación". Envío genérico en `server/src/utils/correo.ts` (nodemailer).
+- **Código:** `client/src/modules/calendario/` (página) y `client/src/modules/eventos/` (componentes, reglas en
+  `logic/eventos.ts`, estado en `hooks/useCalendario.ts`, `ProximasFechasCard`, `AvisosModal`).
+- **API:** `GET /api/eventos?tipo=...`, `POST /api/eventos`, `PUT /api/eventos/:id`, `DELETE /api/eventos/:id`,
+  `GET/PUT /api/eventos/avisos`, `POST /api/eventos/avisos/prueba`.
+- **Base de datos:** tabla `evento` (migraciones `003_eventos.sql` y `011_eventos_avisos.sql`).
 
 ## Check list de Buenas Prácticas (Inspecciones SCI)
 

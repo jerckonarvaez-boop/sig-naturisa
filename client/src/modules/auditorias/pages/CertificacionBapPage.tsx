@@ -1,8 +1,8 @@
 import { PageHeader } from '@/components/ui/PageHeader';
-import { CalendarioEventos } from '@/modules/eventos/components/CalendarioEventos';
+import { ProximasFechasCard } from '@/modules/eventos/components/ProximasFechasCard';
 import { CERTIFICACION_BAP, meta } from '../meta';
 
-// Certificación BAP: calendario de auditorías (programadas y realizadas)
+// Certificación BAP: próximas auditorías (las fechas se programan en el Calendario general)
 export function CertificacionBapPage() {
   return (
     <>
@@ -11,7 +11,9 @@ export function CertificacionBapPage() {
         subtitle={CERTIFICACION_BAP.description}
         breadcrumb={{ label: meta.label, to: meta.path }}
       />
-      <CalendarioEventos tipos={['auditoria-bap']} titulo="Calendario de auditorías BAP" />
+      <div className="max-w-2xl">
+        <ProximasFechasCard tipos={['auditoria-bap']} titulo="Próximas auditorías BAP" />
+      </div>
     </>
   );
 }

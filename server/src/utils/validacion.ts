@@ -13,3 +13,15 @@ export const esFecha = (v: unknown): v is string => typeof v === 'string' && FEC
 
 /** ¿El valor está entre las opciones permitidas? */
 export const esUnoDe = <T extends string>(opciones: readonly T[], v: unknown): v is T => (opciones as readonly unknown[]).includes(v);
+
+const CORREO = /^[^\s@;,]+@[^\s@;,]+\.[^\s@;,]+$/;
+
+/** Lista de correos separados por ; o , → "a@x.com; b@y.com" (o el error) */
+export function normalizarCorreos(valor: unknown): string | { error: string } {
+  const lista = String(valor ?? '')
+    .split(/[;,]/)
+    .map((c) => c.trim())
+    .filter(Boolean);
+  const malo = lista.find((c) => !CORREO.test(c));
+  return malo ? { error: `"${malo}" no es un correo válido.` } : lista.join('; ');
+}

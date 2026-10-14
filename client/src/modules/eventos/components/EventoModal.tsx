@@ -8,6 +8,20 @@ import { useCatalogo } from '@/hooks/useCatalogo';
 import { ESTADOS, ESTADOS_EDITABLES, TIPOS } from '../config';
 import type { Evento, EventoDatos, TipoEvento } from '../types';
 
+/** Ejemplo de título según el tipo */
+const EJEMPLO_TITULO: Record<TipoEvento, string> = {
+  'auditoria-asc': 'Ej. Auditoría de seguimiento ASC',
+  'auditoria-bap': 'Ej. Auditoría de recertificación BAP',
+  'inspeccion-sci': 'Ej. Inspección trimestral',
+  capacitacion: 'Ej. Capacitación en Buenas Prácticas',
+  mantenimiento: 'Ej. Calibración de oxigenómetros',
+  vencimiento: 'Ej. Renovación del permiso ambiental',
+  otro: 'Ej. Reunión con el cliente',
+};
+
+/** Fecha y hora local de un instante ISO, ej. "14 oct 2026, 07:30" */
+const fechaHora = (iso: string) => new Date(iso).toLocaleString('es-EC', { dateStyle: 'medium', timeStyle: 'short' });
+
 interface EventoModalProps {
   /** Evento a editar; si no se indica, se crea uno nuevo */
   evento?: Evento;
@@ -39,6 +53,7 @@ export function EventoModal({
     responsable: evento?.responsable ?? '',
     estado: evento?.estado ?? 'programado',
     observaciones: evento?.observaciones ?? '',
+    avisar: evento?.avisar ?? true,
   }));
   const { centrosCosto } = useCatalogo();
   const [guardando, setGuardando] = useState(false);
@@ -124,7 +139,7 @@ export function EventoModal({
             maxLength={200}
             value={datos.titulo}
             onChange={(e) => cambiar('titulo', e.target.value)}
-            placeholder={tiposPermitidos[0].startsWith('auditoria') ? 'Ej. Auditoría de seguimiento' : 'Ej. Inspección trimestral'}
+            placeholder={EJEMPLO_TITULO[datos.tipo]}
             className={CLASE_CONTROL}
           />
         </Campo>
@@ -188,6 +203,23 @@ export function EventoModal({
             })}
           </div>
         </Campo>
+
+        <label className="flex items-start gap-2 text-sm sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={datos.avisar}
+            onChange={(e) => cambiar('avisar', e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 accent-brand-500"
+          />
+          <span>
+            Avisarme por correo antes del evento
+            <span className="block text-xs text-slate-500 dark:text-slate-400">
+              {evento?.avisar && evento.avisoEnviadoEn
+                ? `Aviso enviado el ${fechaHora(evento.avisoEnviadoEn)}. Si cambia la fecha, se vuelve a avisar.`
+                : 'Llega a los correos configurados en Calendario ▸ Avisos por correo.'}
+            </span>
+          </span>
+        </label>
 
         <Campo etiqueta="Resultado / observaciones" className="sm:col-span-2">
           <textarea

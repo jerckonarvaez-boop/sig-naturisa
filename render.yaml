@@ -31,6 +31,16 @@ services:
       # Render (Environment), igual a SEMILLA_CLAVE de server/.env; nunca se sube a GitHub.
       - key: SEMILLA_CLAVE
         sync: false
+      # Cuenta que envía los avisos del calendario por correo (SMTP). Host, puerto, usuario y clave se
+      # escriben a mano en el panel de Render (Environment); sin ellos no se envían avisos.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
       # - key: DB_PATH
       #   value: /var/data/sig.db
     # disk:

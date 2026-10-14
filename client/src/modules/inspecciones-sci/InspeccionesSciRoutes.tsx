@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { CalendarioInspeccionesPage } from './pages/CalendarioInspeccionesPage';
+import { InspeccionesInicio } from './pages/InspeccionesInicio';
 import { ChecklistFormPage } from './checklist/pages/ChecklistFormPage';
 import { ChecklistListaPage } from './checklist/pages/ChecklistListaPage';
 
@@ -7,7 +7,7 @@ import { ChecklistListaPage } from './checklist/pages/ChecklistListaPage';
 export function InspeccionesSciRoutes() {
   return (
     <Routes>
-      <Route index element={<CalendarioInspeccionesPage />} />
+      <Route index element={<InspeccionesInicio />} />
       <Route path="checklist" element={<ChecklistListaPage />} />
       <Route path="checklist/nueva" element={<ChecklistFormPage />} />
       <Route path="checklist/:id" element={<ChecklistFormPage />} />

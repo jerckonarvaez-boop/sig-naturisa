@@ -1,8 +1,13 @@
-// Calendario de eventos (auditorías ASC/BAP e inspecciones SCI): /api/eventos
+// Calendario general de eventos (auditorías, inspecciones, capacitaciones…) y sus avisos por correo: /api/eventos
 import { Router } from 'express';
-import { actualizar, crear, eliminar, listar } from './eventos.controller.js';
+import { actualizar, avisos, cambiarAvisos, crear, eliminar, listar, probarAvisos } from './eventos.controller.js';
 
 export const eventosRouter = Router();
+
+// Avisos por correo (antes de /:id)
+eventosRouter.get('/avisos', avisos);
+eventosRouter.put('/avisos', cambiarAvisos);
+eventosRouter.post('/avisos/prueba', probarAvisos);
 
 eventosRouter.get('/', listar);
 eventosRouter.post('/', crear);
