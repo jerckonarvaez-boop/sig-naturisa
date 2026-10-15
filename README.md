@@ -221,6 +221,11 @@ conserva y se marca. Sin presupuesto importado, el campo permite escribir para n
   aún no se avisaron; luego los marca (`aviso_enviado_en`). Si se cambia la fecha de un evento, vuelve a avisar.
   Destinatarios y días se editan en Calendario ▸ **Avisos por correo** (con "Enviar prueba"); se guardan en
   `configuracion` (clave `eventos.avisos`).
+- **Desde el Outlook de Naturisa con Power Automate (sin cuenta SMTP ni TI):** `GET /api/publico/avisos/:clave` (sin sesión,
+  clave secreta en `configuracion` `eventos.avisos.feed`, se copia o renueva en Avisos por correo) es una lista RSS con los
+  avisos vigentes; cada uno se publica con la fecha en que entró por primera vez (`aviso_enviado_en`) y `guid`
+  evento+fecha, así el flujo "Cuando se publica un elemento de fuente → Enviar un correo electrónico (V2)" lo envía una sola
+  vez y de nuevo si se reprograma.
 - **Cuenta de envío (SMTP):** variables `SMTP_HOST`, `SMTP_PORT` (465 o 587), `SMTP_USER`, `SMTP_PASS`, opcional
   `SMTP_FROM` y `APP_URL` (enlace del correo). Sin ellas no se envía nada (el log lo indica). En Render se escriben en
   el panel (Environment), nunca en GitHub. Ej. Gmail: `smtp.gmail.com`, 465, la cuenta y una "contraseña de

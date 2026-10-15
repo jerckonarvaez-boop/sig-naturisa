@@ -6,6 +6,7 @@ import { env } from './config/env.js';
 import { errorHandler, notFound } from './middleware/errores.js';
 import { requiereSesion } from './middleware/requiereSesion.js';
 import { authRouter } from './modules/auth/auth.routes.js';
+import { rssAvisos } from './modules/eventos/eventos.controller.js';
 import { estadoSalud } from './modules/health/health.controller.js';
 import { MODULOS_API } from './modules/index.js';
 
@@ -24,6 +25,8 @@ export function createApp() {
   // Rutas públicas
   app.use('/api/auth', authRouter);
   app.get('/api/health', estadoSalud);
+  // Lista de avisos del calendario para Power Automate (protegida por una clave secreta en la dirección)
+  app.get('/api/publico/avisos/:clave', rssAvisos);
 
   // A partir de aquí, toda la API requiere sesión (salvo AUTH_DISABLED=true)
   app.use('/api', requiereSesion);

@@ -20,6 +20,8 @@ export interface AvisosCalendario {
   /** ¿El servidor tiene una cuenta de correo para enviar? */
   correoConfigurado: boolean;
   remitente: string;
+  /** Clave de la lista de avisos para Power Automate */
+  claveFeed: string;
 }
 
 export const obtenerAvisos = () => apiGet<AvisosCalendario>('/eventos/avisos');
@@ -27,3 +29,8 @@ export const obtenerAvisos = () => apiGet<AvisosCalendario>('/eventos/avisos');
 export const guardarAvisos = (datos: { para: string; dias: number }) => apiPut<AvisosCalendario>('/eventos/avisos', datos);
 
 export const probarAvisos = () => apiPost<{ para: string[] }>('/eventos/avisos/prueba', {});
+
+export const nuevaClaveAvisos = () => apiPost<{ claveFeed: string }>('/eventos/avisos/clave', {});
+
+/** Dirección de la lista de avisos que lee Power Automate (en la web publicada) */
+export const urlListaAvisos = (clave: string) => `${window.location.origin}/api/publico/avisos/${clave}`;

@@ -2,6 +2,7 @@
 // correo a los destinatarios configurados, una sola vez por evento. El servidor revisa cada 30 minutos
 // mientras está encendido (GitHub lo mantiene despierto en horario laboral); si una revisión no ocurre,
 // la siguiente envía lo pendiente, porque se buscan todos los eventos que empiezan de hoy a hoy + N días.
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { env } from '../../config/env.js';
 import { consultarUna, ejecutar } from '../../db/database.js';
 import { correoConfigurado, enviarCorreo, escaparHtml, remitente, type Correo } from '../../utils/correo.js';
@@ -164,7 +165,13 @@ export async function enviarPrueba(): Promise<{ para: string[] }> {
 
 /** Estado para la interfaz: configuración + si hay cuenta de envío */
 export async function estadoAvisos() {
-  return { ...(await obtenerConfigAvisos()), correoConfigurado: correoConfigurado(), remitente: correoConfigurado() ? remitente() : '' };
+  return {
+    ...(await obtenerConfigAvisos()),
+    correoConfigurado: correoConfigurado(),
+    remitente: correoConfigurado() ? remitente() : '',
+    /** Clave de la lista RSS para Power Automate (la interfaz arma la dirección) */
+    claveFeed: await claveFeed(),
+  };
 }
 
 /** Revisión periódica (se llama al arrancar el servidor) */
@@ -180,4 +187,66 @@ export function iniciarAvisos() {
   setTimeout(revisar, 60_000);
   setInterval(revisar, CADA);
   console.log(`[avisos] avisos del calendario activos (remitente ${remitente()})`);
+}
+
+// ---------- lista RSS para Power Automate (envío desde el propio Outlook, sin cuenta SMTP) ----------
+// Un flujo de Power Automate ("Cuando se publica un elemento de fuente" → "Enviar un correo electrónico")
+// lee esta lista y envía cada aviso desde el buzón de quien creó el flujo. La dirección lleva una clave
+// secreta (no requiere sesión). Cada aviso aparece con fecha de publicación = la primera vez que se incluyó
+// (aviso_enviado_en), así el flujo lo envía una sola vez; si se reprograma el evento, aparece de nuevo.
+const CLAVE_FEED = 'eventos.avisos.feed';
+
+/** Clave secreta de la lista (se crea la primera vez) */
+export async function claveFeed(): Promise<string> {
+  const fila = await consultarUna('SELECT valor FROM configuracion WHERE clave = ?', [CLAVE_FEED]);
+  return fila ? String(fila.valor) : nuevaClaveFeed();
+}
+
+/** Genera una clave nueva (la dirección anterior deja de funcionar) */
+export async function nuevaClaveFeed(): Promise<string> {
+  const clave = randomBytes(18).toString('base64url');
+  await ejecutar(
+    `INSERT INTO configuracion (clave, valor) VALUES (?, ?)
+     ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor, actualizado_en = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')`,
+    [CLAVE_FEED, clave],
+  );
+  return clave;
+}
+
+const xml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const cdata = (t: string) => `<![CDATA[${t.replace(/]]>/g, ']]]]><![CDATA[>')}]]>`;
+
+/** RSS con los avisos vigentes, o null si la clave no es válida */
+export async function feedAvisos(clave: string): Promise<string | null> {
+  const valida = await claveFeed();
+  if (!clave || clave.length !== valida.length || !timingSafeEqual(Buffer.from(clave), Buffer.from(valida))) return null;
+
+  const { dias } = await obtenerConfigAvisos();
+  const hoy = hoyEcuador();
+  const hasta = sumarDias(hoy, dias);
+  // Los que entran por primera vez quedan marcados (su fecha de publicación es ese momento)
+  await marcarAvisados((await eventosPorAvisar(hoy, hasta)).map((e) => e.id));
+  const eventos = (await proximosEventos(hoy, hasta)).filter((e) => e.avisar && e.avisoEnviadoEn);
+
+  const enlace = `${env.appUrl.replace(/\/$/, '')}/calendario`;
+  const items = eventos
+    .map((e) => {
+      const { asunto, html } = armarCorreo([e], hoy);
+      return `<item>
+<title>${xml(asunto)}</title>
+<link>${xml(enlace)}</link>
+<guid isPermaLink="false">sig-evento-${e.id}-${e.fechaInicio}</guid>
+<pubDate>${new Date(e.avisoEnviadoEn!).toUTCString()}</pubDate>
+<description>${cdata(html)}</description>
+</item>`;
+    })
+    .join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+<title>SIG Naturisa · Avisos del calendario</title>
+<link>${xml(enlace)}</link>
+<description>Eventos que empiezan ${dias === 1 ? 'hoy o mañana' : `en los próximos ${dias} días`}</description>
+${items}
+</channel></rss>`;
 }
