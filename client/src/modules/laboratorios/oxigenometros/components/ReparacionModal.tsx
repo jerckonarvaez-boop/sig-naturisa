@@ -6,9 +6,10 @@ import { SelectLista } from '@/components/forms/SelectLista';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Modal } from '@/components/ui/Modal';
 import { useCatalogo } from '@/hooks/useCatalogo';
+import { useLista } from '@/hooks/useLista';
 import { hoyISO } from '@/utils/fechas';
 import { dinero } from '@/utils/numeros';
-import { ESTADOS, ESTADOS_ORDEN, PARTES } from '../config';
+import { ESTADOS, ESTADOS_ORDEN } from '../config';
 import type { SugerenciasReparacion } from '../logic/ahorro';
 import type { EstadoReparacion, Reparacion, ReparacionDatos } from '../types';
 
@@ -29,6 +30,8 @@ const numero = (v: string) => (v.trim() === '' ? NaN : Number(v.replace(',', '.'
 /** Formulario para registrar o editar la reparación de una parte de oxigenómetro. */
 export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar, onCerrar }: ReparacionModalProps) {
   const catalogo = useCatalogo();
+  // Partes que se pueden registrar (editables en Configuración)
+  const partes = useLista('oxigenometros.partes');
   const [datos, setDatos] = useState<Formulario>(() => ({
     fecha: reparacion?.fecha ?? hoyISO(),
     parte: reparacion?.parte ?? '',
@@ -110,7 +113,7 @@ export function ReparacionModal({ reparacion, sugerencias, onGuardar, onEliminar
     >
       <form id="form-reparacion" onSubmit={enviar} className="grid gap-3 sm:grid-cols-2">
         <Campo etiqueta="Parte reparada *" className="sm:col-span-2">
-          <SelectLista required value={datos.parte} onChange={(v) => cambiar('parte', v)} opciones={PARTES} />
+          <SelectLista required value={datos.parte} onChange={(v) => cambiar('parte', v)} opciones={partes.valores} />
         </Campo>
 
         <div className="grid grid-cols-2 gap-3">

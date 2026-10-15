@@ -3,6 +3,20 @@
 export const ESTADOS_REPARACION = ['reparado', 'en-reparacion', 'no-reparable'] as const;
 export type EstadoReparacion = (typeof ESTADOS_REPARACION)[number];
 
+/** Partes de fábrica que se pueden registrar (se editan en Configuración: lista "oxigenometros.partes") */
+export const PARTES_OXIGENOMETRO = [
+  'Sonda / sensor',
+  'Tapa del sensor (cap)',
+  'Membrana',
+  'Cable',
+  'Conector',
+  'Medidor (lector)',
+  'Tarjeta madre (board)',
+  'Pantalla',
+  'Teclado',
+  'Batería / pilas',
+];
+
 /** Datos editables de una reparación (montos en USD). La reparación no tiene costo: la hace el personal. */
 export interface ReparacionDatos {
   fecha: string;

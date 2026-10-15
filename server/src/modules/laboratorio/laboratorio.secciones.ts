@@ -222,7 +222,7 @@ const patologia: SeccionLab = {
 
 export const SECCIONES: Record<SeccionId, SeccionLab> = { agua, suelo, patologia };
 
-/** Laboratorios externos o clientes que no están en el presupuesto (se suman a los centros de costo) */
+/** Clientes de fábrica que no están en el presupuesto (se suman a los centros de costo; se editan en Configuración) */
 export const CLIENTES_LABORATORIO = ['Kamaclusa', 'Pesjoya'];
 
 /** Análisis que forman el tipo guardado: "fitoplancton+quimico" → ['fitoplancton', 'quimico'] */

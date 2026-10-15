@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 import { esUnoDe, normalizarCorreos } from '../../utils/validacion.js';
-import { CLIENTES_LABORATORIO, SECCIONES, type SeccionId } from './laboratorio.secciones.js';
+import { valoresListas } from '../configuracion/configuracion.service.js';
+import { SECCIONES, type SeccionId } from './laboratorio.secciones.js';
 import { actualizarInforme, crearInforme, eliminarInforme, listarInformes, obtenerInforme } from './laboratorio.service.js';
 import {
   guardarDestinatarios,
@@ -13,9 +14,17 @@ import { validarInforme } from './laboratorio.validator.js';
 
 const SECCIONES_IDS = Object.keys(SECCIONES) as SeccionId[];
 
-// GET /api/laboratorio/secciones -> definición de cada sección (parámetros, tipos, unidades, referencias)
-export const secciones: RequestHandler = (_req, res) => {
-  res.json({ secciones: SECCIONES, clientes: CLIENTES_LABORATORIO });
+// GET /api/laboratorio/secciones -> definición de cada sección (parámetros, tipos, unidades, referencias),
+// con las listas editadas en Configuración (géneros, clientes) en lugar de las de fábrica
+export const secciones: RequestHandler = async (_req, res) => {
+  const listas = await valoresListas();
+  const conListas = Object.fromEntries(
+    Object.entries(SECCIONES).map(([id, s]) => [
+      id,
+      { ...s, campos: s.campos.map((c) => (c.opciones ? { ...c, opciones: listas[`laboratorio.${c.clave}`] ?? c.opciones } : c)) },
+    ]),
+  );
+  res.json({ secciones: conListas, clientes: listas['laboratorio.clientes'] });
 };
 
 // GET /api/laboratorio/informes?seccion=agua

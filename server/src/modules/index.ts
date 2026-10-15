@@ -1,5 +1,6 @@
 import type { Router } from 'express';
 import { checklistBpRouter } from './checklist-bp/checklist-bp.routes.js';
+import { configuracionRouter } from './configuracion/configuracion.routes.js';
 import { eventosRouter } from './eventos/eventos.routes.js';
 import { healthRouter } from './health/health.routes.js';
 import { laboratorioRouter } from './laboratorio/laboratorio.routes.js';
@@ -18,4 +19,5 @@ export const MODULOS_API: { ruta: string; router: Router }[] = [
   { ruta: '/checklist-bp', router: checklistBpRouter },
   { ruta: '/oxigenometros', router: oxigenometrosRouter },
   { ruta: '/laboratorio', router: laboratorioRouter },
+  { ruta: '/configuracion', router: configuracionRouter },
 ];

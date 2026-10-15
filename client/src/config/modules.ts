@@ -1,6 +1,7 @@
 import type { AppModule } from '@/modules/types';
 import { auditoriasModule } from '@/modules/auditorias';
 import { calendarioModule } from '@/modules/calendario';
+import { configuracionModule } from '@/modules/configuracion';
 import { laboratoriosModule } from '@/modules/laboratorios';
 import { inspeccionesSciModule } from '@/modules/inspecciones-sci';
 import { gestionDesechosModule } from '@/modules/gestion-desechos';
@@ -19,4 +20,5 @@ export const MODULES: AppModule[] = [
   inspeccionesSciModule,
   gestionDesechosModule,
   presupuestoModule,
+  configuracionModule,
 ];

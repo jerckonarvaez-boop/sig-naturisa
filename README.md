@@ -205,6 +205,15 @@ genérica), que se usa en el calendario de eventos, el
 check list SCI y Oxigenómetros. Si un registro antiguo tiene un centro que ya no está en el presupuesto, se
 conserva y se marca. Sin presupuesto importado, el campo permite escribir para no bloquear el formulario.
 
+## Configuración (listas editables)
+
+Menú **Configuración** (`/configuracion`): el usuario agrega o quita valores de las listas que usan los formularios, sin
+cambiar el código — géneros de fitoplancton (Análisis de Agua, una palabra cada uno), clientes del laboratorio y partes de
+oxigenómetros. Los valores de fábrica están en `server/src/modules/configuracion/configuracion.listas.ts` (registro de
+listas); lo editado se guarda en `configuracion` (clave `lista.<id>`) y "Restaurar" vuelve a los de fábrica. Para hacer
+editable otra lista: agréguela al registro y léala con `valoresLista(id)` (servidor) o `useLista(id)` (cliente).
+API: `GET /api/configuracion/listas`, `GET/PUT/DELETE /api/configuracion/listas/:id`.
+
 ## Calendario general y avisos por correo
 
 - **Dónde:** menú **Calendario** (`/calendario`): todas las fechas en vista mensual o lista, con filtro por tipo
