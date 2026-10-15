@@ -15,6 +15,10 @@ export interface CampoLab {
   max?: number;
   factorSalinidad?: number;
   escala?: 'patologia';
+  /** Texto que se elige de esta lista (uno o varios, separados por espacio) en vez de escribirse */
+  opciones?: string[];
+  /** Se muestra en la misma fila que este campo (a su derecha) */
+  junto?: string;
 }
 
 export interface GrupoLab {

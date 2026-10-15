@@ -21,6 +21,10 @@ export interface CampoLab {
   factorSalinidad?: number;
   /** Escala de grados de patología (0 = ausencia … 4 = muy alto) */
   escala?: 'patologia';
+  /** Texto que se elige de esta lista (uno o varios, guardados separados por espacio) en vez de escribirse */
+  opciones?: string[];
+  /** Se muestra en la misma fila que este campo (a su derecha), no como fila propia */
+  junto?: string;
 }
 
 export interface GrupoLab {
@@ -65,6 +69,20 @@ const BASICOS = ['fitoplancton', 'quimico'];
 // Patologías: análisis en fresco y/o bacteriología (una o varias muestras, según cuántas se agreguen)
 const FRESCO = ['fresco'];
 
+/**
+ * Géneros de un grupo de fitoplancton: se eligen (uno o varios) junto a su conteo. Lista tomada de los informes
+ * AA en Excel; para agregar un género basta con sumarlo aquí.
+ */
+const generos = (clave: string, etiqueta: string, junto: string, opciones: string[]): CampoLab => ({
+  clave,
+  etiqueta,
+  tipo: 'texto',
+  grupo: 'fitoplancton',
+  soloTipos: FITOPLANCTON,
+  opciones,
+  junto,
+});
+
 const agua: SeccionLab = {
   id: 'agua',
   nombre: 'Análisis de Agua',
@@ -95,11 +113,11 @@ const agua: SeccionLab = {
     { clave: 'clorofitas', etiqueta: 'Clorofitas', tipo: 'numero', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
     { clave: 'dinoflagelados', etiqueta: 'Dinoflagelados', tipo: 'numero', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
     { clave: 'otros_fito', etiqueta: 'Otros', tipo: 'numero', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
-    { clave: 'generos_diatomeas', etiqueta: 'Géneros de diatomeas', tipo: 'texto', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
-    { clave: 'generos_cianofitas', etiqueta: 'Géneros de cianofitas', tipo: 'texto', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
-    { clave: 'generos_clorofitas', etiqueta: 'Géneros de clorofitas', tipo: 'texto', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
-    { clave: 'generos_dinoflagelados', etiqueta: 'Géneros de dinoflagelados', tipo: 'texto', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
-    { clave: 'generos_otros', etiqueta: 'Géneros de otros', tipo: 'texto', grupo: 'fitoplancton', soloTipos: FITOPLANCTON },
+    generos('generos_diatomeas', 'Géneros de diatomeas', 'diatomeas', ['Nitzschia', 'Crisofitas', 'Thalassiosira', 'Skeletonema']),
+    generos('generos_cianofitas', 'Géneros de cianofitas', 'cianofitas', ['Oscillatoria', 'Raphidiopsis']),
+    generos('generos_clorofitas', 'Géneros de clorofitas', 'clorofitas', ['Euglena', 'Trachelomonas']),
+    generos('generos_dinoflagelados', 'Géneros de dinoflagelados', 'dinoflagelados', ['Peridiniopsis']),
+    generos('generos_otros', 'Géneros de otros', 'otros_fito', ['Heterosigma', 'Chatonella']),
     { clave: 'salinidad', etiqueta: 'Salinidad', tipo: 'numero', unidad: 'ppt', grupo: 'basicos', soloTipos: BASICOS },
     { clave: 'ph', etiqueta: 'pH', tipo: 'numero', grupo: 'basicos', soloTipos: BASICOS, min: 7, max: 8 },
     { clave: 'alcalinidad', etiqueta: 'Alcalinidad', tipo: 'numero', unidad: 'mg/L', grupo: 'basicos', soloTipos: BASICOS, min: 100, max: 140 },

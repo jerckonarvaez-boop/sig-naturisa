@@ -1,5 +1,6 @@
-import { Fragment } from 'react';
+import { Fragment, type KeyboardEvent } from 'react';
 import { Plus, X } from 'lucide-react';
+import { SelectorMultiple } from '@/components/forms/SelectorMultiple';
 import { Card } from '@/components/ui/Card';
 import { miles } from '@/utils/numeros';
 import type { MuestraForm } from '../hooks/useInformeForm';
@@ -27,6 +28,8 @@ interface EditorMuestrasProps {
 }
 
 const CELDA = 'w-full min-w-24 rounded border border-slate-300 bg-white px-2 py-1 text-[13px] focus:border-brand-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950';
+/** Casilla del conteo cuando a su derecha va el selector de géneros */
+const CELDA_CORTA = CELDA.replace('w-full min-w-24', 'w-20 shrink-0');
 
 /** Resultados en el formato del informe: parámetros en filas y una columna por muestra. */
 export function EditorMuestras({ seccion, tipo, muestras, onAgregar, onQuitar, onRenombrar, onValor }: EditorMuestrasProps) {
@@ -38,7 +41,7 @@ export function EditorMuestras({ seccion, tipo, muestras, onAgregar, onQuitar, o
   return (
     <Card compact title="Resultados" subtitle="Deje vacío (o escriba -) lo que no se analizó">
       <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-        <table className="w-full border-collapse text-[13px]">
+        <table className="w-full border-collapse text-[13px]" onKeyDown={bajarConEnter}>
           <thead>
             <tr className="bg-slate-50 text-left text-brand-900 dark:bg-slate-800/60 dark:text-slate-200">
               <th className="sticky left-0 z-10 min-w-52 bg-slate-50 px-3 py-2 font-semibold dark:bg-slate-800">{seccion.etiquetaMuestra}</th>
@@ -51,6 +54,7 @@ export function EditorMuestras({ seccion, tipo, muestras, onAgregar, onQuitar, o
                       maxLength={40}
                       placeholder={seccion.id === 'suelo' ? 'Ej. 99' : 'Ej. PS-79'}
                       aria-label={`Nombre de la ${seccion.etiquetaMuestra.toLowerCase()} ${i + 1}`}
+                      data-col={i}
                       className={`${CELDA} font-semibold`}
                     />
                     {muestras.length > 1 && (
@@ -78,9 +82,15 @@ export function EditorMuestras({ seccion, tipo, muestras, onAgregar, onQuitar, o
                   </td>
                 </tr>
                 {campos
-                  .filter((c) => c.grupo === g.id)
+                  .filter((c) => c.grupo === g.id && !c.junto)
                   .map((c) => (
-                    <FilaCampo key={c.clave} campo={c} muestras={muestras} onValor={onValor} />
+                    <FilaCampo
+                      key={c.clave}
+                      campo={c}
+                      acompanante={campos.find((x) => x.junto === c.clave)}
+                      muestras={muestras}
+                      onValor={onValor}
+                    />
                   ))}
                 {g.id === 'fitoplancton' && <FilaTotalFitoplancton muestras={muestras} />}
               </Fragment>
@@ -97,7 +107,33 @@ export function EditorMuestras({ seccion, tipo, muestras, onAgregar, onQuitar, o
   );
 }
 
-function FilaCampo({ campo, muestras, onValor }: { campo: CampoLab; muestras: MuestraForm[]; onValor: EditorMuestrasProps['onValor'] }) {
+/**
+ * Enter en una casilla baja a la siguiente casilla de la misma muestra (columna), para llenar seguido sin el ratón.
+ * En los textos, Mayús + Enter hace un salto de línea.
+ */
+function bajarConEnter(e: KeyboardEvent<HTMLTableElement>) {
+  if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
+  const actual = e.target as HTMLElement;
+  const col = actual.dataset.col;
+  if (col == null) return;
+  e.preventDefault();
+  const casillas = [...e.currentTarget.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(`[data-col="${col}"]`)];
+  const siguiente = casillas[casillas.indexOf(actual as HTMLInputElement) + 1];
+  if (siguiente) {
+    siguiente.focus();
+    siguiente.select();
+  }
+}
+
+interface FilaCampoProps {
+  campo: CampoLab;
+  /** Campo que va en la misma fila, a la derecha (ej. los géneros junto al conteo) */
+  acompanante?: CampoLab;
+  muestras: MuestraForm[];
+  onValor: EditorMuestrasProps['onValor'];
+}
+
+function FilaCampo({ campo, acompanante, muestras, onValor }: FilaCampoProps) {
   const referencia = textoReferencia(campo);
   return (
     <tr className="border-t border-slate-100 dark:border-slate-800">
@@ -111,11 +147,42 @@ function FilaCampo({ campo, muestras, onValor }: { campo: CampoLab; muestras: Mu
         const evaluacion = campo.tipo === 'numero' ? evaluarReferencia(campo, aNumero(texto), aNumero(m.valores.salinidad ?? '')) : null;
         return (
           <td key={i} className="px-2 py-1 align-top">
-            {campo.tipo === 'texto' ? (
-              <textarea rows={2} value={texto} onChange={(e) => onValor(i, campo.clave, e.target.value)} maxLength={500} className={`${CELDA} resize-y`} />
-            ) : (
-              <input inputMode="decimal" value={texto} onChange={(e) => onValor(i, campo.clave, e.target.value)} className={`${CELDA} text-right tabular-nums`} />
-            )}
+            <div className={acompanante ? 'flex items-start gap-1' : ''}>
+              {campo.opciones ? (
+                <SelectorMultiple
+                  opciones={campo.opciones}
+                  valor={texto}
+                  onCambiar={(v) => onValor(i, campo.clave, v)}
+                  etiqueta={`${campo.etiqueta} de ${m.nombre || `la muestra ${i + 1}`}`}
+                />
+              ) : campo.tipo === 'texto' ? (
+                <textarea
+                  rows={2}
+                  value={texto}
+                  data-col={i}
+                  onChange={(e) => onValor(i, campo.clave, e.target.value)}
+                  maxLength={500}
+                  className={`${CELDA} resize-y`}
+                />
+              ) : (
+                <input
+                  inputMode="decimal"
+                  value={texto}
+                  data-col={i}
+                  onChange={(e) => onValor(i, campo.clave, e.target.value)}
+                  className={`${acompanante ? CELDA_CORTA : CELDA} text-right tabular-nums`}
+                />
+              )}
+              {acompanante?.opciones && (
+                <SelectorMultiple
+                  opciones={acompanante.opciones}
+                  valor={m.valores[acompanante.clave] ?? ''}
+                  onCambiar={(v) => onValor(i, acompanante.clave, v)}
+                  etiqueta={`${acompanante.etiqueta} de ${m.nombre || `la muestra ${i + 1}`}`}
+                  className="min-w-44 flex-1"
+                />
+              )}
+            </div>
             {evaluacion?.tipo === 'nivel' && (
               <span className={`block text-[11px] font-semibold ${NIVELES_PATOLOGIA[evaluacion.nivel].clase}`}>{NIVELES_PATOLOGIA[evaluacion.nivel].label}</span>
             )}
