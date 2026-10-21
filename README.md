@@ -46,6 +46,7 @@ sig-naturisa/
 │   │   ├── eventos/                Componentes y datos del calendario (usados por Calendario, módulos y Dashboard)
 │   │   ├── auditorias/             asc y bap
 │   │   ├── laboratorios/
+│   │   ├── monitoreo-agua/         resultados y reportes, cada uno con Afluente / Efluente
 │   │   ├── inspecciones-sci/       checklist/ (las fechas están en Calendario)
 │   │   ├── gestion-desechos/
 │   │   └── presupuesto/
@@ -196,6 +197,14 @@ Registro de las partes de oxigenómetros que repara el propio personal (sin cost
 - **API:** CRUD en `/api/oxigenometros/reparaciones`. **Base de datos:** tabla `oxigenometro_reparacion`
   (migración `006_oxigenometros.sql`). **Código:** `client/src/modules/laboratorios/oxigenometros/` y
   `server/src/modules/oxigenometros/`.
+
+## Monitoreo de agua
+
+Sección con dos subsecciones, **Resultados de análisis de agua** (`/monitoreo-agua/resultados`) y **Reportes de
+análisis de agua** (`/monitoreo-agua/reportes`). Cada una tiene pestañas **Afluente** y **Efluente**
+(`…/afluente`, `…/efluente`; sin pestaña abre Afluente). Los puntos se definen en `PUNTOS_MONITOREO`
+(`client/src/modules/monitoreo-agua/meta.ts`): agregar uno ahí crea su pestaña en ambas subsecciones.
+El contenido de cada pestaña está pendiente de definir.
 
 ## Centros de costo (lista validada)
 

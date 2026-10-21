@@ -3,6 +3,7 @@ import { auditoriasModule } from '@/modules/auditorias';
 import { calendarioModule } from '@/modules/calendario';
 import { configuracionModule } from '@/modules/configuracion';
 import { laboratoriosModule } from '@/modules/laboratorios';
+import { monitoreoAguaModule } from '@/modules/monitoreo-agua';
 import { inspeccionesSciModule } from '@/modules/inspecciones-sci';
 import { gestionDesechosModule } from '@/modules/gestion-desechos';
 import { presupuestoModule } from '@/modules/presupuesto';
@@ -17,6 +18,7 @@ export const MODULES: AppModule[] = [
   calendarioModule,
   auditoriasModule,
   laboratoriosModule,
+  monitoreoAguaModule,
   inspeccionesSciModule,
   gestionDesechosModule,
   presupuestoModule,
