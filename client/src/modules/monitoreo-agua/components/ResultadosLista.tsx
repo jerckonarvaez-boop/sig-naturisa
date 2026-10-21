@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FileText, Plus } from 'lucide-react';
+import { FileText, FileUp, Plus } from 'lucide-react';
 import { FILA_ENCABEZADO, Tabla } from '@/components/tables/Tabla';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Card } from '@/components/ui/Card';
@@ -22,11 +22,31 @@ export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
   const delAnio = (resultados ?? []).filter((r) => anio === null || r.fechaMuestreo.startsWith(String(anio)));
   const nombreSitio = (id: number) => sitios?.find((s) => s.id === id)?.nombre ?? `#${id}`;
   const rutaNuevo = `${RESULTADOS_AGUA.path}/${punto}/nuevo`;
+  const archivo = useRef<HTMLInputElement>(null);
 
+  // El PDF elegido viaja al formulario nuevo, que lo lee y llena los datos
   const botonNuevo = (
-    <Link to={rutaNuevo} className={`${BOTON_PRIMARIO} inline-flex items-center gap-1.5 py-2`}>
-      <Plus size={16} /> Registrar resultado
-    </Link>
+    <div className="flex flex-wrap items-center gap-2">
+      <Link
+        to={rutaNuevo}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+      >
+        <Plus size={16} /> Registrar a mano
+      </Link>
+      <button type="button" onClick={() => archivo.current?.click()} className={`${BOTON_PRIMARIO} inline-flex items-center gap-1.5 py-2`}>
+        <FileUp size={16} /> Subir PDF del laboratorio
+      </button>
+      <input
+        ref={archivo}
+        type="file"
+        accept="application/pdf,.pdf"
+        hidden
+        onChange={(e) => {
+          const pdf = e.target.files?.[0];
+          if (pdf) navigate(rutaNuevo, { state: { pdf } });
+        }}
+      />
+    </div>
   );
 
   if (error) return <Card className="py-10 text-center text-red-600">No se pudieron cargar los resultados: {error}</Card>;
@@ -38,7 +58,8 @@ export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
         <FileText size={40} className="text-brand-500" />
         <p className="mt-3 text-lg font-semibold">Aún no hay resultados del {punto}</p>
         <p className="mt-1 mb-4 max-w-md text-sm text-slate-500 dark:text-slate-400">
-          Registre cada informe que envía el laboratorio: código, fecha, camaroneras que cubre, los parámetros y el PDF original.
+          Suba el PDF que envía el laboratorio: el código, las fechas, las camaroneras y los parámetros se llenan solos y usted
+          solo revisa y guarda.
         </p>
         {botonNuevo}
       </Card>

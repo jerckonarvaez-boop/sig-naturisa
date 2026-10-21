@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { CheckCircle2, FileText, Paperclip, Save, Trash2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileText, FileUp, Paperclip, Plus, Save, Trash2, X } from 'lucide-react';
 import { Campo, CLASE_CONTROL } from '@/components/forms/Campo';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { hoyISO } from '@/utils/fechas';
+import { fechaCorta, hoyISO } from '@/utils/fechas';
 import { EditorParametros } from '../components/EditorParametros';
 import { SelectorSitios } from '../components/SelectorSitios';
 import { useMonitoreo } from '../hooks/useMonitoreo';
-import { parametrosIniciales } from '../logic/monitoreo';
+import { leerInformeLaboratorio, sugerirDatos } from '../logic/lecturaPdf';
+import { parametroDe, parametrosIniciales } from '../logic/monitoreo';
 import { PUNTOS_MONITOREO, REPORTES_AGUA, RESULTADOS_AGUA, type PuntoMonitoreo } from '../meta';
 import {
   actualizarResultado,
@@ -20,9 +21,26 @@ import {
   subirPdf,
   urlPdf,
 } from '../services/monitoreo.api';
-import type { Resultado, ResultadoDatos } from '../types';
+import { textoDePdf } from '../services/textoPdf';
+import type { DefinicionMonitoreo, Resultado, ResultadoDatos, ValorParametro } from '../types';
 
 const MAX_PDF = 8 * 1024 * 1024;
+
+/** Lo que se sacó del PDF del laboratorio, para que el usuario sepa qué revisar */
+type AvisoLectura =
+  | { error: string }
+  | {
+      codigo: string;
+      laboratorio: string;
+      leidos: number;
+      /** Parámetros del informe que el PDF no trae */
+      faltan: string[];
+      /** Parámetros que trae el PDF y no van en el informe de estas camaroneras */
+      extras: ValorParametro[];
+      previo: Resultado | null;
+      repetido: Resultado | null;
+      sinSitios: boolean;
+    };
 
 const vacio = (punto: PuntoMonitoreo): ResultadoDatos => ({
   punto,
@@ -56,6 +74,10 @@ export function ResultadoPage() {
     (location.state as { guardado?: boolean } | null)?.guardado ? { texto: 'Resultado guardado.' } : null,
   );
   const [guardando, setGuardando] = useState(false);
+  const [leyendo, setLeyendo] = useState(false);
+  const [aviso, setAviso] = useState<AvisoLectura | null>(null);
+  /** PDF elegido en la lista de resultados con «Subir PDF del laboratorio» */
+  const pdfDeLaLista = useRef((location.state as { pdf?: File } | null)?.pdf ?? null);
   /** En un resultado nuevo, los parámetros siguen al tipo de instalación hasta que se escribe un valor */
   const parametrosTocados = useRef(false);
   const archivo = useRef<HTMLInputElement>(null);
@@ -75,6 +97,15 @@ export function ResultadoPage() {
       })
       .catch((e: Error) => setMensaje({ texto: e.message, error: true }));
   }, [id, punto, definicion, sitios]);
+
+  // Lee el PDF que llegó desde la lista en cuanto el formulario nuevo está listo
+  const listo = !id && !!form;
+  useEffect(() => {
+    const pdf = pdfDeLaLista.current;
+    if (!listo || !pdf) return;
+    pdfDeLaLista.current = null;
+    elegirPdf(pdf);
+  }, [listo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sugerencias de laboratorio y punto de muestreo a partir de lo ya registrado
   const sugerencias = useMemo(
@@ -106,15 +137,65 @@ export function ResultadoPage() {
     });
   };
 
-  const elegirPdf = (f: File | undefined) => {
-    if (!f) return;
-    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) setMensaje({ texto: 'El archivo debe ser PDF.', error: true });
-    else if (f.size > MAX_PDF) setMensaje({ texto: 'El PDF pesa más de 8 MB.', error: true });
-    else {
-      setPdfNuevo(f);
-      setMensaje(null);
-    }
+  function elegirPdf(f: File | undefined) {
     if (archivo.current) archivo.current.value = '';
+    if (!f) return;
+    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) return setMensaje({ texto: 'El archivo debe ser PDF.', error: true });
+    if (f.size > MAX_PDF) return setMensaje({ texto: 'El PDF pesa más de 8 MB.', error: true });
+    setPdfNuevo(f);
+    setMensaje(null);
+    // En un resultado nuevo, los datos se llenan con lo que dice el PDF
+    if (!id) void leerPdf(f);
+  }
+
+  /** Llena el formulario con el informe del laboratorio: datos, camaroneras y parámetros */
+  async function leerPdf(f: File) {
+    setLeyendo(true);
+    setAviso(null);
+    try {
+      const lectura = leerInformeLaboratorio(await textoDePdf(f));
+      if (!lectura) {
+        setAviso({ error: 'No se reconoció el informe (se leen los de ELICROM y LAB-PSI). El PDF queda adjunto: llene los datos a mano.' });
+        return;
+      }
+      const { previo, datos } = sugerirDatos(lectura, f.name, punto!.id, sitios!, resultados ?? []);
+      const base = parametrosIniciales(definicion!, punto!.id, sitios!.filter((s) => datos.sitios.includes(s.id)));
+      const valores = base.map((clave) => ({ clave, valor: lectura.valores.find((v) => v.clave === clave)?.valor ?? '' }));
+      parametrosTocados.current = true;
+      setForm(
+        (actual) =>
+          actual && {
+            ...actual,
+            laboratorio: lectura.laboratorio,
+            codigo: lectura.codigo,
+            fechaMuestreo: lectura.fechaMuestreo || actual.fechaMuestreo,
+            fechaEmision: lectura.fechaEmision,
+            metodo: lectura.metodo,
+            muestreoTercero: lectura.muestreoTercero,
+            ...datos,
+            valores,
+          },
+      );
+      setAviso({
+        codigo: lectura.codigo,
+        laboratorio: lectura.laboratorio,
+        leidos: valores.filter((v) => v.valor).length,
+        faltan: valores.filter((v) => !v.valor).map((v) => parametroDe(definicion!, v.clave)?.nombre ?? v.clave),
+        extras: lectura.valores.filter((v) => !base.includes(v.clave)),
+        previo,
+        repetido: (resultados ?? []).find((r) => lectura.codigo && r.codigo === lectura.codigo) ?? null,
+        sinSitios: !datos.sitios.length,
+      });
+    } catch (e) {
+      setAviso({ error: `No se pudo leer el PDF (${(e as Error).message}). Queda adjunto: llene los datos a mano.` });
+    } finally {
+      setLeyendo(false);
+    }
+  }
+
+  const agregarExtras = (extras: ValorParametro[]) => {
+    setForm((f) => f && { ...f, valores: [...f.valores, ...extras] });
+    setAviso((a) => (a && !('error' in a) ? { ...a, leidos: a.leidos + extras.length, extras: [] } : a));
   };
 
   async function guardar() {
@@ -206,6 +287,30 @@ export function ResultadoPage() {
       )}
 
       <div className="flex flex-col gap-4">
+        {!id && !pdfNuevo && (
+          <button
+            type="button"
+            onClick={() => archivo.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              elegirPdf(e.dataTransfer.files[0]);
+            }}
+            className="flex flex-col items-center gap-1.5 rounded-xl border-2 border-dashed border-brand-500/50 bg-brand-500/5 px-4 py-8 text-center hover:border-brand-500 hover:bg-brand-500/10"
+          >
+            <FileUp size={32} className="text-brand-500" />
+            <span className="font-semibold">Subir el PDF del laboratorio</span>
+            <span className="max-w-md text-sm text-slate-500 dark:text-slate-400">
+              Pulse o arrastre aquí el informe de ELICROM o LAB-PSI: el código, las fechas, las camaroneras y los parámetros se llenan
+              solos.
+            </span>
+          </button>
+        )}
+
+        {leyendo && <Card className="py-6 text-center text-slate-500">Leyendo el PDF…</Card>}
+
+        {aviso && <AvisoPdf aviso={aviso} definicion={definicion} punto={punto.id} onAgregar={agregarExtras} />}
+
         <Card title="Informe del laboratorio">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Campo etiqueta="Laboratorio">
@@ -312,5 +417,62 @@ export function ResultadoPage() {
         </Card>
       </div>
     </>
+  );
+}
+
+/** Resumen de lo leído del PDF: qué se llenó, de dónde salieron las camaroneras y qué falta revisar */
+function AvisoPdf({
+  aviso,
+  definicion,
+  punto,
+  onAgregar,
+}: {
+  aviso: AvisoLectura;
+  definicion: DefinicionMonitoreo;
+  punto: PuntoMonitoreo;
+  onAgregar: (extras: ValorParametro[]) => void;
+}) {
+  if ('error' in aviso) {
+    return (
+      <p role="alert" className="flex items-start gap-2 rounded-lg bg-amber-100 px-4 py-3 text-sm text-amber-900 dark:bg-amber-500/15 dark:text-amber-200">
+        <AlertTriangle size={16} className="mt-0.5 shrink-0" /> {aviso.error}
+      </p>
+    );
+  }
+  const nombre = (clave: string) => parametroDe(definicion, clave)?.nombre ?? clave;
+  return (
+    <div role="status" className="flex flex-col gap-1.5 rounded-lg bg-sky-50 px-4 py-3 text-sm text-sky-950 dark:bg-sky-500/10 dark:text-sky-100">
+      <p className="flex items-start gap-1.5 font-semibold">
+        <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-600" />
+        Se leyó el informe {aviso.codigo} de {aviso.laboratorio}: {aviso.leidos} {aviso.leidos === 1 ? 'parámetro' : 'parámetros'}. Revise los datos y
+        pulse «Guardar resultado».
+      </p>
+      {aviso.repetido && (
+        <p className="font-semibold text-red-700 dark:text-red-300">
+          Este código ya está registrado:{' '}
+          <Link to={`${RESULTADOS_AGUA.path}/${punto}/${aviso.repetido.id}`} className="underline">
+            abrir el resultado {aviso.repetido.codigo}
+          </Link>
+          .
+        </p>
+      )}
+      <p>
+        {aviso.previo
+          ? `Camaroneras, punto de muestreo y coordenadas tomados del resultado anterior del mismo punto (${aviso.previo.codigo || 'sin código'}, ${fechaCorta(aviso.previo.fechaMuestreo)}).`
+          : aviso.sinSitios
+            ? 'No se reconocieron las camaroneras: márquelas abajo.'
+            : 'Camaroneras sugeridas por el nombre del punto de muestreo: revíselas abajo.'}
+      </p>
+      {aviso.faltan.length > 0 && <p>No vienen en el PDF: {aviso.faltan.join(', ')}.</p>}
+      {aviso.extras.length > 0 && (
+        <p>
+          También vienen en el PDF, aunque no van en el informe de estas camaroneras:{' '}
+          {aviso.extras.map((v) => `${nombre(v.clave)} ${v.valor}`).join(' · ')}.{' '}
+          <button type="button" onClick={() => onAgregar(aviso.extras)} className="inline-flex items-center gap-1 font-semibold text-brand-500 hover:underline">
+            <Plus size={13} /> Agregarlos
+          </button>
+        </p>
+      )}
+    </div>
   );
 }

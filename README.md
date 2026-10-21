@@ -208,6 +208,11 @@ Sección con **Resultados de análisis de agua** y **Reportes de análisis de ag
   emisión, punto de muestreo y coordenadas, las camaroneras que cubre (un drenaje puede servir a varias), los
   parámetros y el **PDF original** (máx. 8 MB, guardado en la base). El efluente se compara al momento con el
   límite máximo permisible del **AM 097a, Anexo 1, Tabla 10** (descarga a cuerpo de agua marina, columna A).
+- **Subir PDF del laboratorio:** el PDF se lee en el navegador (`pdfjs-dist`, `services/textoPdf.ts`) y
+  `logic/lecturaPdf.ts` saca código, fechas, punto de muestreo, coordenadas y parámetros de los informes de
+  **ELICROM** (se toma la columna Lectura, como en los PGC-025) y **LAB-PSI**. Las camaroneras, la locación y las
+  coordenadas se repiten del resultado anterior del mismo punto (mismo nombre de PDF o locación); si no hay, se
+  sugieren por las palabras de la locación. El usuario revisa y guarda; avisa si el código ya está registrado.
 - **Reportes ▸ Efluente:** el **Informe de Monitoreo PGC-025** se genera solo, uno por camaronera de cada
   resultado, con el texto del formato en Word (introducción, ficha técnica, objetivo, alcance, definiciones,
   tabla de resultados, conclusión y anexo con el código del laboratorio). Se imprime o se guarda en PDF; el
