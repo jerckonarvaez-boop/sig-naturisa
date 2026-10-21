@@ -7,10 +7,11 @@ import { Card } from '@/components/ui/Card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { fechaCorta } from '@/utils/fechas';
 import { useMonitoreo } from '../hooks/useMonitoreo';
-import { aniosDe, incumplimientos, parametroDe } from '../logic/monitoreo';
+import { aniosDe, incumplimientos, parametroDe, semestre } from '../logic/monitoreo';
 import { RESULTADOS_AGUA, type PuntoMonitoreo } from '../meta';
 import { urlPdf } from '../services/monitoreo.api';
 import { SelectorAnio } from './SelectorAnio';
+import { SelectorSemestre, type Periodo } from './SelectorSemestre';
 
 /** Resultados de los laboratorios de un punto (afluente o efluente). Clic en una fila para abrirlo. */
 export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
@@ -18,8 +19,11 @@ export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
   const navigate = useNavigate();
   const anios = useMemo(() => aniosDe(resultados ?? []), [resultados]);
   const [anioElegido, setAnio] = useState<number | null | undefined>(undefined);
+  const [periodo, setPeriodo] = useState<Periodo>(0);
   const anio = anioElegido !== undefined ? anioElegido : (anios[0] ?? null);
-  const delAnio = (resultados ?? []).filter((r) => anio === null || r.fechaMuestreo.startsWith(String(anio)));
+  const delAnio = (resultados ?? []).filter(
+    (r) => (anio === null || r.fechaMuestreo.startsWith(String(anio))) && (!periodo || semestre(r.fechaMuestreo) === periodo),
+  );
   const nombreSitio = (id: number) => sitios?.find((s) => s.id === id)?.nombre ?? `#${id}`;
   const rutaNuevo = `${RESULTADOS_AGUA.path}/${punto}/nuevo`;
   const archivo = useRef<HTMLInputElement>(null);
@@ -73,6 +77,7 @@ export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
       subtitle="Pulse una fila para abrirla"
       actions={
         <div className="flex flex-wrap items-center gap-2">
+          <SelectorSemestre periodo={periodo} onCambiar={setPeriodo} />
           <SelectorAnio anios={anios} anio={anio} onCambiar={setAnio} />
           {botonNuevo}
         </div>
@@ -90,6 +95,14 @@ export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
           </tr>
         </thead>
         <tbody>
+          {!delAnio.length && (
+            <tr>
+              <td colSpan={6} className="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
+                No hay resultados del {periodo === 1 ? 'primer semestre' : 'segundo semestre'}
+                {anio === null ? '' : ` de ${anio}`}.
+              </td>
+            </tr>
+          )}
           {delAnio.map((r) => {
             const abrir = () => navigate(`${RESULTADOS_AGUA.path}/${punto}/${r.id}`);
             const fuera = incumplimientos(r, definicion);

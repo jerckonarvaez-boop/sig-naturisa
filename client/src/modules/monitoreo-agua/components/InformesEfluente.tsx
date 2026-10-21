@@ -9,6 +9,7 @@ import { useMonitoreo } from '../hooks/useMonitoreo';
 import { aniosDe, incumplimientos, semestre } from '../logic/monitoreo';
 import { FICHAS_TECNICAS, REPORTES_AGUA, RESULTADOS_AGUA } from '../meta';
 import { SelectorAnio } from './SelectorAnio';
+import { SelectorSemestre, type Periodo } from './SelectorSemestre';
 
 /**
  * Informes de Monitoreo PGC-025 del efluente: uno por cada camaronera de cada resultado del laboratorio.
@@ -18,7 +19,7 @@ export function InformesEfluente() {
   const { definicion, sitios, resultados, error, cargando } = useMonitoreo('efluente');
   const anios = useMemo(() => aniosDe(resultados ?? []), [resultados]);
   const [anioElegido, setAnio] = useState<number | null | undefined>(undefined);
-  const [periodo, setPeriodo] = useState<0 | 1 | 2>(0);
+  const [periodo, setPeriodo] = useState<Periodo>(0);
   const anio = anioElegido !== undefined ? anioElegido : (anios[0] ?? null);
 
   const informes = useMemo(() => {
@@ -70,16 +71,7 @@ export function InformesEfluente() {
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {enlaceFichas}
-          <select
-            value={periodo}
-            onChange={(e) => setPeriodo(Number(e.target.value) as 0 | 1 | 2)}
-            aria-label="Semestre"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-brand-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-          >
-            <option value={0}>Todo el año</option>
-            <option value={1}>Primer semestre</option>
-            <option value={2}>Segundo semestre</option>
-          </select>
+          <SelectorSemestre periodo={periodo} onCambiar={setPeriodo} />
           <SelectorAnio anios={anios} anio={anio} onCambiar={setAnio} />
         </div>
       }
