@@ -1,6 +1,16 @@
 import type { InStatement } from '@libsql/client';
 import { consultar, consultarUna, ejecutar, lote, transaction, type Fila } from '../../db/database.js';
-import type { Punto, Resultado, ResultadoDatos, Sitio, SitioDatos, TipoSitio } from './monitoreo-agua.types.js';
+import {
+  CAMPOS_TEXTOS,
+  type Logo,
+  type Punto,
+  type Resultado,
+  type ResultadoDatos,
+  type Sitio,
+  type SitioDatos,
+  type TextosInforme,
+  type TipoSitio,
+} from './monitoreo-agua.types.js';
 
 const jsonLista = <T>(v: unknown): T[] => {
   try {
@@ -10,6 +20,16 @@ const jsonLista = <T>(v: unknown): T[] => {
     return [];
   }
 };
+
+function aTextos(v: unknown): TextosInforme {
+  let o: Record<string, unknown> = {};
+  try {
+    o = JSON.parse(String(v ?? '{}')) ?? {};
+  } catch {
+    /* textos vacíos */
+  }
+  return Object.fromEntries(CAMPOS_TEXTOS.map((c) => [c, String(o[c] ?? '')])) as unknown as TextosInforme;
+}
 
 /* ---------- camaroneras e instalaciones ---------- */
 
@@ -30,6 +50,10 @@ function aSitio(r: Fila): Sitio {
     coordenadas: jsonLista(r.coordenadas),
     superficie: String(r.superficie ?? ''),
     activo: Number(r.activo) === 1,
+    tituloEncabezado: String(r.titulo_encabezado ?? ''),
+    logos: jsonLista<number>(r.logos).map(Number),
+    logoTexto: String(r.logo_texto ?? ''),
+    textos: aTextos(r.textos),
     resultados: Number(r.resultados ?? 0),
   };
 }
@@ -40,6 +64,7 @@ const SELECT_SITIO = `SELECT s.*, (SELECT COUNT(*) FROM monitoreo_resultado_siti
 const valoresSitio = (d: SitioDatos) => [
   d.numero, d.nombre, d.tipo, d.lugar, d.entidad, d.representante, d.ruc, d.tipoProyecto, d.oficina, d.ubicacion,
   d.coordenadasTitulo, JSON.stringify(d.coordenadas), d.superficie, d.activo ? 1 : 0,
+  d.tituloEncabezado, JSON.stringify(d.logos), d.logoTexto, JSON.stringify(d.textos),
 ];
 
 export async function listarSitios(): Promise<Sitio[]> {
@@ -54,7 +79,8 @@ export async function obtenerSitio(id: number): Promise<Sitio | null> {
 export async function crearSitio(d: SitioDatos): Promise<Sitio> {
   const { id } = await ejecutar(
     `INSERT INTO monitoreo_sitio (numero, nombre, tipo, lugar, entidad, representante, ruc, tipo_proyecto, oficina,
-       ubicacion, coordenadas_titulo, coordenadas, superficie, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       ubicacion, coordenadas_titulo, coordenadas, superficie, activo, titulo_encabezado, logos, logo_texto, textos)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     valoresSitio(d),
   );
   return (await obtenerSitio(id))!;
@@ -64,6 +90,7 @@ export async function actualizarSitio(id: number, d: SitioDatos): Promise<Sitio 
   const { cambios } = await ejecutar(
     `UPDATE monitoreo_sitio SET numero = ?, nombre = ?, tipo = ?, lugar = ?, entidad = ?, representante = ?, ruc = ?,
        tipo_proyecto = ?, oficina = ?, ubicacion = ?, coordenadas_titulo = ?, coordenadas = ?, superficie = ?, activo = ?,
+       titulo_encabezado = ?, logos = ?, logo_texto = ?, textos = ?,
        actualizado_en = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
      WHERE id = ?`,
     [...valoresSitio(d), id],
@@ -83,6 +110,43 @@ export async function eliminarSitio(id: number): Promise<'ok' | 'no-existe' | 'e
 /** Ids de sitios que no existen (para validar un resultado) */
 export async function sitiosInexistentes(ids: number[]): Promise<number[]> {
   const filas = await consultar(`SELECT id FROM monitoreo_sitio WHERE id IN (${ids.map(() => '?').join(', ')})`, ids);
+  const existen = new Set(filas.map((f) => Number(f.id)));
+  return ids.filter((id) => !existen.has(id));
+}
+
+/* ---------- logos ---------- */
+
+export async function listarLogos(): Promise<Logo[]> {
+  return (await consultar('SELECT id, nombre, tipo, tamano FROM monitoreo_logo ORDER BY id')).map((f) => ({
+    id: Number(f.id),
+    nombre: String(f.nombre),
+    tipo: String(f.tipo),
+    tamano: Number(f.tamano),
+  }));
+}
+
+export async function obtenerLogo(id: number): Promise<{ tipo: string; datos: Uint8Array } | null> {
+  const f = await consultarUna('SELECT tipo, datos FROM monitoreo_logo WHERE id = ?', [id]);
+  return f ? { tipo: String(f.tipo), datos: new Uint8Array(f.datos as ArrayBuffer) } : null;
+}
+
+export async function crearLogo(nombre: string, tipo: string, datos: Uint8Array): Promise<Logo> {
+  const { id } = await ejecutar('INSERT INTO monitoreo_logo (nombre, tipo, tamano, datos) VALUES (?, ?, ?, ?)', [nombre, tipo, datos.length, datos]);
+  return { id, nombre, tipo, tamano: datos.length };
+}
+
+/** Borra el logo si ninguna camaronera lo usa */
+export async function eliminarLogo(id: number): Promise<'ok' | 'no-existe' | 'en-uso'> {
+  if (!(await consultarUna('SELECT id FROM monitoreo_logo WHERE id = ?', [id]))) return 'no-existe';
+  if ((await listarSitios()).some((s) => s.logos.includes(id))) return 'en-uso';
+  await ejecutar('DELETE FROM monitoreo_logo WHERE id = ?', [id]);
+  return 'ok';
+}
+
+/** Ids de logos que no existen (para validar una ficha) */
+export async function logosInexistentes(ids: number[]): Promise<number[]> {
+  if (!ids.length) return [];
+  const filas = await consultar(`SELECT id FROM monitoreo_logo WHERE id IN (${ids.map(() => '?').join(', ')})`, ids);
   const existen = new Set(filas.map((f) => Number(f.id)));
   return ids.filter((id) => !existen.has(id));
 }

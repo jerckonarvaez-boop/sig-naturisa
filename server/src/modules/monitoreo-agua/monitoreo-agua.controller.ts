@@ -12,12 +12,17 @@ import {
   guardarPdf,
   listarResultados,
   listarSitios,
+  listarLogos,
+  logosInexistentes,
+  obtenerLogo,
+  crearLogo,
+  eliminarLogo,
   obtenerPdf,
   obtenerResultado,
   sitiosInexistentes,
 } from './monitoreo-agua.service.js';
 import { PUNTOS, type ResultadoDatos } from './monitoreo-agua.types.js';
-import { validarPdf, validarResultado, validarSitio } from './monitoreo-agua.validator.js';
+import { validarLogo, validarPdf, validarResultado, validarSitio } from './monitoreo-agua.validator.js';
 
 const id = (v: unknown) => Number(v);
 
@@ -33,9 +38,17 @@ export const sitios: RequestHandler = async (_req, res) => {
   res.json(await listarSitios());
 };
 
+/** Valida la ficha y que sus logos existan */
+async function validarConLogos(body: Record<string, unknown> | undefined) {
+  const v = validarSitio(body);
+  if ('error' in v) return v;
+  if ((await logosInexistentes(v.datos.logos)).length) return { error: 'Uno de los logos elegidos ya no existe.' };
+  return v;
+}
+
 // POST /api/monitoreo-agua/sitios
 export const crearUnSitio: RequestHandler = async (req, res) => {
-  const v = validarSitio(req.body);
+  const v = await validarConLogos(req.body);
   if ('error' in v) {
     res.status(400).json({ error: v.error });
     return;
@@ -45,7 +58,7 @@ export const crearUnSitio: RequestHandler = async (req, res) => {
 
 // PUT /api/monitoreo-agua/sitios/:id
 export const actualizarUnSitio: RequestHandler = async (req, res) => {
-  const v = validarSitio(req.body);
+  const v = await validarConLogos(req.body);
   if ('error' in v) {
     res.status(400).json({ error: v.error });
     return;
@@ -63,6 +76,41 @@ export const eliminarUnSitio: RequestHandler = async (req, res) => {
   const r = await eliminarSitio(id(req.params.id));
   if (r === 'no-existe') res.status(404).json({ error: 'La camaronera no existe.' });
   else if (r === 'en-uso') res.status(409).json({ error: 'Tiene resultados registrados: desactívela en lugar de eliminarla.' });
+  else res.status(204).end();
+};
+
+/* ---------- logos ---------- */
+
+// GET /api/monitoreo-agua/logos
+export const logos: RequestHandler = async (_req, res) => {
+  res.json(await listarLogos());
+};
+
+// GET /api/monitoreo-agua/logos/:id -> imagen (el contenido de un id nunca cambia)
+export const logo: RequestHandler = async (req, res) => {
+  const l = await obtenerLogo(id(req.params.id));
+  if (!l) {
+    res.status(404).json({ error: 'El logo no existe.' });
+    return;
+  }
+  res.set('Cache-Control', 'private, max-age=31536000, immutable').type(l.tipo).send(Buffer.from(l.datos));
+};
+
+// POST /api/monitoreo-agua/logos { nombre, datos: "data:image/png;base64,…" }
+export const subirLogo: RequestHandler = async (req, res) => {
+  const v = validarLogo(req.body);
+  if ('error' in v) {
+    res.status(400).json({ error: v.error });
+    return;
+  }
+  res.status(201).json(await crearLogo(v.datos.nombre, v.datos.tipo, v.datos.datos));
+};
+
+// DELETE /api/monitoreo-agua/logos/:id
+export const eliminarUnLogo: RequestHandler = async (req, res) => {
+  const r = await eliminarLogo(id(req.params.id));
+  if (r === 'no-existe') res.status(404).json({ error: 'El logo no existe.' });
+  else if (r === 'en-uso') res.status(409).json({ error: 'Una camaronera usa este logo: quítelo de su ficha primero.' });
   else res.status(204).end();
 };
 

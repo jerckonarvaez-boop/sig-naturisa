@@ -12,6 +12,22 @@ export interface Coordenada {
   este: string;
 }
 
+/** Textos propios del informe PGC-025 de la camaronera ('' = texto automático). {laboratorio} se reemplaza. */
+export interface TextosInforme {
+  /** Sujeto de la introducción: "La empresa Naturisa S.A. – Isla Josefina" */
+  introduccion: string;
+  objetivo: string;
+  alcance: string;
+  /** Párrafo antes de la tabla: "Los análisis de agua del Efluente de … fueron realizados por Laboratorio {laboratorio}…" */
+  resumen: string;
+  /** Conclusión: "De acuerdo con los resultados … por el Laboratorio {laboratorio} … se observa que no existe un impacto…" */
+  conclusion: string;
+  /** Título de la tabla 1 (sin "Tabla 1."): "Resultados Análisis Efluentes - Camaronera Naturisa S.A - Isla Josefina" */
+  tabla: string;
+}
+
+export const CAMPOS_TEXTOS: (keyof TextosInforme)[] = ['introduccion', 'objetivo', 'alcance', 'resumen', 'conclusion', 'tabla'];
+
 /** Camaronera o instalación: datos de la ficha técnica del informe de monitoreo */
 export interface SitioDatos {
   numero: number;
@@ -28,6 +44,19 @@ export interface SitioDatos {
   coordenadas: Coordenada[];
   superficie: string;
   activo: boolean;
+  /** Encabezado del informe: título bajo "INFORME DE MONITOREO…" */
+  tituloEncabezado: string;
+  /** Logos del encabezado (ids de monitoreo_logo, máx. 2); sin logos se usa logoTexto o el de Naturisa */
+  logos: number[];
+  logoTexto: string;
+  textos: TextosInforme;
+}
+
+export interface Logo {
+  id: number;
+  nombre: string;
+  tipo: string;
+  tamano: number;
 }
 
 export interface Sitio extends SitioDatos {

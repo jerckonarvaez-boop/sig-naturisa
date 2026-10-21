@@ -9,6 +9,16 @@ export interface Coordenada {
   este: string;
 }
 
+/** Textos propios del informe PGC-025 de la camaronera ('' = texto automático). {laboratorio} se reemplaza. */
+export interface TextosInforme {
+  introduccion: string;
+  objetivo: string;
+  alcance: string;
+  resumen: string;
+  conclusion: string;
+  tabla: string;
+}
+
 /** Camaronera o instalación: datos de la ficha técnica del informe de monitoreo */
 export interface SitioDatos {
   numero: number;
@@ -25,6 +35,19 @@ export interface SitioDatos {
   coordenadas: Coordenada[];
   superficie: string;
   activo: boolean;
+  /** Título del encabezado bajo "INFORME DE MONITOREO…" ('' = el nombre en mayúsculas) */
+  tituloEncabezado: string;
+  /** Logos del encabezado (máx. 2); sin logos se usa logoTexto o el de Naturisa */
+  logos: number[];
+  logoTexto: string;
+  textos: TextosInforme;
+}
+
+export interface Logo {
+  id: number;
+  nombre: string;
+  tipo: string;
+  tamano: number;
 }
 
 export interface Sitio extends SitioDatos {

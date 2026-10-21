@@ -3,7 +3,9 @@ import { Trash2 } from 'lucide-react';
 import { Campo, CLASE_CONTROL } from '@/components/forms/Campo';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Modal } from '@/components/ui/Modal';
-import type { Coordenada, Sitio, SitioDatos, TipoSitio } from '../types';
+import { textosAutomaticos } from '../logic/plantilla';
+import type { Coordenada, Sitio, SitioDatos, TextosInforme, TipoSitio } from '../types';
+import { SelectorLogos } from './SelectorLogos';
 
 interface FichaModalProps {
   /** Ficha a editar; si no se indica, se crea una nueva */
@@ -26,6 +28,16 @@ function deTexto(t: string): Coordenada[] {
     .map((p, i) => (p.length >= 3 ? { punto: p[0] || String(i + 1), norte: p[1], este: p[2] } : { punto: String(i + 1), norte: p[0] ?? '', este: p[1] ?? '' }));
 }
 
+/** Textos del informe que se pueden ajustar por camaronera (vacío = texto automático) */
+const TEXTOS: { campo: keyof TextosInforme; etiqueta: string; filas: number }[] = [
+  { campo: 'introduccion', etiqueta: 'Introducción: quién realiza el análisis (sujeto de la oración)', filas: 1 },
+  { campo: 'objetivo', etiqueta: '3. Objetivo', filas: 3 },
+  { campo: 'alcance', etiqueta: '4. Alcance', filas: 2 },
+  { campo: 'resumen', etiqueta: '6. Resumen de los resultados (antes de la tabla)', filas: 3 },
+  { campo: 'tabla', etiqueta: 'Título de la Tabla 1 (sin "Tabla 1.")', filas: 1 },
+  { campo: 'conclusion', etiqueta: 'Conclusión (después de la tabla)', filas: 4 },
+];
+
 const OFICINA = 'Las oficinas administrativas del proyecto están ubicadas en las calles Colombia 101 y La Ría, Cantón Guayaquil, Provincia Guayas.';
 
 /** Ficha técnica de una camaronera o instalación (lo que sale en el informe de monitoreo PGC-025). */
@@ -44,12 +56,19 @@ export function FichaModal({ sitio, siguienteNumero, onGuardar, onEliminar, onCe
     coordenadasTitulo: sitio?.coordenadasTitulo ?? '',
     superficie: sitio?.superficie ?? '',
     activo: sitio?.activo ?? true,
+    tituloEncabezado: sitio?.tituloEncabezado ?? '',
+    logos: sitio?.logos ?? [],
+    logoTexto: sitio?.logoTexto ?? '',
+    textos: sitio?.textos ?? { introduccion: '', objetivo: '', alcance: '', resumen: '', conclusion: '', tabla: '' },
   }));
   const [coordenadas, setCoordenadas] = useState(() => aTexto(sitio?.coordenadas ?? []));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const cambiar = <K extends keyof typeof datos>(campo: K, valor: (typeof datos)[K]) => setDatos((d) => ({ ...d, [campo]: valor }));
+  const cambiarTexto = (campo: keyof TextosInforme, valor: string) => setDatos((d) => ({ ...d, textos: { ...d.textos, [campo]: valor } }));
+  // Lo que sale si un texto se deja vacío
+  const automaticos = textosAutomaticos({ nombre: datos.nombre || 'la camaronera', lugar: datos.lugar });
 
   async function ejecutar(accion: () => Promise<void>) {
     setGuardando(true);
@@ -150,6 +169,43 @@ export function FichaModal({ sitio, siguienteNumero, onGuardar, onEliminar, onCe
           <textarea rows={5} value={coordenadas} onChange={(e) => setCoordenadas(e.target.value)} placeholder={'1; 9700000; 600000\n2; 9700100; 600100'} className={`${CLASE_CONTROL} font-mono text-xs`} />
         </Campo>
         {area('superficie', 'Superficie del proyecto')}
+
+        <p className="mt-2 text-xs font-semibold tracking-wide text-slate-500 uppercase sm:col-span-2">Encabezado del informe</p>
+        <div className="sm:col-span-2">
+          <SelectorLogos elegidos={datos.logos} onCambiar={(ids) => cambiar('logos', ids)} />
+        </div>
+        {!datos.logos.length && (
+          <Campo etiqueta="Texto en lugar del logo (si la empresa no tiene logo)" className="sm:col-span-2">
+            <input maxLength={200} value={datos.logoTexto} onChange={(e) => cambiar('logoTexto', e.target.value)} placeholder="Ej. RIO NILO S.A. (vacío = logo de Naturisa)" className={CLASE_CONTROL} />
+          </Campo>
+        )}
+        <Campo etiqueta="Título bajo «INFORME DE MONITOREO DEL ANÁLISIS DE AGUA DEL EFLUENTE»" className="sm:col-span-2">
+          <input
+            maxLength={300}
+            value={datos.tituloEncabezado}
+            onChange={(e) => cambiar('tituloEncabezado', e.target.value)}
+            placeholder={(datos.nombre || 'Nombre de la camaronera').toUpperCase()}
+            className={CLASE_CONTROL}
+          />
+        </Campo>
+
+        <p className="mt-2 text-xs font-semibold tracking-wide text-slate-500 uppercase sm:col-span-2">Textos del informe</p>
+        <p className="-mt-2 text-xs text-slate-500 sm:col-span-2 dark:text-slate-400">
+          Vacío = texto automático (se ve en gris). Escriba <code>{'{laboratorio}'}</code> donde va el nombre del laboratorio. Si un
+          parámetro supera el límite, la conclusión lo dice sola.
+        </p>
+        {TEXTOS.map((t) => (
+          <Campo key={t.campo} etiqueta={t.etiqueta} className="sm:col-span-2">
+            <textarea
+              rows={t.filas}
+              maxLength={3000}
+              value={datos.textos[t.campo]}
+              onChange={(e) => cambiarTexto(t.campo, e.target.value)}
+              placeholder={automaticos[t.campo]}
+              className={CLASE_CONTROL}
+            />
+          </Campo>
+        ))}
 
         <label className="flex items-center gap-2 text-sm sm:col-span-2">
           <input type="checkbox" checked={datos.activo} onChange={(e) => cambiar('activo', e.target.checked)} className="size-4" />

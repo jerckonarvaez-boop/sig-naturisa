@@ -1,32 +1,71 @@
-/* Informe de monitoreo PGC-025 y Apéndice X: documento en blanco y negro como el Word (se imprime siempre en claro). */
+/* Informe de monitoreo PGC-025 (hojas A4 como el Word) y Apéndice X. Se imprime siempre en claro. */
 
-.pgc-hoja {
+/* ---------- Hoja A4 (794 x 1123 px a 96 ppp = 210 x 297 mm) ---------- */
+.pgc-a4 {
+  position: relative;
   box-sizing: border-box;
-  width: 794px; /* A4 vertical a 96 ppp */
-  margin: 0 auto;
-  padding: 36px 48px;
+  width: 794px;
+  height: 1123px;
+  margin: 0 auto 24px;
+  overflow: hidden;
   background: #fff;
   color: #000;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 12px;
-  line-height: 1.45;
-  box-shadow: 0 1px 6px rgb(0 0 0 / 0.15);
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.18);
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
-.pgc-hoja.pgc-horizontal {
-  width: 1123px;
-}
-.pgc-hoja * {
+.pgc-a4 *,
+.pgc-medida * {
   box-sizing: border-box;
   border-color: #000;
 }
-/* En pantalla la hoja se desplaza dentro de su marco en lugar de ensanchar la página */
+.pgc-a4-encabezado {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+}
+.pgc-a4-cuerpo {
+  position: absolute;
+  left: 96px;
+  width: 602px;
+}
+.pgc-a4-pie {
+  position: absolute;
+  left: 96px;
+  width: 602px;
+  top: 1062px;
+  border-top: 1px solid #000;
+  padding-top: 2px;
+  text-align: right;
+  font-style: italic;
+  font-size: 16px;
+}
+
+/* Contenedor oculto donde se mide el contenido antes de repartirlo en hojas */
+.pgc-medida {
+  position: absolute;
+  left: -20000px;
+  top: 0;
+  width: 602px;
+  visibility: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* En pantalla las hojas se desplazan dentro de su marco */
 .pgc-marco {
   overflow-x: auto;
   padding: 4px 0 16px;
 }
+
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
   html,
   body {
     background: #fff !important;
@@ -35,82 +74,239 @@
     overflow: visible;
     padding: 0;
   }
+  .pgc-medida {
+    display: none;
+  }
+  .pgc-a4 {
+    margin: 0;
+    box-shadow: none;
+    break-after: page;
+  }
+  .pgc-a4:last-child {
+    break-after: auto;
+  }
+}
+
+/* ---------- Encabezado (tabla con doble borde) ---------- */
+.pgc-enc {
+  border-collapse: collapse;
+  border: 3px double #000;
+  font-size: 16px;
+  line-height: 1.15;
+}
+.pgc-enc > tbody > tr > td {
+  padding: 0 5px;
+  vertical-align: middle;
+}
+.pgc-enc .pgc-enc-logo {
+  border-right: 3px double #000;
+  text-align: center;
+}
+.pgc-enc .pgc-enc-logo img {
+  display: block;
+  margin: 3px auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+.pgc-enc .pgc-enc-logo-texto {
+  font-size: 13px;
+  font-weight: 700;
+}
+.pgc-enc .pgc-enc-titulo {
+  border-right: 3px double #000;
+  text-align: center;
+  font-weight: 700;
+}
+.pgc-enc .pgc-enc-datos {
+  padding: 0;
+}
+.pgc-enc-datos > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 3px double #000;
+  text-align: center;
+}
+.pgc-enc-datos > div:last-child {
+  border-bottom: none;
+}
+
+/* ---------- Texto del cuerpo ---------- */
+.pgc-cuerpo-texto {
+  font-size: 16px; /* Arial 12 pt */
+  line-height: 1.15;
+  color: #000;
+}
+/* Párrafo normal: justificado, 6 pt antes y después (relleno: no se colapsa, como en Word) */
+.pgc-p {
+  margin: 0;
+  padding: 8px 0;
+  text-align: justify;
+}
+.pgc-p-def {
+  margin: 0;
+  padding: 0 0 8px;
+  text-align: justify;
+}
+.pgc-sin {
+  margin: 0;
+  text-align: justify;
+}
+.pgc-h {
+  margin: 0;
+  padding: 8px 0;
+  font-weight: 700;
+}
+.pgc-vacio {
+  height: 34px; /* línea vacía con su espacio antes y después */
+}
+.pgc-vacio-sin {
+  height: 18px;
+}
+.pgc-vacio-chico {
+  height: 13px;
+}
+.pgc-coord {
+  margin: 0;
+  padding-left: 26px;
+  font-size: 12px;
+  font-style: italic;
+}
+.pgc-epigrafe {
+  margin: 0;
+  text-align: center;
+  font-size: 10.7px;
+  font-weight: 700;
+  font-style: italic;
+}
+.pgc-nota {
+  margin: 0;
+  font-size: 10.7px;
+}
+.pgc-nota .pgc-ast {
+  font-size: 12px;
+}
+.pgc-anexo {
+  position: relative;
+  margin: 0;
+  padding: 8px 0 0 48px;
+  text-align: justify;
+  font-size: 13.3px;
+}
+.pgc-anexo::before {
+  content: '•';
+  position: absolute;
+  left: 24px;
+}
+
+/* ---------- Ficha técnica (9 pt) ---------- */
+.pgc-ficha {
+  margin: 0 auto;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
+  line-height: 1.15;
+}
+.pgc-ficha td {
+  padding: 1px 5px;
+  vertical-align: middle;
+}
+.pgc-ficha .pgc-etiqueta {
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  text-align: right;
+  font-weight: 700;
+}
+.pgc-ficha .pgc-valor {
+  border-right: 1px solid #000;
+  text-align: justify;
+}
+.pgc-ficha tr.pgc-arriba > td {
+  border-top: 1px solid #000;
+}
+.pgc-ficha tr.pgc-abajo > td {
+  border-bottom: 1px solid #000;
+}
+.pgc-ficha tr:first-child > td {
+  border-top: 1px solid #000;
+}
+.pgc-ficha tr:last-child > td {
+  border-bottom: 1px solid #000;
+}
+.pgc-ficha .pgc-coordenada {
+  border: 1px solid #000;
+  padding: 0 5px;
+  text-align: center;
+  line-height: 1.1;
+}
+.pgc-ficha .pgc-gris {
+  background: #ededed;
+  font-weight: 700;
+}
+
+/* ---------- Tabla de resultados (8 pt) ---------- */
+.pgc-resultados {
+  margin: 0 auto;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10.7px;
+  line-height: 1.15;
+}
+.pgc-resultados td {
+  height: 30px;
+  border: 1px solid #000;
+  padding: 0 5px;
+  text-align: center;
+  vertical-align: middle;
+}
+.pgc-resultados .pgc-gris {
+  background: #ededed;
+  font-weight: 700;
+}
+.pgc-resultados .pgc-izq {
+  text-align: left;
+}
+/* Valor fuera del límite: fondo + negrita + flecha (nunca solo color) */
+.pgc-resultados .pgc-excede {
+  background: #fbd5d5;
+  color: #c00000;
+  font-weight: 700;
+}
+
+/* ---------- Apéndice X (ASC), una hoja horizontal ---------- */
+.pgc-hoja {
+  box-sizing: border-box;
+  width: 1123px;
+  margin: 0 auto;
+  padding: 36px 48px;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.15);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.pgc-hoja * {
+  box-sizing: border-box;
+  border-color: #000;
+}
+@media print {
   .pgc-hoja {
     width: 100%;
     padding: 0;
     box-shadow: none;
   }
 }
-
-/* Encabezado que se repite en cada hoja impresa (thead de la tabla contenedora) */
-.pgc-pagina {
-  width: 100%;
-  border-collapse: collapse;
-}
-.pgc-encabezado {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 14px;
-}
-.pgc-encabezado td {
-  border: 1px solid #000;
-  padding: 4px 8px;
-  vertical-align: middle;
-}
-.pgc-encabezado .pgc-logo-celda {
-  width: 150px;
-  text-align: center;
-}
-.pgc-encabezado img {
-  max-width: 130px;
-  height: auto;
-}
-.pgc-encabezado .pgc-titulo-celda {
-  text-align: center;
-  font-weight: 700;
+.pgc-hoja .pgc-epigrafe {
   font-size: 12px;
+  font-style: normal;
 }
-.pgc-encabezado .pgc-codigo-celda {
-  width: 120px;
-  font-size: 10.5px;
-  line-height: 1.6;
-}
-
-.pgc-h1 {
-  margin: 14px 0 6px;
-  font-size: 12.5px;
-  font-weight: 700;
-}
-.pgc-hoja p {
-  margin: 0 0 8px;
-  text-align: justify;
-}
-.pgc-epigrafe {
-  margin: 10px 0 4px;
-  text-align: center;
-  font-size: 10.5px;
-  font-weight: 700;
-}
-.pgc-nota {
-  font-size: 10px;
-  line-height: 1.35;
-}
-.pgc-nota p {
-  margin: 0 0 2px;
-}
-
-/* Tablas del documento */
 .pgc-tabla {
   width: 100%;
   border-collapse: collapse;
   margin: 4px 0 10px;
-}
-/* Tablas cortas que no deben partirse entre dos hojas */
-.pgc-tabla.pgc-entera {
-  page-break-inside: avoid;
-}
-.pgc-tabla tr {
-  page-break-inside: avoid;
 }
 .pgc-tabla th,
 .pgc-tabla td {
@@ -123,47 +319,12 @@
   font-weight: 700;
   text-align: center;
 }
-.pgc-tabla .pgc-etiqueta {
-  width: 34%;
-  vertical-align: top;
-  font-weight: 700;
-  background: #f2f2f2;
-}
 .pgc-tabla .pgc-centro {
   text-align: center;
 }
-.pgc-coordenadas {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 6px 0 2px;
-  font-size: 10.5px;
+.pgc-tabla tr {
+  page-break-inside: avoid;
 }
-.pgc-coordenadas th,
-.pgc-coordenadas td {
-  border: 1px solid #000;
-  padding: 1px 6px;
-  text-align: center;
-}
-.pgc-coordenadas th {
-  background: #f2f2f2;
-}
-
-/* Valor fuera del límite: fondo + negrita + texto (nunca solo color) */
-.pgc-hoja .pgc-excede {
-  background: #fbd5d5;
-  color: #c00000;
-  font-weight: 700;
-}
-
-.pgc-pie {
-  margin-top: 24px;
-  border-top: 1px solid #000;
-  padding-top: 3px;
-  text-align: center;
-  font-size: 10px;
-}
-
-/* Apéndice X (ASC) */
 .pgc-apendice th {
   font-size: 10.5px;
   line-height: 1.25;

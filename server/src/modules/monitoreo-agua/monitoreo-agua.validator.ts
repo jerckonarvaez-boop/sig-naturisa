@@ -1,9 +1,21 @@
 import { esFecha, esUnoDe, texto, type Validado } from '../../utils/validacion.js';
 import { CLAVES_PARAMETROS } from './monitoreo-agua.parametros.js';
-import { PUNTOS, TIPOS_SITIO, type Coordenada, type ResultadoDatos, type SitioDatos, type ValorParametro } from './monitoreo-agua.types.js';
+import {
+  CAMPOS_TEXTOS,
+  PUNTOS,
+  TIPOS_SITIO,
+  type Coordenada,
+  type ResultadoDatos,
+  type SitioDatos,
+  type TextosInforme,
+  type ValorParametro,
+} from './monitoreo-agua.types.js';
 
 /** Tamaño máximo del PDF del laboratorio */
 export const MAX_PDF = 8 * 1024 * 1024;
+/** Tamaño máximo de un logo */
+export const MAX_LOGO = 1024 * 1024;
+const TIPOS_LOGO = ['image/png', 'image/jpeg', 'image/webp'];
 
 const lista = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 
@@ -18,6 +30,12 @@ export function validarSitio(body: Record<string, unknown> | undefined): Validad
   if (!esUnoDe(TIPOS_SITIO, body.tipo)) return { error: 'Tipo de instalación no válido.' };
   const coordenadas = lista(body.coordenadas);
   if (coordenadas.length > 200) return { error: 'Máximo 200 coordenadas.' };
+  const logos = [...new Set(lista(body.logos))];
+  if (logos.length > 2 || !logos.every((l) => typeof l === 'number' && Number.isInteger(l) && l > 0)) {
+    return { error: 'Elija como máximo dos logos.' };
+  }
+  const t = (body.textos ?? {}) as Record<string, unknown>;
+  const textos = Object.fromEntries(CAMPOS_TEXTOS.map((c) => [c, texto(t[c], 3000)])) as unknown as TextosInforme;
 
   return {
     datos: {
@@ -40,6 +58,10 @@ export function validarSitio(body: Record<string, unknown> | undefined): Validad
         .filter((c) => c.norte || c.este),
       superficie: texto(body.superficie, 1000),
       activo: body.activo !== false,
+      tituloEncabezado: texto(body.tituloEncabezado, 300),
+      logos: logos as number[],
+      logoTexto: texto(body.logoTexto, 200),
+      textos,
     },
   };
 }
@@ -80,6 +102,17 @@ export function validarResultado(body: Record<string, unknown> | undefined): Val
       observaciones: texto(body.observaciones, 2000),
     },
   };
+}
+
+/** Logo en base64 con prefijo data:image/… → bytes, o el error */
+export function validarLogo(body: Record<string, unknown> | undefined): Validado<{ nombre: string; tipo: string; datos: Uint8Array }> {
+  const nombre = texto(body?.nombre, 120) || 'logo';
+  const m = typeof body?.datos === 'string' ? /^data:([^;,]+);base64,(.+)$/s.exec(body.datos) : null;
+  if (!m) return { error: 'Falta la imagen del logo.' };
+  if (!TIPOS_LOGO.includes(m[1])) return { error: 'El logo debe ser PNG, JPG o WEBP.' };
+  const datos = new Uint8Array(Buffer.from(m[2], 'base64'));
+  if (datos.length > MAX_LOGO) return { error: 'El logo pesa más de 1 MB.' };
+  return { datos: { nombre, tipo: m[1], datos } };
 }
 
 /** PDF en base64 (con o sin prefijo data:) → bytes, o el error */

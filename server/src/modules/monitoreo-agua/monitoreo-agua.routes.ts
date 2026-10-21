@@ -8,11 +8,15 @@ import {
   definicion,
   eliminarUnResultado,
   eliminarUnSitio,
+  eliminarUnLogo,
+  logo,
+  logos,
   pdf,
   quitarPdf,
   resultado,
   resultados,
   sitios,
+  subirLogo,
   subirPdf,
 } from './monitoreo-agua.controller.js';
 
@@ -24,6 +28,11 @@ monitoreoAguaRouter.get('/sitios', sitios);
 monitoreoAguaRouter.post('/sitios', crearUnSitio);
 monitoreoAguaRouter.put('/sitios/:id', actualizarUnSitio);
 monitoreoAguaRouter.delete('/sitios/:id', eliminarUnSitio);
+
+monitoreoAguaRouter.get('/logos', logos);
+monitoreoAguaRouter.get('/logos/:id', logo);
+monitoreoAguaRouter.post('/logos', subirLogo);
+monitoreoAguaRouter.delete('/logos/:id', eliminarUnLogo);
 
 monitoreoAguaRouter.get('/resultados', resultados);
 monitoreoAguaRouter.get('/resultados/:id', resultado);

@@ -216,9 +216,17 @@ Sección con **Resultados de análisis de agua** y **Reportes de análisis de ag
   se imprime o se descarga para Excel (CSV).
 - **Fichas técnicas:** número de informe, nombre, tipo (camaronera: DBO5, sulfuros, SST y pH; laboratorio de
   larvas: 14 parámetros), entidad, representante, RUC, ubicación, coordenadas UTM y superficie.
+- **Formato del Word:** el informe se arma en hojas A4 como el Word (`DocumentoPaginado.tsx`): encabezado de doble
+  borde con logo, título, PGC-025, Revisión, **Pág. X/Y** y Fecha (la primera hoja; las demás solo código y página),
+  pie "Naturisa S.A.", ficha técnica de 9 pt que continúa en la hoja siguiente y tabla de resultados de 8 pt
+  (nombres del laboratorio en mayúsculas para los laboratorios de larvas).
+- **Plantilla por camaronera** (en su ficha): hasta dos **logos** (se guardan en la base, tabla `monitoreo_logo`), o
+  un texto en su lugar (ej. RIO NILO S.A.); el título del encabezado; y los textos de introducción, objetivo,
+  alcance, resumen, título de la tabla y conclusión (`{laboratorio}` se reemplaza; vacío = texto automático). Si un
+  parámetro supera el límite, la conclusión lo dice sola. Migración `013_monitoreo_plantilla.sql`.
 
 Catálogo de parámetros y límites: `server/src/modules/monitoreo-agua/monitoreo-agua.parametros.ts`.
-**API:** `/api/monitoreo-agua` (`definicion`, `sitios`, `resultados`, `resultados/:id/pdf`). **Base de datos:**
+**API:** `/api/monitoreo-agua` (`definicion`, `sitios`, `logos`, `resultados`, `resultados/:id/pdf`). **Base de datos:**
 migración `012_monitoreo_agua.sql`. Las fichas y resultados son datos de la empresa: se cargan en la base, nunca
 en el repositorio.
 
