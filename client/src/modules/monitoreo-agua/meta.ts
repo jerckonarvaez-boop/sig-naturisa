@@ -15,6 +15,14 @@ export const REPORTES_AGUA: SubSection = {
   path: '/monitoreo-agua/reportes',
 };
 
+/** Camaroneras e instalaciones con su ficha técnica (no va en el menú: se abre desde Monitoreo de agua y Reportes) */
+export const FICHAS_TECNICAS: SubSection = {
+  id: 'fichas',
+  label: 'Fichas técnicas',
+  description: 'Camaroneras e instalaciones: datos que salen en el informe de monitoreo PGC-025.',
+  path: '/monitoreo-agua/fichas',
+};
+
 /** Puntos de monitoreo: cada subsección se divide en estas pestañas (la ruta es <subsección>/<id>) */
 export const PUNTOS_MONITOREO = [
   { id: 'afluente', label: 'Afluente', description: 'Agua que ingresa a la camaronera (captación).' },

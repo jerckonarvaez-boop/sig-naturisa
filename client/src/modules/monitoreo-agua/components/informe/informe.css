@@ -1,0 +1,176 @@
+/* Informe de monitoreo PGC-025 y Apéndice X: documento en blanco y negro como el Word (se imprime siempre en claro). */
+
+.pgc-hoja {
+  box-sizing: border-box;
+  width: 794px; /* A4 vertical a 96 ppp */
+  margin: 0 auto;
+  padding: 36px 48px;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.15);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.pgc-hoja.pgc-horizontal {
+  width: 1123px;
+}
+.pgc-hoja * {
+  box-sizing: border-box;
+  border-color: #000;
+}
+/* En pantalla la hoja se desplaza dentro de su marco en lugar de ensanchar la página */
+.pgc-marco {
+  overflow-x: auto;
+  padding: 4px 0 16px;
+}
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  .pgc-marco {
+    overflow: visible;
+    padding: 0;
+  }
+  .pgc-hoja {
+    width: 100%;
+    padding: 0;
+    box-shadow: none;
+  }
+}
+
+/* Encabezado que se repite en cada hoja impresa (thead de la tabla contenedora) */
+.pgc-pagina {
+  width: 100%;
+  border-collapse: collapse;
+}
+.pgc-encabezado {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 14px;
+}
+.pgc-encabezado td {
+  border: 1px solid #000;
+  padding: 4px 8px;
+  vertical-align: middle;
+}
+.pgc-encabezado .pgc-logo-celda {
+  width: 150px;
+  text-align: center;
+}
+.pgc-encabezado img {
+  max-width: 130px;
+  height: auto;
+}
+.pgc-encabezado .pgc-titulo-celda {
+  text-align: center;
+  font-weight: 700;
+  font-size: 12px;
+}
+.pgc-encabezado .pgc-codigo-celda {
+  width: 120px;
+  font-size: 10.5px;
+  line-height: 1.6;
+}
+
+.pgc-h1 {
+  margin: 14px 0 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.pgc-hoja p {
+  margin: 0 0 8px;
+  text-align: justify;
+}
+.pgc-epigrafe {
+  margin: 10px 0 4px;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.pgc-nota {
+  font-size: 10px;
+  line-height: 1.35;
+}
+.pgc-nota p {
+  margin: 0 0 2px;
+}
+
+/* Tablas del documento */
+.pgc-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 10px;
+}
+/* Tablas cortas que no deben partirse entre dos hojas */
+.pgc-tabla.pgc-entera {
+  page-break-inside: avoid;
+}
+.pgc-tabla tr {
+  page-break-inside: avoid;
+}
+.pgc-tabla th,
+.pgc-tabla td {
+  border: 1px solid #000;
+  padding: 3px 6px;
+  vertical-align: middle;
+}
+.pgc-tabla th {
+  background: #d9e2f3;
+  font-weight: 700;
+  text-align: center;
+}
+.pgc-tabla .pgc-etiqueta {
+  width: 34%;
+  vertical-align: top;
+  font-weight: 700;
+  background: #f2f2f2;
+}
+.pgc-tabla .pgc-centro {
+  text-align: center;
+}
+.pgc-coordenadas {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 2px;
+  font-size: 10.5px;
+}
+.pgc-coordenadas th,
+.pgc-coordenadas td {
+  border: 1px solid #000;
+  padding: 1px 6px;
+  text-align: center;
+}
+.pgc-coordenadas th {
+  background: #f2f2f2;
+}
+
+/* Valor fuera del límite: fondo + negrita + texto (nunca solo color) */
+.pgc-hoja .pgc-excede {
+  background: #fbd5d5;
+  color: #c00000;
+  font-weight: 700;
+}
+
+.pgc-pie {
+  margin-top: 24px;
+  border-top: 1px solid #000;
+  padding-top: 3px;
+  text-align: center;
+  font-size: 10px;
+}
+
+/* Apéndice X (ASC) */
+.pgc-apendice th {
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+.pgc-apendice td {
+  font-size: 11px;
+}
+.pgc-apendice .pgc-separador td {
+  border-top: 2px solid #000;
+}

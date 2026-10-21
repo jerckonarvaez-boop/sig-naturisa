@@ -4,6 +4,7 @@ import { configuracionRouter } from './configuracion/configuracion.routes.js';
 import { eventosRouter } from './eventos/eventos.routes.js';
 import { healthRouter } from './health/health.routes.js';
 import { laboratorioRouter } from './laboratorio/laboratorio.routes.js';
+import { monitoreoAguaRouter } from './monitoreo-agua/monitoreo-agua.routes.js';
 import { oxigenometrosRouter } from './oxigenometros/oxigenometros.routes.js';
 import { presupuestoRouter } from './presupuesto/presupuesto.routes.js';
 
@@ -19,5 +20,6 @@ export const MODULOS_API: { ruta: string; router: Router }[] = [
   { ruta: '/checklist-bp', router: checklistBpRouter },
   { ruta: '/oxigenometros', router: oxigenometrosRouter },
   { ruta: '/laboratorio', router: laboratorioRouter },
+  { ruta: '/monitoreo-agua', router: monitoreoAguaRouter },
   { ruta: '/configuracion', router: configuracionRouter },
 ];

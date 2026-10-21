@@ -46,7 +46,7 @@ sig-naturisa/
 │   │   ├── eventos/                Componentes y datos del calendario (usados por Calendario, módulos y Dashboard)
 │   │   ├── auditorias/             asc y bap
 │   │   ├── laboratorios/
-│   │   ├── monitoreo-agua/         resultados y reportes, cada uno con Afluente / Efluente
+│   │   ├── monitoreo-agua/         resultados de laboratorio, informes PGC-025, Apéndice X ASC y fichas técnicas
 │   │   ├── inspecciones-sci/       checklist/ (las fechas están en Calendario)
 │   │   ├── gestion-desechos/
 │   │   └── presupuesto/
@@ -200,11 +200,27 @@ Registro de las partes de oxigenómetros que repara el propio personal (sin cost
 
 ## Monitoreo de agua
 
-Sección con dos subsecciones, **Resultados de análisis de agua** (`/monitoreo-agua/resultados`) y **Reportes de
-análisis de agua** (`/monitoreo-agua/reportes`). Cada una tiene pestañas **Afluente** y **Efluente**
-(`…/afluente`, `…/efluente`; sin pestaña abre Afluente). Los puntos se definen en `PUNTOS_MONITOREO`
-(`client/src/modules/monitoreo-agua/meta.ts`): agregar uno ahí crea su pestaña en ambas subsecciones.
-El contenido de cada pestaña está pendiente de definir.
+Sección con **Resultados de análisis de agua** y **Reportes de análisis de agua**, cada una con pestañas
+**Afluente** y **Efluente** (`/monitoreo-agua/resultados/<punto>`, `/monitoreo-agua/reportes/<punto>`), más
+**Fichas técnicas** (`/monitoreo-agua/fichas`).
+
+- **Resultados:** cada informe de un laboratorio externo (ej. ELICROM `WGE-0000-000-26`): fecha de muestreo y
+  emisión, punto de muestreo y coordenadas, las camaroneras que cubre (un drenaje puede servir a varias), los
+  parámetros y el **PDF original** (máx. 8 MB, guardado en la base). El efluente se compara al momento con el
+  límite máximo permisible del **AM 097a, Anexo 1, Tabla 10** (descarga a cuerpo de agua marina, columna A).
+- **Reportes ▸ Efluente:** el **Informe de Monitoreo PGC-025** se genera solo, uno por camaronera de cada
+  resultado, con el texto del formato en Word (introducción, ficha técnica, objetivo, alcance, definiciones,
+  tabla de resultados, conclusión y anexo con el código del laboratorio). Se imprime o se guarda en PDF; el
+  encabezado se repite en cada hoja. Si un parámetro supera el límite, se marca y cambia la conclusión.
+- **Reportes ▸ Afluente:** **Apéndice X (ASC)** de calidad de agua por camaronera y año (afluente + efluente);
+  se imprime o se descarga para Excel (CSV).
+- **Fichas técnicas:** número de informe, nombre, tipo (camaronera: DBO5, sulfuros, SST y pH; laboratorio de
+  larvas: 14 parámetros), entidad, representante, RUC, ubicación, coordenadas UTM y superficie.
+
+Catálogo de parámetros y límites: `server/src/modules/monitoreo-agua/monitoreo-agua.parametros.ts`.
+**API:** `/api/monitoreo-agua` (`definicion`, `sitios`, `resultados`, `resultados/:id/pdf`). **Base de datos:**
+migración `012_monitoreo_agua.sql`. Las fichas y resultados son datos de la empresa: se cargan en la base, nunca
+en el repositorio.
 
 ## Centros de costo (lista validada)
 
