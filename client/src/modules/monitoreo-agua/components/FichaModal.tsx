@@ -83,6 +83,7 @@ export function FichaModal({ sitio, siguienteNumero, onGuardar, onEliminar, onCe
       titulo={sitio ? `Ficha técnica · ${sitio.nombre}` : 'Nueva camaronera o instalación'}
       onCerrar={onCerrar}
       ancho="lg"
+      cerrarAlPulsarFuera={false}
       pie={
         <>
           {sitio && !sitio.resultados && (

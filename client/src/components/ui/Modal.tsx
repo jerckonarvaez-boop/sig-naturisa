@@ -8,10 +8,15 @@ interface ModalProps {
   /** Botones al pie (Guardar, Cancelar...) */
   pie?: ReactNode;
   ancho?: 'md' | 'lg';
+  /** false en formularios largos: un clic fuera no cierra la ventana (y no se pierde lo escrito) */
+  cerrarAlPulsarFuera?: boolean;
 }
 
-/** Ventana emergente centrada. Se cierra con Escape o haciendo clic fuera. */
-export function Modal({ titulo, onCerrar, children, pie, ancho = 'md' }: ModalProps) {
+/**
+ * Ventana emergente centrada. Se cierra con Escape, con la ✕ o haciendo clic fuera (si se permite).
+ * El contenido se desplaza dentro de la ventana: el título y los botones del pie quedan siempre a la vista.
+ */
+export function Modal({ titulo, onCerrar, children, pie, ancho = 'md', cerrarAlPulsarFuera = true }: ModalProps) {
   useEffect(() => {
     const alPulsar = (e: KeyboardEvent) => e.key === 'Escape' && onCerrar();
     document.addEventListener('keydown', alPulsar);
@@ -20,16 +25,16 @@ export function Modal({ titulo, onCerrar, children, pie, ancho = 'md' }: ModalPr
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center"
-      onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+      onMouseDown={(e) => cerrarAlPulsarFuera && e.target === e.currentTarget && onCerrar()}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
-        className={`w-full rounded-xl bg-white shadow-xl dark:bg-slate-900 ${ancho === 'lg' ? 'max-w-2xl' : 'max-w-lg'}`}
+        className={`flex max-h-full w-full flex-col rounded-xl bg-white shadow-xl dark:bg-slate-900 ${ancho === 'lg' ? 'max-w-2xl' : 'max-w-lg'}`}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-800">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-800">
           <h2 className="text-base font-semibold">{titulo}</h2>
           <button
             type="button"
@@ -40,9 +45,9 @@ export function Modal({ titulo, onCerrar, children, pie, ancho = 'md' }: ModalPr
             <X size={18} />
           </button>
         </div>
-        <div className="px-5 py-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">{children}</div>
         {pie && (
-          <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-5 py-3 dark:border-slate-800">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-slate-200 px-5 py-3 dark:border-slate-800">
             {pie}
           </div>
         )}
