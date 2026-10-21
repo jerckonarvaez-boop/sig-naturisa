@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { fechaCorta, hoyISO } from '@/utils/fechas';
 import { EditorParametros } from '../components/EditorParametros';
 import { SelectorSitios } from '../components/SelectorSitios';
+import { VistaPdf } from '../components/VistaPdf';
 import { useMonitoreo } from '../hooks/useMonitoreo';
 import { leerInformeLaboratorio, sugerirDatos } from '../logic/lecturaPdf';
 import { parametroDe, parametrosIniciales } from '../logic/monitoreo';
@@ -21,7 +22,7 @@ import {
   subirPdf,
   urlPdf,
 } from '../services/monitoreo.api';
-import { textoDePdf } from '../services/textoPdf';
+import { textoDePdf } from '../services/pdfjs';
 import type { DefinicionMonitoreo, Resultado, ResultadoDatos, ValorParametro } from '../types';
 
 const MAX_PDF = 8 * 1024 * 1024;
@@ -286,135 +287,145 @@ export function ResultadoPage() {
         </p>
       )}
 
-      <div className="flex flex-col gap-4">
-        {!id && !pdfNuevo && (
-          <button
-            type="button"
-            onClick={() => archivo.current?.click()}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              elegirPdf(e.dataTransfer.files[0]);
-            }}
-            className="flex flex-col items-center gap-1.5 rounded-xl border-2 border-dashed border-brand-500/50 bg-brand-500/5 px-4 py-8 text-center hover:border-brand-500 hover:bg-brand-500/10"
-          >
-            <FileUp size={32} className="text-brand-500" />
-            <span className="font-semibold">Subir el PDF del laboratorio</span>
-            <span className="max-w-md text-sm text-slate-500 dark:text-slate-400">
-              Pulse o arrastre aquí el informe de ELICROM o LAB-PSI: el código, las fechas, las camaroneras y los parámetros se llenan
-              solos.
-            </span>
-          </button>
-        )}
-
-        {leyendo && <Card className="py-6 text-center text-slate-500">Leyendo el PDF…</Card>}
-
-        {aviso && <AvisoPdf aviso={aviso} definicion={definicion} punto={punto.id} onAgregar={agregarExtras} />}
-
-        <Card title="Informe del laboratorio">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Campo etiqueta="Laboratorio">
-              <input list="mon-laboratorios" maxLength={120} value={form.laboratorio} onChange={(e) => cambiar('laboratorio', e.target.value)} placeholder="Ej. ELICROM" className={CLASE_CONTROL} />
-              <datalist id="mon-laboratorios">
-                {sugerencias.laboratorios.map((l) => (
-                  <option key={l} value={l} />
-                ))}
-              </datalist>
-            </Campo>
-            <Campo etiqueta="Código del informe">
-              <input maxLength={60} value={form.codigo} onChange={(e) => cambiar('codigo', e.target.value)} placeholder="Ej. WGE-0000-000-26" className={CLASE_CONTROL} />
-            </Campo>
-            <Campo etiqueta="Fecha de muestreo *">
-              <input type="date" required value={form.fechaMuestreo} onChange={(e) => cambiar('fechaMuestreo', e.target.value)} className={CLASE_CONTROL} />
-            </Campo>
-            <Campo etiqueta="Fecha de emisión">
-              <input type="date" value={form.fechaEmision} onChange={(e) => cambiar('fechaEmision', e.target.value)} className={CLASE_CONTROL} />
-            </Campo>
-            <Campo etiqueta="Punto de muestreo (locación)" className="sm:col-span-2">
-              <input
-                list="mon-locaciones"
-                maxLength={300}
-                value={form.locacion}
-                onChange={(e) => cambiar('locacion', e.target.value)}
-                placeholder={punto.id === 'efluente' ? 'Ej. Golfomar/Servitron – Drenaje Piscina 1' : 'Ej. Estero – Estación de Bombeo'}
-                className={CLASE_CONTROL}
-              />
-              <datalist id="mon-locaciones">
-                {sugerencias.locaciones.map((l) => (
-                  <option key={l} value={l} />
-                ))}
-              </datalist>
-            </Campo>
-            <Campo etiqueta="Coordenada Norte">
-              <input maxLength={30} inputMode="numeric" value={form.norte} onChange={(e) => cambiar('norte', e.target.value)} placeholder="Ej. 9700000" className={CLASE_CONTROL} />
-            </Campo>
-            <Campo etiqueta="Coordenada Este">
-              <input maxLength={30} inputMode="numeric" value={form.este} onChange={(e) => cambiar('este', e.target.value)} placeholder="Ej. 600000" className={CLASE_CONTROL} />
-            </Campo>
-            <Campo etiqueta="Tipo de muestreo">
-              <input maxLength={60} value={form.metodo} onChange={(e) => cambiar('metodo', e.target.value)} placeholder="Simple" className={CLASE_CONTROL} />
-            </Campo>
-            <label className="flex items-center gap-2 self-end pb-1.5 text-sm sm:col-span-1 lg:col-span-3">
-              <input type="checkbox" checked={form.muestreoTercero} onChange={(e) => cambiar('muestreoTercero', e.target.checked)} className="size-4" />
-              La muestra la tomó el laboratorio (si no, la tomó Naturisa)
-            </label>
-          </div>
-        </Card>
-
-        <Card
-          title="Camaroneras / instalaciones *"
-          subtitle={punto.id === 'efluente' ? 'Se genera un informe PGC-025 por cada una' : 'Para el Apéndice X (ASC) de cada camaronera'}
-        >
-          <SelectorSitios sitios={sitios} elegidos={form.sitios} onCambiar={cambiarSitios} />
-        </Card>
-
-        <Card title="Resultados" subtitle={punto.id === 'efluente' ? 'Comparados con el AM 097a, Tabla 10 (descarga a cuerpo de agua marina)' : undefined}>
-          <EditorParametros
-            definicion={definicion}
-            punto={punto.id}
-            valores={form.valores}
-            onCambiar={(v) => {
-              parametrosTocados.current = true;
-              cambiar('valores', v);
-            }}
-          />
-        </Card>
-
-        <Card title="PDF del laboratorio" subtitle="El informe original, firmado por el laboratorio (máx. 8 MB)">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {guardado?.pdf && !pdfNuevo && (
-              <>
-                <a href={urlPdf(guardado.id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-brand-500 hover:underline">
-                  <FileText size={16} /> {guardado.pdf.nombre}
-                </a>
-                <span className="text-xs text-slate-500">({Math.round(guardado.pdf.tamano / 1024)} KB)</span>
-                <button type="button" onClick={borrarPdf} className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:underline dark:text-red-400">
-                  <X size={13} /> Quitar
-                </button>
-              </>
-            )}
-            {pdfNuevo && (
-              <span className="inline-flex items-center gap-1.5">
-                <Paperclip size={15} /> {pdfNuevo.name} <span className="text-xs text-slate-500">(se sube al guardar)</span>
-                <button type="button" onClick={() => setPdfNuevo(null)} aria-label="No adjuntar" className="rounded p-0.5 text-slate-400 hover:text-red-600">
-                  <X size={14} />
-                </button>
-              </span>
-            )}
+      {/* En pantallas anchas, el PDF queda al lado del formulario para comparar los valores */}
+      <div className={`grid items-start gap-4 ${pdfNuevo || guardado?.pdf ? '2xl:grid-cols-2' : ''}`}>
+        <div className="flex min-w-0 flex-col gap-4">
+          {!id && !pdfNuevo && (
             <button
               type="button"
               onClick={() => archivo.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 font-semibold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                elegirPdf(e.dataTransfer.files[0]);
+              }}
+              className="flex flex-col items-center gap-1.5 rounded-xl border-2 border-dashed border-brand-500/50 bg-brand-500/5 px-4 py-8 text-center hover:border-brand-500 hover:bg-brand-500/10"
             >
-              <Paperclip size={15} /> {guardado?.pdf || pdfNuevo ? 'Reemplazar PDF' : 'Adjuntar PDF'}
+              <FileUp size={32} className="text-brand-500" />
+              <span className="font-semibold">Subir el PDF del laboratorio</span>
+              <span className="max-w-md text-sm text-slate-500 dark:text-slate-400">
+                Pulse o arrastre aquí el informe de ELICROM o LAB-PSI: el código, las fechas, las camaroneras y los parámetros se llenan
+                solos.
+              </span>
             </button>
-            <input ref={archivo} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => elegirPdf(e.target.files?.[0])} />
-          </div>
-        </Card>
+          )}
 
-        <Card title="Observaciones">
-          <textarea rows={2} maxLength={2000} value={form.observaciones} onChange={(e) => cambiar('observaciones', e.target.value)} className={CLASE_CONTROL} />
-        </Card>
+          {leyendo && <Card className="py-6 text-center text-slate-500">Leyendo el PDF…</Card>}
+
+          {aviso && <AvisoPdf aviso={aviso} definicion={definicion} punto={punto.id} onAgregar={agregarExtras} />}
+
+          <Card title="Informe del laboratorio">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Campo etiqueta="Laboratorio">
+                <input list="mon-laboratorios" maxLength={120} value={form.laboratorio} onChange={(e) => cambiar('laboratorio', e.target.value)} placeholder="Ej. ELICROM" className={CLASE_CONTROL} />
+                <datalist id="mon-laboratorios">
+                  {sugerencias.laboratorios.map((l) => (
+                    <option key={l} value={l} />
+                  ))}
+                </datalist>
+              </Campo>
+              <Campo etiqueta="Código del informe">
+                <input maxLength={60} value={form.codigo} onChange={(e) => cambiar('codigo', e.target.value)} placeholder="Ej. WGE-0000-000-26" className={CLASE_CONTROL} />
+              </Campo>
+              <Campo etiqueta="Fecha de muestreo *">
+                <input type="date" required value={form.fechaMuestreo} onChange={(e) => cambiar('fechaMuestreo', e.target.value)} className={CLASE_CONTROL} />
+              </Campo>
+              <Campo etiqueta="Fecha de emisión">
+                <input type="date" value={form.fechaEmision} onChange={(e) => cambiar('fechaEmision', e.target.value)} className={CLASE_CONTROL} />
+              </Campo>
+              <Campo etiqueta="Punto de muestreo (locación)" className="sm:col-span-2">
+                <input
+                  list="mon-locaciones"
+                  maxLength={300}
+                  value={form.locacion}
+                  onChange={(e) => cambiar('locacion', e.target.value)}
+                  placeholder={punto.id === 'efluente' ? 'Ej. Golfomar/Servitron – Drenaje Piscina 1' : 'Ej. Estero – Estación de Bombeo'}
+                  className={CLASE_CONTROL}
+                />
+                <datalist id="mon-locaciones">
+                  {sugerencias.locaciones.map((l) => (
+                    <option key={l} value={l} />
+                  ))}
+                </datalist>
+              </Campo>
+              <Campo etiqueta="Coordenada Norte">
+                <input maxLength={30} inputMode="numeric" value={form.norte} onChange={(e) => cambiar('norte', e.target.value)} placeholder="Ej. 9700000" className={CLASE_CONTROL} />
+              </Campo>
+              <Campo etiqueta="Coordenada Este">
+                <input maxLength={30} inputMode="numeric" value={form.este} onChange={(e) => cambiar('este', e.target.value)} placeholder="Ej. 600000" className={CLASE_CONTROL} />
+              </Campo>
+              <Campo etiqueta="Tipo de muestreo">
+                <input maxLength={60} value={form.metodo} onChange={(e) => cambiar('metodo', e.target.value)} placeholder="Simple" className={CLASE_CONTROL} />
+              </Campo>
+              <label className="flex items-center gap-2 self-end pb-1.5 text-sm sm:col-span-1 lg:col-span-3">
+                <input type="checkbox" checked={form.muestreoTercero} onChange={(e) => cambiar('muestreoTercero', e.target.checked)} className="size-4" />
+                La muestra la tomó el laboratorio (si no, la tomó Naturisa)
+              </label>
+            </div>
+          </Card>
+
+          <Card
+            title="Camaroneras / instalaciones *"
+            subtitle={punto.id === 'efluente' ? 'Se genera un informe PGC-025 por cada una' : 'Para el Apéndice X (ASC) de cada camaronera'}
+          >
+            <SelectorSitios sitios={sitios} elegidos={form.sitios} onCambiar={cambiarSitios} />
+          </Card>
+
+          <Card title="Resultados" subtitle={punto.id === 'efluente' ? 'Comparados con el AM 097a, Tabla 10 (descarga a cuerpo de agua marina)' : undefined}>
+            <EditorParametros
+              definicion={definicion}
+              punto={punto.id}
+              valores={form.valores}
+              onCambiar={(v) => {
+                parametrosTocados.current = true;
+                cambiar('valores', v);
+              }}
+            />
+          </Card>
+
+          <Card title="PDF del laboratorio" subtitle="El informe original, firmado por el laboratorio (máx. 8 MB)">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {guardado?.pdf && !pdfNuevo && (
+                <>
+                  <a href={urlPdf(guardado.id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-brand-500 hover:underline">
+                    <FileText size={16} /> {guardado.pdf.nombre}
+                  </a>
+                  <span className="text-xs text-slate-500">({Math.round(guardado.pdf.tamano / 1024)} KB)</span>
+                  <button type="button" onClick={borrarPdf} className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:underline dark:text-red-400">
+                    <X size={13} /> Quitar
+                  </button>
+                </>
+              )}
+              {pdfNuevo && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Paperclip size={15} /> {pdfNuevo.name} <span className="text-xs text-slate-500">(se sube al guardar)</span>
+                  <button type="button" onClick={() => setPdfNuevo(null)} aria-label="No adjuntar" className="rounded p-0.5 text-slate-400 hover:text-red-600">
+                    <X size={14} />
+                  </button>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => archivo.current?.click()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 font-semibold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              >
+                <Paperclip size={15} /> {guardado?.pdf || pdfNuevo ? 'Reemplazar PDF' : 'Adjuntar PDF'}
+              </button>
+              <input ref={archivo} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => elegirPdf(e.target.files?.[0])} />
+            </div>
+          </Card>
+
+          <Card title="Observaciones">
+            <textarea rows={2} maxLength={2000} value={form.observaciones} onChange={(e) => cambiar('observaciones', e.target.value)} className={CLASE_CONTROL} />
+          </Card>
+        </div>
+        {(pdfNuevo || guardado?.pdf) && (
+          <VistaPdf
+            key={pdfNuevo ? `nuevo-${pdfNuevo.name}-${pdfNuevo.size}` : `guardado-${guardado!.pdf!.nombre}-${guardado!.pdf!.tamano}`}
+            origen={pdfNuevo ?? urlPdf(guardado!.id)}
+            className="min-w-0 2xl:sticky 2xl:top-4"
+          />
+        )}
       </div>
     </>
   );
