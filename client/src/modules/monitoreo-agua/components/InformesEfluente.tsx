@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Settings } from 'lucide-react';
 import { FILA_ENCABEZADO, Tabla } from '@/components/tables/Tabla';
@@ -10,6 +10,10 @@ import { aniosDe, incumplimientos, semestre } from '../logic/monitoreo';
 import { FICHAS_TECNICAS, REPORTES_AGUA, RESULTADOS_AGUA } from '../meta';
 import { SelectorAnio } from './SelectorAnio';
 import { SelectorSemestre, type Periodo } from './SelectorSemestre';
+
+/** "2026-2" (año y semestre) para agrupar los informes */
+const grupoDe = (iso: string) => `${iso.slice(0, 4)}-${semestre(iso)}`;
+const nombreGrupo = (g: string) => `${g.endsWith('-1') ? 'Primer' : 'Segundo'} semestre ${g.slice(0, 4)}`;
 
 /**
  * Informes de Monitoreo PGC-025 del efluente: uno por cada camaronera de cada resultado del laboratorio.
@@ -28,8 +32,16 @@ export function InformesEfluente() {
       .filter((r) => (anio === null || r.fechaMuestreo.startsWith(String(anio))) && (!periodo || semestre(r.fechaMuestreo) === periodo))
       .flatMap((r) => r.sitios.map((id) => ({ resultado: r, sitio: sitios.find((s) => s.id === id)! })))
       .filter((i) => i.sitio)
-      .sort((a, b) => a.sitio.numero - b.sitio.numero || b.resultado.fechaMuestreo.localeCompare(a.resultado.fechaMuestreo));
+      .map((i) => ({ ...i, grupo: grupoDe(i.resultado.fechaMuestreo) }))
+      // El semestre más reciente primero y, dentro de cada uno, por número de camaronera
+      .sort(
+        (a, b) =>
+          b.grupo.localeCompare(a.grupo) ||
+          a.sitio.numero - b.sitio.numero ||
+          b.resultado.fechaMuestreo.localeCompare(a.resultado.fechaMuestreo),
+      );
   }, [sitios, resultados, anio, periodo]);
+  const porGrupo = (g: string) => informes.filter((i) => i.grupo === g).length;
 
   // Instalaciones activas sin resultado del efluente en el periodo elegido
   const pendientes = useMemo(
@@ -88,30 +100,39 @@ export function InformesEfluente() {
           </tr>
         </thead>
         <tbody>
-          {informes.map(({ resultado: r, sitio: s }) => {
+          {informes.map(({ resultado: r, sitio: s, grupo }, i) => {
             const fuera = incumplimientos(r, definicion);
             return (
-              <tr key={`${r.id}-${s.id}`} className="border-t border-slate-100 dark:border-slate-800">
-                <td className="px-3 py-2 tabular-nums">{s.numero}</td>
-                <td className="px-3 py-2 font-medium">{s.nombre}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{fechaCorta(r.fechaMuestreo)}</td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  <Link to={`${RESULTADOS_AGUA.path}/efluente/${r.id}`} className="hover:text-brand-500 hover:underline">
-                    {r.codigo || 'Sin código'}
-                  </Link>
-                </td>
-                <td className="px-3 py-2">
-                  {fuera.length ? <StatusBadge tone="danger" label={`Supera ${fuera.length}`} /> : <StatusBadge tone="success" label="Cumple" />}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <Link
-                    to={`${REPORTES_AGUA.path}/efluente/${r.id}/${s.id}`}
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-semibold whitespace-nowrap hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-                  >
-                    <FileText size={13} /> Ver informe
-                  </Link>
-                </td>
-              </tr>
+              <Fragment key={`${r.id}-${s.id}`}>
+                {grupo !== informes[i - 1]?.grupo && (
+                  <tr className="border-t border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60">
+                    <td colSpan={6} className="px-3 py-1.5 text-xs font-semibold tracking-wide text-slate-600 uppercase dark:text-slate-300">
+                      {nombreGrupo(grupo)} · {porGrupo(grupo)} {porGrupo(grupo) === 1 ? 'informe' : 'informes'}
+                    </td>
+                  </tr>
+                )}
+                <tr className="border-t border-slate-100 dark:border-slate-800">
+                  <td className="px-3 py-2 tabular-nums">{s.numero}</td>
+                  <td className="px-3 py-2 font-medium">{s.nombre}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">{fechaCorta(r.fechaMuestreo)}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <Link to={`${RESULTADOS_AGUA.path}/efluente/${r.id}`} className="hover:text-brand-500 hover:underline">
+                      {r.codigo || 'Sin código'}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2">
+                    {fuera.length ? <StatusBadge tone="danger" label={`Supera ${fuera.length}`} /> : <StatusBadge tone="success" label="Cumple" />}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <Link
+                      to={`${REPORTES_AGUA.path}/efluente/${r.id}/${s.id}`}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-semibold whitespace-nowrap hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                    >
+                      <FileText size={13} /> Ver informe
+                    </Link>
+                  </td>
+                </tr>
+              </Fragment>
             );
           })}
         </tbody>
