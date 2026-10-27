@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { FileText, Pencil, Printer } from 'lucide-react';
+import { FileDown, FileText, Pencil, Printer } from 'lucide-react';
+import { descargar } from '@/services/documentos/correo';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { InformeMonitoreo } from '../components/informe/InformeMonitoreo';
 import { useMonitoreo } from '../hooks/useMonitoreo';
 import { nombreArchivoInforme } from '../logic/monitoreo';
 import { FICHAS_TECNICAS, REPORTES_AGUA, RESULTADOS_AGUA } from '../meta';
+import { informeAWord } from '../services/informeWord';
 import { obtenerResultado, urlPdf } from '../services/monitoreo.api';
 import type { Resultado } from '../types';
 
@@ -18,6 +20,8 @@ export function InformeMonitoreoPage() {
   const { definicion, sitios, error: errorDatos } = useMonitoreo('efluente');
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [generandoWord, setGenerandoWord] = useState(false);
+  const [errorWord, setErrorWord] = useState<string | null>(null);
 
   useEffect(() => {
     obtenerResultado(Number(resultadoId))
@@ -44,6 +48,18 @@ export function InformeMonitoreoPage() {
     return <Card className="py-12 text-center text-red-600">Esta camaronera no está incluida en el resultado del laboratorio.</Card>;
   }
 
+  const descargarWord = async () => {
+    setGenerandoWord(true);
+    setErrorWord(null);
+    try {
+      descargar(await informeAWord(sitio, resultado, definicion), `${nombreArchivoInforme(sitio, resultado)}.docx`);
+    } catch (e) {
+      setErrorWord(`No se pudo generar el Word: ${(e as Error).message}`);
+    } finally {
+      setGenerandoWord(false);
+    }
+  };
+
   return (
     <>
       <div className="print:hidden">
@@ -64,6 +80,9 @@ export function InformeMonitoreoPage() {
                   <FileText size={15} /> PDF del laboratorio
                 </a>
               )}
+              <button type="button" onClick={descargarWord} disabled={generandoWord} className={`${BOTON} disabled:opacity-50`} title="Descargar el informe en Word (.docx) con el mismo formato">
+                <FileDown size={15} /> {generandoWord ? 'Generando…' : 'Descargar Word'}
+              </button>
               <button
                 type="button"
                 onClick={() => window.print()}
@@ -75,8 +94,10 @@ export function InformeMonitoreoPage() {
           }
         />
         <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
-          Para guardarlo en PDF: Imprimir ▸ Destino «Guardar como PDF». Adjunte como anexo el PDF del laboratorio.
+          Para guardarlo en PDF: Imprimir ▸ Destino «Guardar como PDF». Para editarlo: «Descargar Word». Adjunte como anexo el PDF del
+          laboratorio.
         </p>
+        {errorWord && <p className="mb-3 text-sm font-semibold text-red-600">{errorWord}</p>}
       </div>
       <div className="pgc-marco">
         <InformeMonitoreo sitio={sitio} resultado={resultado} definicion={definicion} />
