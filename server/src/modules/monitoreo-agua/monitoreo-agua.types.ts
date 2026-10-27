@@ -28,6 +28,10 @@ export interface TextosInforme {
 
 export const CAMPOS_TEXTOS: (keyof TextosInforme)[] = ['introduccion', 'objetivo', 'alcance', 'resumen', 'conclusion', 'tabla'];
 
+/** Textos de un informe PGC-025 corregidos a mano (solo los cambiados; los demás salen de la ficha o automáticos) */
+export const CAMPOS_EDICION = ['intro1', 'intro2', 'objetivo', 'alcance', 'resumen', 'conclusion', 'tabla', 'anexo'] as const;
+export type EdicionInforme = Partial<Record<(typeof CAMPOS_EDICION)[number], string>>;
+
 /** Camaronera o instalación: datos de la ficha técnica del informe de monitoreo */
 export interface SitioDatos {
   numero: number;
@@ -91,6 +95,8 @@ export interface Resultado extends ResultadoDatos {
   id: number;
   /** PDF original adjunto (el contenido se descarga aparte) */
   pdf: { nombre: string; tamano: number } | null;
+  /** Textos corregidos del informe de cada camaronera (por id de la camaronera) */
+  ediciones: Record<number, EdicionInforme>;
   creadoEn: string;
   actualizadoEn: string;
 }

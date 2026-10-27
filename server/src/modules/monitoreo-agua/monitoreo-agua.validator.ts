@@ -1,10 +1,12 @@
 import { esFecha, esUnoDe, texto, type Validado } from '../../utils/validacion.js';
 import { CLAVES_PARAMETROS } from './monitoreo-agua.parametros.js';
 import {
+  CAMPOS_EDICION,
   CAMPOS_TEXTOS,
   PUNTOS,
   TIPOS_SITIO,
   type Coordenada,
+  type EdicionInforme,
   type ResultadoDatos,
   type SitioDatos,
   type TextosInforme,
@@ -124,4 +126,16 @@ export function validarPdf(body: Record<string, unknown> | undefined): Validado<
   if (datos.length > MAX_PDF) return { error: 'El PDF pesa más de 8 MB.' };
   if (Buffer.from(datos.subarray(0, 5)).toString('latin1') !== '%PDF-') return { error: 'El archivo no es un PDF.' };
   return { datos: { nombre, datos } };
+}
+
+/** Textos corregidos de un informe: solo los que tienen contenido */
+export function validarEdicion(body: Record<string, unknown> | undefined): Validado<EdicionInforme> {
+  const t = (body?.textos ?? {}) as Record<string, unknown>;
+  if (typeof t !== 'object' || Array.isArray(t)) return { error: 'Textos no válidos.' };
+  const datos: EdicionInforme = {};
+  for (const c of CAMPOS_EDICION) {
+    const v = texto(t[c], 5000);
+    if (v) datos[c] = v;
+  }
+  return { datos };
 }
