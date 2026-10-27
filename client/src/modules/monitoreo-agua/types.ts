@@ -19,6 +19,10 @@ export interface TextosInforme {
   tabla: string;
 }
 
+/** Textos de un informe PGC-025 corregidos a mano (solo los cambiados; los demás salen de la ficha o automáticos) */
+export type CampoEdicion = 'intro1' | 'intro2' | 'objetivo' | 'alcance' | 'resumen' | 'conclusion' | 'tabla' | 'anexo';
+export type EdicionInforme = Partial<Record<CampoEdicion, string>>;
+
 /** Camaronera o instalación: datos de la ficha técnica del informe de monitoreo */
 export interface SitioDatos {
   numero: number;
@@ -79,6 +83,8 @@ export interface ResultadoDatos {
 export interface Resultado extends ResultadoDatos {
   id: number;
   pdf: { nombre: string; tamano: number } | null;
+  /** Textos corregidos del informe de cada camaronera (por id de la camaronera) */
+  ediciones: Record<number, EdicionInforme>;
   creadoEn: string;
   actualizadoEn: string;
 }

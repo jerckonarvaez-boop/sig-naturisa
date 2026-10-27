@@ -1,6 +1,6 @@
 // Contenido del informe PGC-025 que comparten la vista en pantalla (y su PDF) y el archivo Word.
 import { urlLogo } from '../services/monitoreo.api';
-import type { DefinicionMonitoreo, ParametroMonitoreo, Resultado, Sitio } from '../types';
+import type { CampoEdicion, DefinicionMonitoreo, EdicionInforme, ParametroMonitoreo, Resultado, Sitio } from '../types';
 import { evaluar, parametroDe, semestre, type Evaluacion } from './monitoreo';
 import { textosDelInforme } from './plantilla';
 
@@ -54,8 +54,31 @@ export interface FilaResultado {
   estado: Evaluacion;
 }
 
-/** Filas de la tabla de resultados, textos y datos que cambian según la camaronera y el resultado */
-export function datosDelInforme(sitio: Sitio, resultado: Resultado, definicion: DefinicionMonitoreo) {
+/** Los dos párrafos de la Introducción */
+function introduccion(tx: ReturnType<typeof textosDelInforme>, ordinal: string) {
+  return [
+    `${tx.introduccion}, consciente de la importancia y el cuidado al medio ambiente y cumpliendo con la normativa ambiental vigente ha realizado su ${ordinal} análisis anual de agua del efluente.`,
+    `En este informe se detalla los resultados obtenidos en los análisis efectuados por la empresa Laboratorios ${tx.laboratorio} y a su vez se realiza la comparación de los parámetros con la norma ambiental (Acuerdo Ministerial 097a – Anexo1. Recurso Agua), con la finalidad de demostrar que las actividades productivas de la compañía no afectan al medio ambiente.`,
+  ];
+}
+
+/** Textos que se pueden corregir a mano en cada informe, con su nombre en el editor */
+export const CAMPOS_EDITABLES: { campo: CampoEdicion; etiqueta: string }[] = [
+  { campo: 'intro1', etiqueta: '1. Introducción · primer párrafo' },
+  { campo: 'intro2', etiqueta: '1. Introducción · segundo párrafo' },
+  { campo: 'objetivo', etiqueta: '3. Objetivo' },
+  { campo: 'alcance', etiqueta: '4. Alcance' },
+  { campo: 'resumen', etiqueta: '6. Resumen de los resultados' },
+  { campo: 'tabla', etiqueta: 'Título de la Tabla 1' },
+  { campo: 'conclusion', etiqueta: 'Conclusión' },
+  { campo: 'anexo', etiqueta: '7. Anexos' },
+];
+
+/**
+ * Filas de la tabla de resultados y textos del informe: los corregidos a mano para este informe (edicion) o, si no,
+ * los de la ficha de la camaronera o los automáticos (automaticos).
+ */
+export function datosDelInforme(sitio: Sitio, resultado: Resultado, definicion: DefinicionMonitoreo, edicion?: EdicionInforme) {
   const filas: FilaResultado[] = resultado.valores
     .filter((v) => v.valor.trim())
     .map((v) => {
@@ -64,25 +87,24 @@ export function datosDelInforme(sitio: Sitio, resultado: Resultado, definicion: 
       return { clave: v.clave, valor: v.valor, nombre, unidad, limite, estado: evaluar(p, v.valor) };
     });
   const excedidos = filas.filter((f) => f.estado === 'no-cumple').map((f) => parametroDe(definicion, f.clave) as ParametroMonitoreo);
-  return {
-    filas,
-    tx: textosDelInforme(sitio, resultado, excedidos),
-    ordinal: semestre(resultado.fechaMuestreo) === 1 ? 'primer' : 'segundo',
-    larvas: sitio.tipo === 'larvas',
+  const tx = textosDelInforme(sitio, resultado, excedidos);
+  const [intro1, intro2] = introduccion(tx, semestre(resultado.fechaMuestreo) === 1 ? 'primer' : 'segundo');
+  const automaticos: Record<CampoEdicion, string> = {
+    intro1,
+    intro2,
+    objetivo: tx.objetivo,
+    alcance: tx.alcance,
+    resumen: tx.resumen,
+    tabla: tx.tabla,
+    conclusion: tx.conclusion,
+    anexo: `${resultado.codigo} Informe de Resultados Análisis de Agua Natural (Efluente${resultado.locacion ? ` – ${resultado.locacion}` : ''}).`,
   };
+  const corregidos = edicion ?? resultado.ediciones?.[sitio.id] ?? {};
+  const textos = Object.fromEntries(
+    Object.entries(automaticos).map(([c, auto]) => [c, corregidos[c as CampoEdicion]?.trim() || auto]),
+  ) as Record<CampoEdicion, string>;
+  return { filas, textos, automaticos, titulo: tx.titulo, laboratorio: tx.laboratorio, larvas: sitio.tipo === 'larvas' };
 }
 
 /** Logos del encabezado: los de la camaronera, ninguno si usa un texto o, si no tiene, el de Naturisa */
 export const logosDelInforme = (sitio: Sitio) => (sitio.logos.length ? sitio.logos.map(urlLogo) : sitio.logoTexto ? [] : [LOGO_NATURISA]);
-
-type Textos = ReturnType<typeof datosDelInforme>['tx'];
-
-/** Los dos párrafos de la Introducción */
-export const introduccion = (tx: Textos, ordinal: string) => [
-  `${tx.introduccion}, consciente de la importancia y el cuidado al medio ambiente y cumpliendo con la normativa ambiental vigente ha realizado su ${ordinal} análisis anual de agua del efluente.`,
-  `En este informe se detalla los resultados obtenidos en los análisis efectuados por la empresa Laboratorios ${tx.laboratorio} y a su vez se realiza la comparación de los parámetros con la norma ambiental (Acuerdo Ministerial 097a – Anexo1. Recurso Agua), con la finalidad de demostrar que las actividades productivas de la compañía no afectan al medio ambiente.`,
-];
-
-/** Texto del anexo: el informe del laboratorio */
-export const textoAnexo = (resultado: Resultado) =>
-  `${resultado.codigo} Informe de Resultados Análisis de Agua Natural (Efluente${resultado.locacion ? ` – ${resultado.locacion}` : ''}).`;

@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
-import { DEFINICIONES, datosDelInforme, introduccion, logosDelInforme, textoAnexo } from '../../logic/informe';
+import { DEFINICIONES, datosDelInforme, logosDelInforme } from '../../logic/informe';
 import { fechaInforme, textoSemestre } from '../../logic/monitoreo';
-import type { DefinicionMonitoreo, Resultado, Sitio } from '../../types';
+import type { DefinicionMonitoreo, EdicionInforme, Resultado, Sitio } from '../../types';
 import { DocumentoPaginado, type DefinicionTabla, type Elemento } from './DocumentoPaginado';
 import './informe.css';
 
@@ -15,6 +15,8 @@ interface InformeMonitoreoProps {
   sitio: Sitio;
   resultado: Resultado;
   definicion: DefinicionMonitoreo;
+  /** Textos que se están corrigiendo (aún sin guardar) */
+  edicion?: EdicionInforme;
 }
 
 /**
@@ -22,8 +24,8 @@ interface InformeMonitoreoProps {
  * doble borde (logo de la camaronera, título, código, revisión, página y fecha), pie "Naturisa S.A.", ficha técnica y
  * tabla de resultados. Cambian solo los datos de la camaronera, la fecha, los resultados y el código del laboratorio.
  */
-export function InformeMonitoreo({ sitio, resultado, definicion }: InformeMonitoreoProps) {
-  const { filas, tx, ordinal, larvas } = datosDelInforme(sitio, resultado, definicion);
+export function InformeMonitoreo({ sitio, resultado, definicion, edicion }: InformeMonitoreoProps) {
+  const { filas, textos: tx, titulo, laboratorio, larvas } = datosDelInforme(sitio, resultado, definicion, edicion);
 
   const elementos = useMemo<Elemento[]>(() => {
     const e: Elemento[] = [];
@@ -34,7 +36,8 @@ export function InformeMonitoreo({ sitio, resultado, definicion }: InformeMonito
       e.push({ tipo: 'fila', tabla: 'ficha', clave, etiqueta, className, nodo: <td className="pgc-valor" colSpan={3}>{valor}</td> });
 
     titulo('Introducción');
-    introduccion(tx, ordinal).forEach((texto, i) => bloque(`intro-${i + 1}`, <p className="pgc-p">{texto}</p>));
+    bloque('intro-1', <p className="pgc-p">{tx.intro1}</p>);
+    bloque('intro-2', <p className="pgc-p">{tx.intro2}</p>);
     bloque('v1', <div className="pgc-vacio" />);
 
     // Ficha técnica: una sola tabla; "Ubicación geográfica" va combinada a lo alto de las coordenadas
@@ -157,7 +160,7 @@ export function InformeMonitoreo({ sitio, resultado, definicion }: InformeMonito
     bloque(
       'notas',
       <div className="pgc-nota">
-        <span className="pgc-ast">*</span> Resultados de los análisis de agua de efluentes realizados por Laboratorio {tx.laboratorio}
+        <span className="pgc-ast">*</span> Resultados de los análisis de agua de efluentes realizados por Laboratorio {laboratorio}
         <br />
         ** Límites máximos permisibles según la{' '}
         <i>Tabla 10 - Límites de descarga a un cuerpo de agua marina, Acuerdo Ministerial 097, Anexo 1. Recurso Agua.</i>
@@ -170,12 +173,12 @@ export function InformeMonitoreo({ sitio, resultado, definicion }: InformeMonito
     titulo('Anexos');
     bloque(
       'anexo',
-      <p className="pgc-anexo">{textoAnexo(resultado)}</p>,
+      <p className="pgc-anexo">{tx.anexo}</p>,
     );
     return e;
     // El contenido depende solo de estos datos
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify([sitio, resultado, filas, tx])]);
+  }, [JSON.stringify([sitio, resultado, filas, tx, laboratorio])]);
 
   const fecha = fechaInforme(resultado.fechaMuestreo);
 
@@ -202,7 +205,7 @@ export function InformeMonitoreo({ sitio, resultado, definicion }: InformeMonito
             <td className="pgc-enc-titulo">
               INFORME DE MONITOREO DEL ANÁLISIS DE AGUA DEL EFLUENTE
               <br />
-              {tx.titulo}
+              {titulo}
             </td>
             <td className="pgc-enc-datos">
               {primera ? (
@@ -244,7 +247,7 @@ export function InformeMonitoreo({ sitio, resultado, definicion }: InformeMonito
       tablas={TABLAS}
       encabezado={encabezado}
       pie="Naturisa S.A."
-      version={JSON.stringify([sitio, resultado.actualizadoEn, resultado.id, filas, tx])}
+      version={JSON.stringify([sitio, resultado.actualizadoEn, resultado.id, filas, tx, laboratorio])}
     />
   );
 }

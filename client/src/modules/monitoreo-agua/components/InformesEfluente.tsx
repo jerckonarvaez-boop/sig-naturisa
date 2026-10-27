@@ -1,18 +1,21 @@
 import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Settings } from 'lucide-react';
+import { FileArchive, FileText, Settings } from 'lucide-react';
+import { descargar } from '@/services/documentos/correo';
 import { FILA_ENCABEZADO, Tabla } from '@/components/tables/Tabla';
 import { Card } from '@/components/ui/Card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { fechaCorta } from '@/utils/fechas';
 import { useMonitoreo } from '../hooks/useMonitoreo';
-import { aniosDe, incumplimientos, semestre } from '../logic/monitoreo';
+import { aniosDe, incumplimientos, nombreArchivoInforme, semestre } from '../logic/monitoreo';
 import { FICHAS_TECNICAS, REPORTES_AGUA, RESULTADOS_AGUA } from '../meta';
+import { informesAZip } from '../services/informeWord';
 import { SelectorAnio } from './SelectorAnio';
 import { SelectorSemestre, type Periodo } from './SelectorSemestre';
 
 /** "2026-2" (año y semestre) para agrupar los informes */
 const grupoDe = (iso: string) => `${iso.slice(0, 4)}-${semestre(iso)}`;
+const claveDe = (i: { resultado: { id: number }; sitio: { id: number } }) => `${i.resultado.id}-${i.sitio.id}`;
 const nombreGrupo = (g: string) => `${g.endsWith('-1') ? 'Primer' : 'Segundo'} semestre ${g.slice(0, 4)}`;
 
 /**
@@ -24,6 +27,10 @@ export function InformesEfluente() {
   const anios = useMemo(() => aniosDe(resultados ?? []), [resultados]);
   const [anioElegido, setAnio] = useState<number | null | undefined>(undefined);
   const [periodo, setPeriodo] = useState<Periodo>(0);
+  /** Informes marcados para descargar (resultado-camaronera) */
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [avance, setAvance] = useState<{ hechos: number; total: number } | null>(null);
+  const [errorZip, setErrorZip] = useState<string | null>(null);
   const anio = anioElegido !== undefined ? anioElegido : (anios[0] ?? null);
 
   const informes = useMemo(() => {
@@ -42,12 +49,38 @@ export function InformesEfluente() {
       );
   }, [sitios, resultados, anio, periodo]);
   const porGrupo = (g: string) => informes.filter((i) => i.grupo === g).length;
+  // Solo cuentan los marcados que se ven con el año y semestre elegidos
+  const elegidos = informes.filter((i) => marcados.has(claveDe(i)));
+  const todosMarcados = informes.length > 0 && elegidos.length === informes.length;
+  const marcar = (claves: string[], si: boolean) =>
+    setMarcados((m) => {
+      const nuevo = new Set(m);
+      claves.forEach((c) => (si ? nuevo.add(c) : nuevo.delete(c)));
+      return nuevo;
+    });
 
   // Instalaciones activas sin resultado del efluente en el periodo elegido
   const pendientes = useMemo(
     () => (anio === null ? [] : (sitios ?? []).filter((s) => s.activo && !informes.some((i) => i.sitio.id === s.id))),
     [sitios, informes, anio],
   );
+
+  /** Los marcados o, si no hay, todos los que se ven: un .zip con un Word por informe */
+  async function descargarZip() {
+    if (!definicion) return;
+    const lista = elegidos.length ? elegidos : informes;
+    setErrorZip(null);
+    setAvance({ hechos: 0, total: lista.length });
+    try {
+      const zip = await informesAZip(lista, definicion, nombreArchivoInforme, (hechos) => setAvance({ hechos, total: lista.length }));
+      const periodoTexto = anio === null ? 'todos' : `${anio}${periodo ? `-S${periodo}` : ''}`;
+      descargar(zip, `Informes PGC-025 efluente ${periodoTexto}.zip`);
+    } catch (e) {
+      setErrorZip(`No se pudieron generar los Word: ${(e as Error).message}`);
+    } finally {
+      setAvance(null);
+    }
+  }
 
   if (error) return <Card className="py-10 text-center text-red-600">No se pudieron cargar los informes: {error}</Card>;
   if (cargando || !definicion) return <Card className="py-10 text-center text-slate-500">Cargando…</Card>;
@@ -83,6 +116,20 @@ export function InformesEfluente() {
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {enlaceFichas}
+          <button
+            type="button"
+            onClick={descargarZip}
+            disabled={!!avance || !informes.length}
+            title="Descarga un .zip con un Word por informe"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+          >
+            <FileArchive size={15} />
+            {avance
+              ? `Generando ${avance.hechos}/${avance.total}…`
+              : elegidos.length
+                ? `Descargar ${elegidos.length} en Word`
+                : `Descargar todos en Word (${informes.length})`}
+          </button>
           <SelectorSemestre periodo={periodo} onCambiar={setPeriodo} />
           <SelectorAnio anios={anios} anio={anio} onCambiar={setAnio} />
         </div>
@@ -91,6 +138,18 @@ export function InformesEfluente() {
       <Tabla anchoMinimo="min-w-[760px]">
         <thead>
           <tr className={FILA_ENCABEZADO}>
+            <th className="w-8 py-2 pl-3">
+              <input
+                type="checkbox"
+                checked={todosMarcados}
+                ref={(el) => {
+                  if (el) el.indeterminate = elegidos.length > 0 && !todosMarcados;
+                }}
+                onChange={(e) => marcar(informes.map(claveDe), e.target.checked)}
+                aria-label="Seleccionar todos los informes"
+                className="size-4 accent-brand-500"
+              />
+            </th>
             <th className="w-12 px-3 py-2 font-semibold">N.º</th>
             <th className="px-3 py-2 font-semibold">Camaronera / instalación</th>
             <th className="px-3 py-2 font-semibold">Muestreo</th>
@@ -106,12 +165,21 @@ export function InformesEfluente() {
               <Fragment key={`${r.id}-${s.id}`}>
                 {grupo !== informes[i - 1]?.grupo && (
                   <tr className="border-t border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60">
-                    <td colSpan={6} className="px-3 py-1.5 text-xs font-semibold tracking-wide text-slate-600 uppercase dark:text-slate-300">
+                    <td colSpan={7} className="px-3 py-1.5 text-xs font-semibold tracking-wide text-slate-600 uppercase dark:text-slate-300">
                       {nombreGrupo(grupo)} · {porGrupo(grupo)} {porGrupo(grupo) === 1 ? 'informe' : 'informes'}
                     </td>
                   </tr>
                 )}
                 <tr className="border-t border-slate-100 dark:border-slate-800">
+                  <td className="py-2 pl-3">
+                    <input
+                      type="checkbox"
+                      checked={marcados.has(claveDe({ resultado: r, sitio: s }))}
+                      onChange={(e) => marcar([claveDe({ resultado: r, sitio: s })], e.target.checked)}
+                      aria-label={`Seleccionar el informe de ${s.nombre}`}
+                      className="size-4 accent-brand-500"
+                    />
+                  </td>
                   <td className="px-3 py-2 tabular-nums">{s.numero}</td>
                   <td className="px-3 py-2 font-medium">{s.nombre}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{fechaCorta(r.fechaMuestreo)}</td>
@@ -137,6 +205,7 @@ export function InformesEfluente() {
           })}
         </tbody>
       </Tabla>
+      {errorZip && <p className="mt-3 text-sm font-semibold text-red-600">{errorZip}</p>}
       {pendientes.length > 0 && (
         <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
           <b>Sin resultado del efluente en {periodo ? `el ${periodo === 1 ? 'primer' : 'segundo'} semestre de ` : ''}{anio}:</b>{' '}

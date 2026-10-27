@@ -2,9 +2,9 @@
 // primera hoja), "Pág. X/Y" que Word calcula solo, pie "Naturisa S.A.", ficha técnica y tabla de resultados.
 // La librería se carga solo al usarlo, para no hacer más pesada la carga inicial de la app.
 import type { IBorderOptions, IParagraphOptions, ITableCellOptions, Paragraph as ParrafoDocx, ParagraphChild, Table as TablaDocx, TableCell as CeldaDocx } from 'docx';
-import { DEFINICIONES, datosDelInforme, introduccion, logosDelInforme, textoAnexo } from '../logic/informe';
+import { DEFINICIONES, datosDelInforme, logosDelInforme } from '../logic/informe';
 import { fechaInforme, textoSemestre } from '../logic/monitoreo';
-import type { DefinicionMonitoreo, Resultado, Sitio } from '../types';
+import type { DefinicionMonitoreo, EdicionInforme, Resultado, Sitio } from '../types';
 
 /** Medidas en twips (1 px a 96 ppp = 15 twips; 1 cm = 567) */
 const px = (n: number) => Math.round(n * 15);
@@ -17,8 +17,15 @@ interface Logo {
   alto: number;
 }
 
+/** Logos ya descargados (al bajar varios informes juntos se repiten) */
+const logosCargados = new Map<string, Promise<Logo | null>>();
+const cargarLogo = (url: string) => {
+  if (!logosCargados.has(url)) logosCargados.set(url, descargarLogo(url));
+  return logosCargados.get(url)!;
+};
+
 /** Descarga un logo y lo pasa a PNG (así Word lo abre aunque sea SVG o WebP) */
-async function cargarLogo(url: string): Promise<Logo | null> {
+async function descargarLogo(url: string): Promise<Logo | null> {
   try {
     const res = await fetch(url, { credentials: 'same-origin' });
     if (!res.ok) return null;
@@ -34,11 +41,11 @@ async function cargarLogo(url: string): Promise<Logo | null> {
   }
 }
 
-/** Genera el informe PGC-025 de una camaronera como archivo Word */
-export async function informeAWord(sitio: Sitio, resultado: Resultado, definicion: DefinicionMonitoreo): Promise<Blob> {
+/** Genera el informe PGC-025 de una camaronera como archivo Word (edicion: textos corregidos aún sin guardar) */
+export async function informeAWord(sitio: Sitio, resultado: Resultado, definicion: DefinicionMonitoreo, edicion?: EdicionInforme): Promise<Blob> {
   const d = await import('docx');
   const { AlignmentType, BorderStyle, HeightRule, PageNumber, ShadingType, TabStopType, VerticalAlign, VerticalMergeType, WidthType } = d;
-  const { filas, tx, ordinal, larvas } = datosDelInforme(sitio, resultado, definicion);
+  const { filas, textos: tx, titulo: tituloEncabezado, laboratorio, larvas } = datosDelInforme(sitio, resultado, definicion, edicion);
   const logos = (await Promise.all(logosDelInforme(sitio).map(cargarLogo))).filter((l): l is Logo => l !== null);
 
   const LINEA: IBorderOptions = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
@@ -70,7 +77,8 @@ export async function informeAWord(sitio: Sitio, resultado: Resultado, definicio
     cuerpo.push(parrafo([t(`${++n}. ${texto}`, 12, { bold: true })], { keepNext: true, spacing: { ...interlineado, before: 120, after: 120 } }));
 
   titulo('Introducción');
-  introduccion(tx, ordinal).forEach(normal);
+  normal(tx.intro1);
+  normal(tx.intro2);
   vacio();
 
   titulo('Ficha Técnica del Proyecto');
@@ -116,7 +124,7 @@ export async function informeAWord(sitio: Sitio, resultado: Resultado, definicio
   cuerpo.push(tablaResultados());
   vacio('sin');
   cuerpo.push(
-    parrafo([t('*', 9), t(` Resultados de los análisis de agua de efluentes realizados por Laboratorio ${tx.laboratorio}`, 8)]),
+    parrafo([t('*', 9), t(` Resultados de los análisis de agua de efluentes realizados por Laboratorio ${laboratorio}`, 8)]),
     parrafo([
       t('** Límites máximos permisibles según la ', 8),
       t('Tabla 10 - Límites de descarga a un cuerpo de agua marina, Acuerdo Ministerial 097, Anexo 1. Recurso Agua.', 8, { italics: true }),
@@ -128,7 +136,7 @@ export async function informeAWord(sitio: Sitio, resultado: Resultado, definicio
 
   titulo('Anexos');
   cuerpo.push(
-    parrafo([t('•', 10), new d.TextRun({ text: '\t' }), t(textoAnexo(resultado), 10)], {
+    parrafo([t('•', 10), new d.TextRun({ text: '\t' }), t(tx.anexo, 10)], {
       alignment: AlignmentType.JUSTIFIED,
       indent: { left: px(48), hanging: px(24) },
       tabStops: [{ type: TabStopType.LEFT, position: px(48) }],
@@ -278,7 +286,7 @@ export async function informeAWord(sitio: Sitio, resultado: Resultado, definicio
       borders: bordes,
       margins: { left: px(5), right: px(5) },
       verticalAlign: VerticalAlign.CENTER,
-      children: [centrado([t('INFORME DE MONITOREO DEL ANÁLISIS DE AGUA DEL EFLUENTE', 12, { bold: true }), new d.TextRun({ break: 1 }), t(tx.titulo, 12, { bold: true })])],
+      children: [centrado([t('INFORME DE MONITOREO DEL ANÁLISIS DE AGUA DEL EFLUENTE', 12, { bold: true }), new d.TextRun({ break: 1 }), t(tituloEncabezado, 12, { bold: true })])],
     });
     const celdaDato = (hijos: ParrafoDocx[]) => new d.TableCell({ borders: bordes, verticalAlign: VerticalAlign.CENTER, children: hijos });
 
@@ -338,4 +346,25 @@ export async function informeAWord(sitio: Sitio, resultado: Resultado, definicio
     ],
   });
   return d.Packer.toBlob(documento);
+}
+
+/** Varios informes en un .zip, un Word por informe; avisa el avance (hechos de total) */
+export async function informesAZip(
+  informes: { sitio: Sitio; resultado: Resultado }[],
+  definicion: DefinicionMonitoreo,
+  nombreDe: (sitio: Sitio, resultado: Resultado) => string,
+  alAvanzar: (hechos: number) => void,
+): Promise<Blob> {
+  const { zipSync } = await import('fflate');
+  const archivos: Record<string, Uint8Array> = {};
+  for (const [i, { sitio, resultado }] of informes.entries()) {
+    const docx = new Uint8Array(await (await informeAWord(sitio, resultado, definicion)).arrayBuffer());
+    // Dos informes con el mismo nombre (misma camaronera y fecha) no se pisan
+    let nombre = `${nombreDe(sitio, resultado)}.docx`;
+    for (let n = 2; archivos[nombre]; n++) nombre = `${nombreDe(sitio, resultado)} (${n}).docx`;
+    archivos[nombre] = docx;
+    alAvanzar(i + 1);
+  }
+  // Los .docx ya vienen comprimidos: se guardan tal cual
+  return new Blob([zipSync(archivos, { level: 0 })], { type: 'application/zip' });
 }
