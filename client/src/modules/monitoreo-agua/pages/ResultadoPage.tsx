@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, FileText, FileUp, Paperclip, Plus, Save, Trash2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileText, FileUp, Paperclip, Save, Trash2, X } from 'lucide-react';
 import { Campo, CLASE_CONTROL } from '@/components/forms/Campo';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Card } from '@/components/ui/Card';
@@ -36,7 +36,7 @@ type AvisoLectura =
       leidos: number;
       /** Parámetros del informe que el PDF no trae */
       faltan: string[];
-      /** Parámetros que trae el PDF y no van en el informe de estas camaroneras */
+      /** Parámetros que trae el PDF además de los de siempre (se agregan solos) */
       extras: ValorParametro[];
       previo: Resultado | null;
       repetido: Resultado | null;
@@ -161,7 +161,9 @@ export function ResultadoPage() {
       }
       const { previo, datos } = sugerirDatos(lectura, f.name, punto!.id, sitios!, resultados ?? []);
       const base = parametrosIniciales(definicion!, punto!.id, sitios!.filter((s) => datos.sitios.includes(s.id)));
-      const valores = base.map((clave) => ({ clave, valor: lectura.valores.find((v) => v.clave === clave)?.valor ?? '' }));
+      // Los de siempre (aunque falten en el PDF) y, después, todos los demás que trae el PDF
+      const extras = lectura.valores.filter((v) => !base.includes(v.clave));
+      const valores = [...base.map((clave) => ({ clave, valor: lectura.valores.find((v) => v.clave === clave)?.valor ?? '' })), ...extras];
       parametrosTocados.current = true;
       setForm(
         (actual) =>
@@ -182,7 +184,7 @@ export function ResultadoPage() {
         laboratorio: lectura.laboratorio,
         leidos: valores.filter((v) => v.valor).length,
         faltan: valores.filter((v) => !v.valor).map((v) => parametroDe(definicion!, v.clave)?.nombre ?? v.clave),
-        extras: lectura.valores.filter((v) => !base.includes(v.clave)),
+        extras,
         previo,
         repetido: (resultados ?? []).find((r) => lectura.codigo && r.codigo === lectura.codigo) ?? null,
         sinSitios: !datos.sitios.length,
@@ -193,11 +195,6 @@ export function ResultadoPage() {
       setLeyendo(false);
     }
   }
-
-  const agregarExtras = (extras: ValorParametro[]) => {
-    setForm((f) => f && { ...f, valores: [...f.valores, ...extras] });
-    setAviso((a) => (a && !('error' in a) ? { ...a, leidos: a.leidos + extras.length, extras: [] } : a));
-  };
 
   async function guardar() {
     if (!form) return;
@@ -312,7 +309,7 @@ export function ResultadoPage() {
 
           {leyendo && <Card className="py-6 text-center text-slate-500">Leyendo el PDF…</Card>}
 
-          {aviso && <AvisoPdf aviso={aviso} definicion={definicion} punto={punto.id} onAgregar={agregarExtras} />}
+          {aviso && <AvisoPdf aviso={aviso} definicion={definicion} punto={punto.id} />}
 
           <Card title="Informe del laboratorio">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -436,12 +433,10 @@ function AvisoPdf({
   aviso,
   definicion,
   punto,
-  onAgregar,
 }: {
   aviso: AvisoLectura;
   definicion: DefinicionMonitoreo;
   punto: PuntoMonitoreo;
-  onAgregar: (extras: ValorParametro[]) => void;
 }) {
   if ('error' in aviso) {
     return (
@@ -477,11 +472,8 @@ function AvisoPdf({
       {aviso.faltan.length > 0 && <p>No vienen en el PDF: {aviso.faltan.join(', ')}.</p>}
       {aviso.extras.length > 0 && (
         <p>
-          También vienen en el PDF, aunque no van en el informe de estas camaroneras:{' '}
-          {aviso.extras.map((v) => `${nombre(v.clave)} ${v.valor}`).join(' · ')}.{' '}
-          <button type="button" onClick={() => onAgregar(aviso.extras)} className="inline-flex items-center gap-1 font-semibold text-brand-500 hover:underline">
-            <Plus size={13} /> Agregarlos
-          </button>
+          También se agregaron los demás parámetros del PDF (salen en el informe): {aviso.extras.map((v) => `${nombre(v.clave)} ${v.valor}`).join(' · ')}.
+          Si alguno no corresponde, quítelo con la ✕.
         </p>
       )}
     </div>

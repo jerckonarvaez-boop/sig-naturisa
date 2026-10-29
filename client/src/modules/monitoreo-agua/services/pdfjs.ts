@@ -9,7 +9,7 @@ export async function abrirPdf(datos: ArrayBuffer): Promise<PDFDocumentLoadingTa
 }
 
 /** Todo el texto del PDF, página por página */
-export async function textoDePdf(archivo: File): Promise<string> {
+export async function textoDePdf(archivo: Blob): Promise<string> {
   const carga = await abrirPdf(await archivo.arrayBuffer());
   try {
     const pdf = await carga.promise;
