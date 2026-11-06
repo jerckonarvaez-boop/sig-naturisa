@@ -20,6 +20,8 @@ interface ColumnChartProps {
   onSelect?: (key: string) => void;
   /** Texto del tooltip debajo del valor */
   detalleTip?: (item: ColumnItem) => string | undefined;
+  /** Conteos: el eje Y solo lleva números enteros */
+  enteros?: boolean;
 }
 
 const COLUMNA = 24; // ancho máximo de columna (px)
@@ -38,6 +40,7 @@ export function ColumnChart({
   seleccion,
   onSelect,
   detalleTip,
+  enteros = false,
 }: ColumnChartProps) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const tip = useTip();
@@ -51,7 +54,7 @@ export function ColumnChart({
   // Si no caben todas las cifras, solo se rotula la columna más alta
   // y se añade un eje Y con valores redondos para leer el resto
   const rotularTodas = width / n >= 54;
-  const ticks = rotularTodas ? [] : marcasEje(maxDatos);
+  const ticks = rotularTodas ? [] : marcasEje(maxDatos, enteros);
   const max = ticks.length ? ticks[ticks.length - 1] : maxDatos;
   const izquierda = rotularTodas ? 0 : 44;
   const banda = (width - izquierda) / n;
@@ -164,11 +167,12 @@ function columnaPath(x: number, y: number, w: number, h: number, redondeado = tr
   return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
 }
 
-/** 3-5 valores redondos para el eje Y (ej. 5.000, 10.000, 15.000, 20.000, 25.000) */
-function marcasEje(max: number): number[] {
+/** 3-5 valores redondos para el eje Y (ej. 5.000, 10.000, 15.000, 20.000, 25.000); con enteros, paso de 1 o más */
+function marcasEje(max: number, enteros = false): number[] {
   const bruto = max / 4;
   const potencia = 10 ** Math.floor(Math.log10(bruto));
-  const paso = [1, 2, 2.5, 5, 10].map((m) => m * potencia).find((p) => p >= bruto) ?? 10 * potencia;
+  const redondo = [1, 2, 2.5, 5, 10].map((m) => m * potencia).find((p) => p >= bruto) ?? 10 * potencia;
+  const paso = enteros ? Math.max(1, Math.ceil(redondo)) : redondo;
   const marcas: number[] = [];
   for (let v = paso; v < max + paso; v += paso) marcas.push(v);
   return marcas;

@@ -25,7 +25,6 @@ sig-naturisa/
 │   ├── main.tsx · App.tsx          Arranque y composición: tema → sesión → control de acceso → rutas
 │   ├── routes/                     AppRoutes (rutas generadas del registro) · NotFoundPage
 │   ├── config/                     app.ts (nombre, logo) · modules.ts (REGISTRO de módulos → menú y rutas)
-│   │                               developmentPlan.ts (fases del Dashboard)
 │   ├── constants/                  Valores fijos compartidos (meses, días)
 │   ├── context/                    AuthContext (estado de sesión) · ThemeContext (claro/oscuro)
 │   ├── services/                   ÚNICO lugar que habla con el exterior
@@ -123,6 +122,16 @@ puntos, que es donde se agregarán los roles cuando se definan: `client/src/modu
 - **Colores:** variables `--color-brand-*` en `client/src/styles/index.css`.
 - **Base de datos:** en el PC, archivo SQLite `server/data/sig.db` (configurable con `DB_PATH`); en la web
   publicada, Turso (`TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`). Ver *Publicación*.
+
+## Dashboard (gráficos por sección)
+
+Página de inicio (`/`): un filtro de **año** y una tarjeta por sección con sus cifras clave y gráficos — Monitoreo de agua
+(parámetros del efluente en % de su límite, resultados por mes, pH), Laboratorios de análisis (informes por mes, por
+tipo y por centro de costo), Inspecciones SCI (cumplimiento de la última revisión de cada sucursal), Calendario y
+auditorías (fechas por mes y por tipo, próximas/vencidas/realizadas), Oxigenómetros (ahorro por mes) y Presupuesto
+(ejecutado, gasto por mes, por área frente al presupuesto y por sucursal). Usa los gráficos de `components/charts` y las
+reglas de cada módulo (`modules/dashboard/logic/resumen.ts`), así las cifras coinciden con las de cada sección. Si una
+sección no se puede leer, las demás se muestran igual.
 
 ## Módulo Presupuesto
 
