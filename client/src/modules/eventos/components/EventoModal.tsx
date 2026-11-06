@@ -4,7 +4,7 @@ import { Campo, CLASE_CONTROL } from '@/components/forms/Campo';
 import { SelectCentroCosto } from '@/components/forms/SelectCentroCosto';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Modal } from '@/components/ui/Modal';
-import { useCatalogo } from '@/hooks/useCatalogo';
+import { useLista } from '@/hooks/useLista';
 import { ESTADOS, ESTADOS_EDITABLES, TIPOS } from '../config';
 import type { Evento, EventoDatos, TipoEvento } from '../types';
 
@@ -55,7 +55,8 @@ export function EventoModal({
     observaciones: evento?.observaciones ?? '',
     avisar: evento?.avisar ?? true,
   }));
-  const { centrosCosto } = useCatalogo();
+  // Sucursales: lista editable en Configuración ▸ Centros de costo del Calendario
+  const centros = useLista('calendario.centros');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -164,7 +165,12 @@ export function EventoModal({
         </Campo>
 
         <Campo etiqueta="Sucursal / centro de costo">
-          <SelectCentroCosto value={datos.sucursal} onChange={(v) => cambiar('sucursal', v)} opciones={centrosCosto} />
+          <SelectCentroCosto
+            value={datos.sucursal}
+            onChange={(v) => cambiar('sucursal', v)}
+            opciones={centros.valores}
+            sinLista={centros.cargado ? 'Agregue centros de costo en Configuración' : 'Cargando…'}
+          />
         </Campo>
         <Campo etiqueta="Responsable">
           <input

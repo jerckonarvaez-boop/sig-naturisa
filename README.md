@@ -249,8 +249,10 @@ conserva y se marca. Sin presupuesto importado, el campo permite escribir para n
 ## Configuración (listas editables)
 
 Menú **Configuración** (`/configuracion`): el usuario agrega o quita valores de las listas que usan los formularios, sin
-cambiar el código — géneros de fitoplancton (Análisis de Agua, una palabra cada uno), clientes del laboratorio y partes de
-oxigenómetros. Los valores de fábrica están en `server/src/modules/configuracion/configuracion.listas.ts` (registro de
+cambiar el código — géneros de fitoplancton (Análisis de Agua, una palabra cada uno), centros de costo del laboratorio,
+de Inspecciones SCI (check list) y del Calendario (eventos, incluidas las auditorías ASC/BAP), y partes de oxigenómetros.
+Las listas de centros de costo de SCI y Calendario empiezan con los centros del presupuesto; Oxigenómetros sigue usando
+los del presupuesto. Los valores de fábrica están en `server/src/modules/configuracion/configuracion.listas.ts` (registro de
 listas); lo editado se guarda en `configuracion` (clave `lista.<id>`) y "Restaurar" vuelve a los de fábrica. Para hacer
 editable otra lista: agréguela al registro y léala con `valoresLista(id)` (servidor) o `useLista(id)` (cliente).
 API: `GET /api/configuracion/listas`, `GET/PUT/DELETE /api/configuracion/listas/:id`.

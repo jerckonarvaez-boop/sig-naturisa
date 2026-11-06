@@ -15,6 +15,13 @@ export interface ListaEditable {
   sinEspacios?: boolean;
 }
 
+/** Centros de costo del presupuesto (valores de fábrica de las listas de sucursales; luego se editan en Configuración) */
+const CENTROS_COSTO = [
+  'Aquanaturisa', 'Biorey', 'Bonanza', 'Camino Real', 'Coaque', 'Esteromar', 'Fincacua', 'Golfomar', 'Granmar', 'Inducam',
+  'Josefina', 'Juananu', 'Lanconor', 'Larviquest 1', 'Larviquest 2', 'Larviquest 3', 'Larviquest 4', 'Los Gelices',
+  'Marchena', 'Margolfo', 'Matriz', 'Matriz AM', 'Matriz NM', 'Naturisa', 'Rio Nilo', 'Roblemar',
+];
+
 /** Géneros de fitoplancton: uno por cada campo con opciones de Análisis de Agua */
 const generos: ListaEditable[] = SECCIONES.agua.campos
   .filter((c) => c.opciones)
@@ -35,6 +42,20 @@ export const LISTAS: ListaEditable[] = [
     nombre: 'Centros de costo del laboratorio',
     descripcion: 'Camaroneras, laboratorios y clientes que se eligen en "Identificación de la muestra".',
     inicial: CLIENTES_LABORATORIO,
+  },
+  {
+    id: 'inspecciones.centros',
+    seccion: 'Inspecciones SCI',
+    nombre: 'Centros de costo de Inspecciones SCI',
+    descripcion: 'Sucursales que se eligen en el check list de las inspecciones SCI.',
+    inicial: CENTROS_COSTO,
+  },
+  {
+    id: 'calendario.centros',
+    seccion: 'Calendario y Auditorías',
+    nombre: 'Centros de costo del Calendario',
+    descripcion: 'Sucursales que se eligen en los eventos del calendario: auditorías ASC y BAP, inspecciones, capacitaciones…',
+    inicial: CENTROS_COSTO,
   },
   {
     id: 'oxigenometros.partes',
