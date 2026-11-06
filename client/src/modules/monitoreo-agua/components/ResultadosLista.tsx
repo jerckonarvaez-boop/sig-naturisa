@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FileText, FileUp, Plus } from 'lucide-react';
+import { FileText, FileUp, ListPlus, Plus } from 'lucide-react';
 import { FILA_ENCABEZADO, Tabla } from '@/components/tables/Tabla';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Card } from '@/components/ui/Card';
@@ -9,13 +9,14 @@ import { fechaCorta } from '@/utils/fechas';
 import { useMonitoreo } from '../hooks/useMonitoreo';
 import { aniosDe, incumplimientos, parametroDe, semestre } from '../logic/monitoreo';
 import { RESULTADOS_AGUA, type PuntoMonitoreo } from '../meta';
+import { completarDesdePdf, type Completado } from '../services/completarParametros';
 import { urlPdf } from '../services/monitoreo.api';
 import { SelectorAnio } from './SelectorAnio';
 import { SelectorSemestre, type Periodo } from './SelectorSemestre';
 
 /** Resultados de los laboratorios de un punto (afluente o efluente). Clic en una fila para abrirlo. */
 export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
-  const { definicion, sitios, resultados, error, cargando } = useMonitoreo(punto);
+  const { definicion, sitios, resultados, error, cargando, recargar } = useMonitoreo(punto);
   const navigate = useNavigate();
   const anios = useMemo(() => aniosDe(resultados ?? []), [resultados]);
   const [anioElegido, setAnio] = useState<number | null | undefined>(undefined);
@@ -27,6 +28,21 @@ export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
   const nombreSitio = (id: number) => sitios?.find((s) => s.id === id)?.nombre ?? `#${id}`;
   const rutaNuevo = `${RESULTADOS_AGUA.path}/${punto}/nuevo`;
   const archivo = useRef<HTMLInputElement>(null);
+  const [avance, setAvance] = useState<{ hechos: number; total: number } | null>(null);
+  const [revision, setRevision] = useState<{ completados: Completado[]; errores: string[] } | null>(null);
+  const conPdf = (resultados ?? []).filter((r) => r.pdf);
+
+  /** Lee otra vez el PDF de todos los resultados y agrega los parámetros que no se guardaron */
+  async function completar() {
+    setRevision(null);
+    setAvance({ hechos: 0, total: conPdf.length });
+    try {
+      setRevision(await completarDesdePdf(conPdf, (hechos) => setAvance({ hechos, total: conPdf.length })));
+      await recargar();
+    } finally {
+      setAvance(null);
+    }
+  }
 
   // El PDF elegido viaja al formulario nuevo, que lo lee y llena los datos
   const botonNuevo = (
@@ -37,6 +53,17 @@ export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
       >
         <Plus size={16} /> Registrar a mano
       </Link>
+      {conPdf.length > 0 && (
+        <button
+          type="button"
+          onClick={completar}
+          disabled={!!avance}
+          title="Lee otra vez el PDF de cada resultado y agrega los parámetros que faltan (no cambia los valores ya registrados)"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+        >
+          <ListPlus size={16} /> {avance ? `Revisando ${avance.hechos}/${avance.total}…` : 'Completar parámetros desde los PDF'}
+        </button>
+      )}
       <button type="button" onClick={() => archivo.current?.click()} className={`${BOTON_PRIMARIO} inline-flex items-center gap-1.5 py-2`}>
         <FileUp size={16} /> Subir PDF del laboratorio
       </button>
@@ -83,6 +110,28 @@ export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
         </div>
       }
     >
+      {revision && (
+        <div role="status" className="mb-3 rounded-lg bg-sky-50 px-4 py-3 text-sm text-sky-950 dark:bg-sky-500/10 dark:text-sky-100">
+          {revision.completados.length ? (
+            <>
+              <p className="font-semibold">
+                {revision.completados.length === 1 ? 'Se completó 1 resultado' : `Se completaron ${revision.completados.length} resultados`} (ya salen
+                en sus informes):
+              </p>
+              <ul className="mt-1 list-disc pl-5">
+                {revision.completados.map(({ resultado: r, agregados }) => (
+                  <li key={r.id}>
+                    <b>{r.codigo || 'Sin código'}</b>: {agregados.map((a) => `${parametroDe(definicion, a.clave)?.nombre ?? a.clave} ${a.valor}`).join(' · ')}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="font-semibold">Todos los resultados ya tienen los parámetros de su PDF.</p>
+          )}
+          {revision.errores.length > 0 && <p className="mt-1 text-red-700 dark:text-red-300">No se pudieron revisar: {revision.errores.join(' · ')}</p>}
+        </div>
+      )}
       <Tabla anchoMinimo="min-w-[900px]">
         <thead>
           <tr className={FILA_ENCABEZADO}>
@@ -125,13 +174,16 @@ export function ResultadosLista({ punto }: { punto: PuntoMonitoreo }) {
                 </td>
                 <td className="px-3 py-2">
                   {punto === 'efluente' ? (
-                    fuera.length ? (
-                      <span title={fuera.map((f) => parametroDe(definicion, f.clave)?.nombre).join(', ')}>
-                        <StatusBadge tone="danger" label={`Supera ${fuera.length}`} />
-                      </span>
-                    ) : (
-                      <StatusBadge tone="success" label="Cumple" />
-                    )
+                    <>
+                      {fuera.length ? (
+                        <span title={fuera.map((f) => parametroDe(definicion, f.clave)?.nombre).join(', ')}>
+                          <StatusBadge tone="danger" label={`Supera ${fuera.length}`} />
+                        </span>
+                      ) : (
+                        <StatusBadge tone="success" label="Cumple" />
+                      )}
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">{r.valores.filter((v) => v.valor).length} parámetros</span>
+                    </>
                   ) : (
                     <span className="tabular-nums">{r.valores.filter((v) => v.valor).length}</span>
                   )}

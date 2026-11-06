@@ -17,6 +17,8 @@ export function evaluar(parametro: ParametroMonitoreo | undefined, valor: string
   if (parametro.textoCumple) {
     return valor.trim().toLowerCase() === parametro.textoCumple ? 'cumple' : numeroDe(valor) === null ? 'no-cumple' : null;
   }
+  // No detectado: está bajo el límite de cuantificación, así que cumple un límite máximo
+  if (/^n\.?\/?d\.?$/i.test(valor.trim())) return parametro.max !== undefined && parametro.min === undefined ? 'cumple' : null;
   const n = numeroDe(valor);
   if (n === null || (parametro.max === undefined && parametro.min === undefined)) return null;
   if (parametro.min !== undefined && n < parametro.min) return 'no-cumple';

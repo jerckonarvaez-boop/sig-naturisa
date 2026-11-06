@@ -6,6 +6,7 @@ import {
   crearUnResultado,
   crearUnSitio,
   definicion,
+  editarInforme,
   eliminarUnResultado,
   eliminarUnSitio,
   eliminarUnLogo,
@@ -39,6 +40,8 @@ monitoreoAguaRouter.get('/resultados/:id', resultado);
 monitoreoAguaRouter.post('/resultados', crearUnResultado);
 monitoreoAguaRouter.put('/resultados/:id', actualizarUnResultado);
 monitoreoAguaRouter.delete('/resultados/:id', eliminarUnResultado);
+
+monitoreoAguaRouter.put('/resultados/:id/informes/:sitioId', editarInforme);
 
 monitoreoAguaRouter.get('/resultados/:id/pdf', pdf);
 monitoreoAguaRouter.put('/resultados/:id/pdf', subirPdf);

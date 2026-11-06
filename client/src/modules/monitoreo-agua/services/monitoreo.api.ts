@@ -1,7 +1,7 @@
 // Monitoreo de agua: /api/monitoreo-agua
 import { apiDelete, apiGet, apiPost, apiPut, urlApi } from '@/services/api/client';
 import type { PuntoMonitoreo } from '../meta';
-import type { DefinicionMonitoreo, Logo, Resultado, ResultadoDatos, Sitio, SitioDatos } from '../types';
+import type { DefinicionMonitoreo, EdicionInforme, Logo, Resultado, ResultadoDatos, Sitio, SitioDatos } from '../types';
 
 export const obtenerDefinicion = () => apiGet<DefinicionMonitoreo>('/monitoreo-agua/definicion');
 
@@ -32,6 +32,10 @@ export const obtenerResultado = (id: number) => apiGet<Resultado>(`/monitoreo-ag
 export const crearResultado = (d: ResultadoDatos) => apiPost<Resultado>('/monitoreo-agua/resultados', d);
 export const actualizarResultado = (id: number, d: ResultadoDatos) => apiPut<Resultado>(`/monitoreo-agua/resultados/${id}`, d);
 export const eliminarResultado = (id: number) => apiDelete(`/monitoreo-agua/resultados/${id}`);
+
+/** Guarda los textos corregidos del informe PGC-025 de una camaronera ({} vuelve a los de la ficha) */
+export const guardarEdicionInforme = (id: number, sitioId: number, textos: EdicionInforme) =>
+  apiPut<Resultado>(`/monitoreo-agua/resultados/${id}/informes/${sitioId}`, { textos });
 
 /** Dirección para abrir el PDF original del laboratorio */
 export const urlPdf = (id: number) => urlApi(`/monitoreo-agua/resultados/${id}/pdf`);

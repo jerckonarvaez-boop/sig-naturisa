@@ -9,6 +9,7 @@ import {
   eliminarPdf,
   eliminarResultado,
   eliminarSitio,
+  guardarEdicion,
   guardarPdf,
   listarResultados,
   listarSitios,
@@ -22,7 +23,7 @@ import {
   sitiosInexistentes,
 } from './monitoreo-agua.service.js';
 import { PUNTOS, type ResultadoDatos } from './monitoreo-agua.types.js';
-import { validarLogo, validarPdf, validarResultado, validarSitio } from './monitoreo-agua.validator.js';
+import { validarEdicion, validarLogo, validarPdf, validarResultado, validarSitio } from './monitoreo-agua.validator.js';
 
 const id = (v: unknown) => Number(v);
 
@@ -176,6 +177,19 @@ export const eliminarUnResultado: RequestHandler = async (req, res) => {
     return;
   }
   res.status(204).end();
+};
+
+// PUT /api/monitoreo-agua/resultados/:id/informes/:sitioId { textos } -> textos corregidos del informe PGC-025
+export const editarInforme: RequestHandler = async (req, res) => {
+  const v = validarEdicion(req.body);
+  if ('error' in v) {
+    res.status(400).json({ error: v.error });
+    return;
+  }
+  const r = await guardarEdicion(id(req.params.id), id(req.params.sitioId), v.datos);
+  if (r === 'no-existe') res.status(404).json({ error: 'El resultado no existe.' });
+  else if (r === 'sin-sitio') res.status(404).json({ error: 'Esta camaronera no está incluida en el resultado del laboratorio.' });
+  else res.json(r);
 };
 
 /* ---------- PDF del laboratorio ---------- */

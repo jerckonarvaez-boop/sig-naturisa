@@ -1,7 +1,9 @@
 import type { InStatement } from '@libsql/client';
 import { consultar, consultarUna, ejecutar, lote, transaction, type Fila } from '../../db/database.js';
 import {
+  CAMPOS_EDICION,
   CAMPOS_TEXTOS,
+  type EdicionInforme,
   type Logo,
   type Punto,
   type Resultado,
@@ -154,8 +156,22 @@ export async function logosInexistentes(ids: number[]): Promise<number[]> {
 /* ---------- resultados de laboratorio ---------- */
 
 const SELECT_RESULTADO = `SELECT r.*, p.nombre AS pdf_nombre, p.tamano AS pdf_tamano,
-                            (SELECT json_group_array(rs.sitio_id) FROM monitoreo_resultado_sitio rs WHERE rs.resultado_id = r.id) AS sitios
+                            (SELECT json_group_array(rs.sitio_id) FROM monitoreo_resultado_sitio rs WHERE rs.resultado_id = r.id) AS sitios,
+                            (SELECT json_group_object(i.sitio_id, json(i.textos)) FROM monitoreo_informe i WHERE i.resultado_id = r.id) AS ediciones
                           FROM monitoreo_resultado r LEFT JOIN monitoreo_resultado_pdf p ON p.resultado_id = r.id`;
+
+/** {"3": {"objetivo": "…"}} → solo los campos conocidos con texto */
+function aEdiciones(v: unknown): Record<number, EdicionInforme> {
+  let o: Record<string, Record<string, unknown>> = {};
+  try {
+    o = JSON.parse(String(v ?? '{}')) ?? {};
+  } catch {
+    /* sin ediciones */
+  }
+  return Object.fromEntries(
+    Object.entries(o).map(([sitio, t]) => [Number(sitio), Object.fromEntries(CAMPOS_EDICION.filter((c) => t?.[c]).map((c) => [c, String(t[c])]))]),
+  );
+}
 
 function aResultado(r: Fila): Resultado {
   return {
@@ -174,6 +190,7 @@ function aResultado(r: Fila): Resultado {
     valores: jsonLista(r.valores),
     observaciones: String(r.observaciones ?? ''),
     pdf: r.pdf_nombre == null ? null : { nombre: String(r.pdf_nombre), tamano: Number(r.pdf_tamano) },
+    ediciones: aEdiciones(r.ediciones),
     creadoEn: String(r.creado_en),
     actualizadoEn: String(r.actualizado_en),
   };
@@ -232,12 +249,31 @@ export async function actualizarResultado(id: number, d: ResultadoDatos): Promis
 }
 
 export async function eliminarResultado(id: number): Promise<boolean> {
-  const [, , cambios] = await lote([
+  const [, , , cambios] = await lote([
+    { sql: 'DELETE FROM monitoreo_informe WHERE resultado_id = ?', args: [id] },
     { sql: 'DELETE FROM monitoreo_resultado_sitio WHERE resultado_id = ?', args: [id] },
     { sql: 'DELETE FROM monitoreo_resultado_pdf WHERE resultado_id = ?', args: [id] },
     { sql: 'DELETE FROM monitoreo_resultado WHERE id = ?', args: [id] },
   ]);
   return cambios > 0;
+}
+
+/** Guarda los textos corregidos del informe de una camaronera (sin textos, vuelve a los de la ficha) */
+export async function guardarEdicion(id: number, sitio: number, textos: EdicionInforme): Promise<Resultado | 'no-existe' | 'sin-sitio'> {
+  const r = await obtenerResultado(id);
+  if (!r) return 'no-existe';
+  if (!r.sitios.includes(sitio)) return 'sin-sitio';
+  if (Object.keys(textos).length) {
+    await ejecutar(
+      `INSERT INTO monitoreo_informe (resultado_id, sitio_id, textos) VALUES (?, ?, ?)
+       ON CONFLICT (resultado_id, sitio_id) DO UPDATE SET textos = excluded.textos,
+         actualizado_en = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')`,
+      [id, sitio, JSON.stringify(textos)],
+    );
+  } else {
+    await ejecutar('DELETE FROM monitoreo_informe WHERE resultado_id = ? AND sitio_id = ?', [id, sitio]);
+  }
+  return (await obtenerResultado(id))!;
 }
 
 /* ---------- PDF del laboratorio ---------- */

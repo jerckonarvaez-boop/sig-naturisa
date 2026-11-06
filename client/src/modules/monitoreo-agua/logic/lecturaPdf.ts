@@ -60,11 +60,14 @@ const NOMBRES: [clave: string, nombre: string][] = [
 ];
 
 const ES_NUMERO = /^[<>]?\d+(?:[.,]\d+)?$/;
+/** "N/D", "ND", "N.D." = No Detectado (el laboratorio no lo detectó: está bajo el límite de cuantificación) */
+const NO_DETECTADO = /^N\.?\/?D\.?$/;
 
-/** "0.069" → "0,069" · "<0.27" → "<0,27" · "AUSEN" → "AUSENCIA" */
+/** "0.069" → "0,069" · "<0.27" → "<0,27" · "AUSEN" → "AUSENCIA" · "N/D" → "N/D" */
 function valorDe(token: string): string | null {
   if (ES_NUMERO.test(token)) return token.replace('.', ',');
   if (/^AUSEN/.test(token)) return 'AUSENCIA';
+  if (NO_DETECTADO.test(token)) return 'N/D';
   if (/^PRESEN/.test(token)) return 'PRESENCIA';
   return null;
 }
@@ -81,7 +84,7 @@ function valorTras(resto: string, elicrom: boolean): string | null {
     if (/^[1-9](?:,[1-9])+$/.test(t[0]) || (/^[1-9]$/.test(t[0]) && t[0] !== t[1])) t.shift();
     return valorDe(t[0] ?? '');
   }
-  const i = t.findIndex((x) => ES_NUMERO.test(x) || /^(AUSEN|PRESEN)/.test(x));
+  const i = t.findIndex((x) => ES_NUMERO.test(x) || NO_DETECTADO.test(x) || /^(AUSEN|PRESEN)/.test(x));
   return i < 0 ? null : valorDe(t[i]);
 }
 
