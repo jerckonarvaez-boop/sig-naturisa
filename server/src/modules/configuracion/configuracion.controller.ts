@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'express';
+import { obtenerAlmacenamiento } from './configuracion.almacenamiento.js';
 import { listaPorId } from './configuracion.listas.js';
 import { guardarLista, listasConValores, restaurarLista, validarValores, valoresLista } from './configuracion.service.js';
 
@@ -42,4 +43,9 @@ export const restaurar: RequestHandler = async (req, res) => {
   }
   await restaurarLista(def.id);
   res.json({ valores: def.inicial });
+};
+
+// GET /api/configuracion/almacenamiento -> espacio usado de la base de datos, por módulo y archivos guardados
+export const almacenamiento: RequestHandler = async (_req, res) => {
+  res.json(await obtenerAlmacenamiento());
 };

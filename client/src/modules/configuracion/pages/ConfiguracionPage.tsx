@@ -3,9 +3,10 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { olvidarDefinicion } from '@/modules/laboratorios/analisis/hooks/useDefinicion';
 import { guardarLista, obtenerListas, restaurarLista, type ListaEditable } from '@/services/api/listas';
 import { EditorLista } from '../components/EditorLista';
+import { EspacioBase } from '../components/EspacioBase';
 import { meta } from '../meta';
 
-/** Configuración: listas de valores que usan los formularios (géneros, clientes, partes…), editables sin programar. */
+/** Configuración: espacio de la base de datos y listas de valores de los formularios (géneros, clientes, partes…). */
 export function ConfiguracionPage() {
   const [listas, setListas] = useState<ListaEditable[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export function ConfiguracionPage() {
   return (
     <>
       <PageHeader title={meta.label} subtitle={meta.description} />
+      <EspacioBase />
       {error && <p className="text-sm text-red-600">No se pudo cargar la configuración: {error}</p>}
       {!listas && !error && <p className="text-sm text-slate-500">Cargando…</p>}
 

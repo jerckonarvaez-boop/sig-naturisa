@@ -30,6 +30,8 @@ export const env = {
    */
   tursoUrl: process.env.TURSO_DATABASE_URL ?? '',
   tursoToken: process.env.TURSO_AUTH_TOKEN ?? '',
+  /** Espacio del plan de la base de datos, en MB, para la barra de Configuración (plan gratis de Turso: 5 GB) */
+  limiteBaseMb: Number(process.env.LIMITE_BASE_MB ?? 5120),
   /**
    * Cuenta que envía los avisos del calendario (SMTP). Sin host, usuario y clave no se envían avisos.
    * Ej. Gmail: smtp.gmail.com, puerto 465, usuario = la cuenta, clave = "contraseña de aplicación".

@@ -255,6 +255,11 @@ listas); lo editado se guarda en `configuracion` (clave `lista.<id>`) y "Restaur
 editable otra lista: agréguela al registro y léala con `valoresLista(id)` (servidor) o `useLista(id)` (cliente).
 API: `GET /api/configuracion/listas`, `GET/PUT/DELETE /api/configuracion/listas/:id`.
 
+**Espacio de la base de datos** (arriba de las listas): lo usado frente al límite del plan (`LIMITE_BASE_MB`, por defecto
+5120 = plan gratis de Turso), el espacio por módulo (por prefijo de tabla, con `dbstat`, que funciona en Turso y en la
+base local) y los archivos guardados dentro de la base (PDF de laboratorio, logos, fotos del check list), con cuántos
+PDF caben aún según el promedio. `GET /api/configuracion/almacenamiento` (`configuracion.almacenamiento.ts`).
+
 ## Calendario general y avisos por correo
 
 - **Dónde:** menú **Calendario** (`/calendario`): todas las fechas en vista mensual o lista, con filtro por tipo
