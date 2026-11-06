@@ -4,7 +4,6 @@ import { CheckCircle2, Mail, Printer, Save, Trash2 } from 'lucide-react';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { useCatalogo } from '@/hooks/useCatalogo';
 import { EditorMuestras } from '../components/EditorMuestras';
 import { EnviarCorreoModal } from '../components/EnviarCorreoModal';
 import { ReporteOficial } from '../components/reporte/ReporteOficial';
@@ -20,16 +19,15 @@ export function InformePage({ seccionId }: { seccionId: SeccionId }) {
   const { id } = useParams();
   const informeId = id ? Number(id) : null;
   const { definicion, error } = useDefinicion();
-  const { centrosCosto } = useCatalogo();
   const seccion = definicion?.secciones[seccionId] ?? null;
   const f = useInformeForm(seccion, informeId);
   const reporte = useRef<HTMLDivElement>(null);
   const [enviando, setEnviando] = useState(false);
 
-  // Identificación de la muestra: centros de costo del presupuesto + clientes del laboratorio
+  // Identificación de la muestra: centros de costo del laboratorio (se editan en Configuración)
   const identificaciones = useMemo(
-    () => [...new Set([...centrosCosto, ...(definicion?.clientes ?? [])])].sort((a, b) => a.localeCompare(b, 'es')),
-    [centrosCosto, definicion],
+    () => [...new Set(definicion?.clientes ?? [])].sort((a, b) => a.localeCompare(b, 'es', { numeric: true })),
+    [definicion],
   );
 
   if (error) return <Card className="py-12 text-center text-red-600">No se pudo cargar el formato: {error}</Card>;

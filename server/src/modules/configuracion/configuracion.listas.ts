@@ -32,8 +32,8 @@ export const LISTAS: ListaEditable[] = [
   {
     id: 'laboratorio.clientes',
     seccion: 'Laboratorio',
-    nombre: 'Clientes del laboratorio',
-    descripcion: 'Clientes o camaroneras externas que se suman a los centros de costo en "Identificación de la muestra".',
+    nombre: 'Centros de costo del laboratorio',
+    descripcion: 'Camaroneras, laboratorios y clientes que se eligen en "Identificación de la muestra".',
     inicial: CLIENTES_LABORATORIO,
   },
   {

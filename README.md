@@ -168,8 +168,9 @@ muestra (piscina, precría…).
 - **Indicador en el informe impreso** (y en el PDF del correo): la misma regla (`estadoReferencia` en
   `analisis/logic/laboratorio.ts`, con los `min`/`max`/`factorSalinidad` de la definición) pinta la celda en rojo ▲
   si supera la referencia o en azul ▼ si no llega, con leyenda junto a los valores referenciales.
-- **Identificación de la muestra:** lista validada de centros de costo del presupuesto + clientes del laboratorio
-  (`CLIENTES_LABORATORIO`, hoy Kamaclusa y Pesjoya).
+- **Identificación de la muestra:** lista validada propia del laboratorio (`CLIENTES_LABORATORIO`, 31 centros de
+  costo y clientes: Acualit, Biofina, Larviquest 1 a 4, Pesjoya…), editable en Configuración ▸ Centros de costo del
+  laboratorio. Ya no se mezcla con los centros del presupuesto.
 - **Código:** se sugiere el siguiente número del año (también entiende rangos como "AF-2026-128 al 133").
 - **Imprimir:** sale el informe con el diseño oficial de cada formato (igual al Excel: encabezado, tablas, leyendas,
   valores referenciales, firma y pie), en `analisis/components/reporte/`. Patología con más de 6 muestras sale en

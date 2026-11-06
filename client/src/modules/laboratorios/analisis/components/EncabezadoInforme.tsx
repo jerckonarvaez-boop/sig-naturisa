@@ -8,7 +8,7 @@ import type { SeccionLab } from '../types';
 interface EncabezadoInformeProps {
   seccion: SeccionLab;
   form: InformeForm;
-  /** Centros de costo del presupuesto + clientes del laboratorio */
+  /** Centros de costo del laboratorio (lista editable en Configuración) */
   identificaciones: string[];
   onCambiar: <K extends keyof Omit<InformeForm, 'muestras'>>(campo: K, valor: InformeForm[K]) => void;
 }

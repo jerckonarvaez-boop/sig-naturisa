@@ -222,8 +222,13 @@ const patologia: SeccionLab = {
 
 export const SECCIONES: Record<SeccionId, SeccionLab> = { agua, suelo, patologia };
 
-/** Clientes de fábrica que no están en el presupuesto (se suman a los centros de costo; se editan en Configuración) */
-export const CLIENTES_LABORATORIO = ['Kamaclusa', 'Pesjoya'];
+/** Centros de costo y clientes de "Identificación de la muestra" (de fábrica; se editan en Configuración) */
+export const CLIENTES_LABORATORIO = [
+  'Acualit', 'Acualit 2', 'Biofina', 'Biorey', 'Biosuper', 'Bonanza', 'Camaron', 'Camino Real', 'Coaque', 'Esteromar',
+  'Fincacua', 'Golfomar', 'Granmar', 'Inducam', 'Josefina', 'Juananu', 'Kamaclusa', 'Lanconor', 'Larviquest 1',
+  'Larviquest 2', 'Larviquest 3', 'Larviquest 4', 'Los Gelices', 'Marchena', 'Margolfo', 'Maricultura', 'Naturisa',
+  'Pesjoya', 'Rio Nilo', 'Roblemar', 'Solcamaron',
+];
 
 /** Análisis que forman el tipo guardado: "fitoplancton+quimico" → ['fitoplancton', 'quimico'] */
 export const partesDelTipo = (tipo: string) => tipo.split('+');
