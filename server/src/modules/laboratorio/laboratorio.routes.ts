@@ -9,6 +9,7 @@ import {
   eliminar,
   listar,
   obtener,
+  resultados,
   secciones,
 } from './laboratorio.controller.js';
 
@@ -16,6 +17,7 @@ export const laboratorioRouter = Router();
 
 laboratorioRouter.get('/secciones', secciones);
 laboratorioRouter.get('/informes', listar);
+laboratorioRouter.get('/resultados', resultados);
 laboratorioRouter.get('/informes/:id', obtener);
 laboratorioRouter.post('/informes', crear);
 laboratorioRouter.put('/informes/:id', actualizar);

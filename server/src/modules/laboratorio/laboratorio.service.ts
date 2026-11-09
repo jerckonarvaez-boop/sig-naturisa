@@ -52,6 +52,20 @@ export async function listarInformes(seccion: SeccionId): Promise<InformeResumen
   return filas.map((f) => ({ ...aInforme(f), muestras: porInforme.get(Number(f.id)) ?? [] }));
 }
 
+/** Todos los informes con los valores de sus muestras (para analizar resultados en el Dashboard) */
+export async function listarResultados(): Promise<Informe[]> {
+  const [filas, muestras] = await Promise.all([
+    consultar(`SELECT ${COLUMNAS} FROM lab_informe ORDER BY fecha_emision DESC, id DESC`),
+    consultar('SELECT informe_id, nombre, valores FROM lab_muestra ORDER BY informe_id, orden'),
+  ]);
+  const porInforme = new Map<number, MuestraLab[]>();
+  for (const m of muestras) {
+    const id = Number(m.informe_id);
+    porInforme.set(id, [...(porInforme.get(id) ?? []), { nombre: String(m.nombre), valores: valoresDe(m.valores) }]);
+  }
+  return filas.map((f) => ({ ...aInforme(f), muestras: porInforme.get(Number(f.id)) ?? [] }));
+}
+
 export async function obtenerInforme(id: number): Promise<Informe | null> {
   const [fila, muestras] = await Promise.all([
     consultarUna(`SELECT ${COLUMNAS} FROM lab_informe WHERE id = ?`, [id]),

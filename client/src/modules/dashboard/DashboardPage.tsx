@@ -9,7 +9,6 @@ import {
   SearchCheck,
   Wallet,
   Waves,
-  X,
   type LucideIcon,
 } from 'lucide-react';
 import { BarList } from '@/components/charts/BarList';
@@ -21,23 +20,19 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { formatLongDate } from '@/utils/fechas';
 import { dinero, dineroCorto, miles, porcentaje } from '@/utils/numeros';
-import type { SeccionId } from '@/modules/laboratorios/analisis/types';
 import { BarrasLimite } from './components/BarrasLimite';
-import { CruceCentros } from './components/CruceCentros';
+import { TablaResultados } from './components/TablaResultados';
 import { Cifra, Grafico, SeccionTablero, SinDatosSeccion } from './components/SeccionTablero';
 import { useDatosTablero, type Fuente } from './hooks/useDatosTablero';
 import {
   aniosConDatos,
-  NOMBRE_SECCION,
-  SIN_FILTROS_LAB,
-  type FiltrosLaboratorio,
   resumenCalendario,
   resumenInspecciones,
-  resumenLaboratorio,
   resumenMonitoreo,
   resumenOxigenometros,
   resumenPresupuesto,
 } from './logic/resumen';
+import { ANALISIS_LAB, referenciaDe, resumenResultados, unidadDe, valorTexto } from './logic/resultadosLab';
 
 const cantidad = (n: number) => miles(n);
 
@@ -91,7 +86,7 @@ export function DashboardPage() {
     () =>
       aniosConDatos([
         ...(datos?.presupuesto.datos?.gastos.map((g) => g.fechaSolped) ?? []),
-        ...(datos?.informes.datos?.informes.map((i) => i.fechaEmision) ?? []),
+        ...(datos?.informes.datos?.informes.map((i) => i.fechaMuestra || i.fechaEmision) ?? []),
         ...(datos?.reparaciones.datos?.map((r) => r.fecha) ?? []),
         ...(datos?.monitoreo.datos?.resultados.map((r) => r.fechaMuestreo) ?? []),
         ...(datos?.revisiones.datos?.map((r) => r.fecha) ?? []),
@@ -211,34 +206,52 @@ function SeccionMonitoreo({ fuente, anio }: { fuente: DatosFuente<'monitoreo'>; 
 }
 
 function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>; anio: number }) {
-  const [f, setF] = useState<FiltrosLaboratorio>(SIN_FILTROS_LAB);
-  const r = fuente.datos && resumenLaboratorio(fuente.datos.informes, fuente.datos.definicion, anio, f);
-  const informes = (v: number) => `${miles(v)} ${v === 1 ? 'informe' : 'informes'}`;
-  const hayFiltro = Boolean(f.seccion || f.analisis || f.centro);
-  // El centro elegido sigue en la lista aunque no tenga informes en el año
-  const centros = r ? (f.centro && !r.centros.includes(f.centro) ? [f.centro, ...r.centros] : r.centros) : [];
+  const [elegido, setElegido] = useState<string | null>(null);
+  const [centro, setCentro] = useState<string | null>(null);
+  const [parametro, setParametro] = useState<string | null>(null);
+
+  const datos = fuente.datos;
+  // Sin elección, el primer análisis con muestras en el año
+  const r = useMemo(() => {
+    if (!datos) return null;
+    const previo = resumenResultados(datos.informes, datos.definicion, anio, { analisis: elegido ?? ANALISIS_LAB[0].id, centro: null, parametro: null });
+    const analisis = elegido ?? ANALISIS_LAB.find((a) => previo.disponibles[a.id] > 0)?.id ?? ANALISIS_LAB[0].id;
+    return resumenResultados(datos.informes, datos.definicion, anio, { analisis, centro, parametro });
+  }, [datos, anio, elegido, centro, parametro]);
+
+  const p = r?.parametro;
+  const unidad = p ? unidadDe(p) : '';
+  const conUnidad = (v: number) => `${valorTexto(v)} ${unidad}`.trim();
+  const centros = r ? (centro && !r.centros.includes(centro) ? [centro, ...r.centros] : r.centros) : [];
+  const hayMuestras = Boolean(r && r.muestras > 0);
 
   const filtros = r && (
     <>
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Tipo de análisis">
-        {([null, 'agua', 'suelo', 'patologia'] as (SeccionId | null)[]).map((s) => (
-          <button
-            key={s ?? 'todos'}
-            type="button"
-            aria-pressed={f.seccion === s}
-            // Al cambiar el tipo se quita el análisis específico (podría ser de otro tipo)
-            onClick={() => setF({ ...f, seccion: s, analisis: null })}
-            className={`${CHIP} ${f.seccion === s ? CHIP_ACTIVO : CHIP_INACTIVO}`}
-          >
-            {s ? NOMBRE_SECCION[s] : 'Todos los análisis'}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Análisis">
+        {ANALISIS_LAB.map((a) => {
+          const activo = r.analisis.id === a.id;
+          return (
+            <button
+              key={a.id}
+              type="button"
+              aria-pressed={activo}
+              onClick={() => {
+                setElegido(a.id);
+                setParametro(null);
+              }}
+              className={`${CHIP} ${activo ? CHIP_ACTIVO : CHIP_INACTIVO}`}
+            >
+              {a.nombre}
+              <span className={`tabular-nums ${activo ? 'opacity-80' : 'text-slate-400 dark:text-slate-500'}`}>{r.disponibles[a.id]}</span>
+            </button>
+          );
+        })}
       </div>
       <label className="flex items-center gap-2 text-xs font-semibold">
-        Centro de costo
+        Campamento
         <select
-          value={f.centro ?? ''}
-          onChange={(e) => setF({ ...f, centro: e.target.value || null })}
+          value={centro ?? ''}
+          onChange={(e) => setCentro(e.target.value || null)}
           className="max-w-56 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
         >
           <option value="">Todos</option>
@@ -249,20 +262,21 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
           ))}
         </select>
       </label>
-      {f.analisis && (
-        <button
-          type="button"
-          onClick={() => setF({ ...f, analisis: null })}
-          className={`${CHIP} ${CHIP_ACTIVO}`}
-          aria-label={`Quitar el filtro ${r.nombreAnalisis(f.analisis)}`}
-        >
-          {r.nombreAnalisis(f.analisis)} <X size={13} aria-hidden />
-        </button>
-      )}
-      {hayFiltro && (
-        <button type="button" onClick={() => setF(SIN_FILTROS_LAB)} className="text-xs font-semibold text-brand-500 hover:underline">
-          Quitar filtros
-        </button>
+      {r.campos.length > 0 && (
+        <label className="flex items-center gap-2 text-xs font-semibold">
+          Parámetro
+          <select
+            value={p?.clave ?? ''}
+            onChange={(e) => setParametro(e.target.value)}
+            className="max-w-64 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
+          >
+            {r.campos.map((c) => (
+              <option key={c.clave} value={c.clave}>
+                {c.etiqueta}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
     </>
   );
@@ -277,58 +291,74 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
       cifras={
         r && (
           <>
-            <Cifra etiqueta="Informes emitidos" valor={cantidad(r.informes)} />
-            <Cifra etiqueta="Muestras analizadas" valor={cantidad(r.muestras)} />
-            <Cifra etiqueta="Centros de costo atendidos" valor={cantidad(r.centrosAtendidos)} />
-            <Cifra
-              etiqueta="Días de entrega (promedio)"
-              valor={r.diasEntrega == null ? '—' : miles(r.diasEntrega, 1)}
-              detalle={r.diasEntrega == null ? 'Sin fechas de muestra' : 'De la toma de muestra a la emisión'}
-            />
+            <Cifra etiqueta="Muestras analizadas" valor={cantidad(r.muestras)} detalle={r.ultima ? `Última: ${r.ultima}` : 'Sin muestras'} />
+            <Cifra etiqueta={centro ? 'Campamento' : 'Campamentos'} valor={centro ? centro : cantidad(r.campamentos)} />
+            {r.valoresConRef > 0 && (
+              <Cifra
+                etiqueta="Valores fuera de referencia"
+                valor={cantidad(r.valoresFuera)}
+                detalle={`de ${miles(r.valoresConRef)} valores con referencia`}
+                estado={r.valoresFuera ? { tipo: 'alerta', icono: AlertTriangle } : { tipo: 'bien', icono: CheckCircle2 }}
+              />
+            )}
+            {r.analisis.id === 'fresco' && hayMuestras && (
+              <Cifra
+                etiqueta="Hallazgos en nivel alto o más"
+                valor={cantidad(r.nivelesAltos)}
+                detalle="Grado 2 o mayor"
+                estado={r.nivelesAltos ? { tipo: 'alerta', icono: AlertTriangle } : { tipo: 'bien', icono: CheckCircle2 }}
+              />
+            )}
           </>
         )
       }
     >
       <ErrorSeccion fuente={fuente} />
-      {r && !r.informes && <SinDatosSeccion texto={hayFiltro ? `No hay informes con estos filtros en ${anio}.` : `No hay informes de laboratorio en ${anio}.`} />}
-      {r && r.informes > 0 && (
+      {r && !hayMuestras && (
+        <SinDatosSeccion texto={`No hay resultados de ${r.analisis.nombre.toLowerCase()}${centro ? ` en ${centro}` : ''} en ${anio}.`} />
+      )}
+      {r && hayMuestras && p && (
         <>
           <div className="grid gap-6 lg:grid-cols-2">
-            <Grafico titulo="Informes por mes" nota="Según la fecha de emisión">
-              <ColumnChart
-                enteros
-                items={r.porMes}
-                formato={cantidad}
-                formatoLargo={informes}
-                alto={220}
-                detalleTip={(i) => r.porMes.find((m) => m.key === i.key)?.detalle}
+            <Grafico
+              titulo={`${p.etiqueta} por ${centro ? 'muestra' : 'campamento'}`}
+              nota={[centro ? 'Valor de cada muestra' : 'Promedio de sus muestras · toca uno para verlo', unidad, referenciaDe(p)].filter(Boolean).join(' · ')}
+            >
+              <BarList
+                items={r.barras}
+                formato={valorTexto}
+                formatoLargo={conUnidad}
+                limite={10}
+                onSelect={centro ? undefined : (k) => setCentro(k)}
               />
             </Grafico>
-            <Grafico titulo="Análisis realizados" nota="Informes que incluyen cada análisis · toca uno para filtrar">
-              <BarList
-                items={r.porAnalisis}
-                formato={cantidad}
-                formatoLargo={informes}
-                seleccion={f.analisis}
-                onSelect={(k) => setF({ ...f, analisis: f.analisis === k ? null : k })}
-              />
+            <Grafico titulo={`${p.etiqueta} por mes`} nota={['Promedio de las muestras de cada mes', unidad].filter(Boolean).join(' · ')}>
+              <ColumnChart items={r.porMes} formato={valorTexto} formatoLargo={conUnidad} alto={220} detalleTip={(i) => r.porMes.find((m) => m.key === i.key)?.detalle} />
             </Grafico>
           </div>
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-            <Grafico titulo="Informes por centro de costo" nota="Toca uno para filtrar">
-              <BarList
-                items={r.porCentro}
-                formato={cantidad}
-                formatoLargo={informes}
-                limite={8}
-                seleccion={f.centro}
-                onSelect={(k) => setF({ ...f, centro: f.centro === k ? null : k })}
-              />
+          {r.hallazgos.length > 0 && (
+            <Grafico titulo="Hallazgos por grado promedio" nota="Del más grave al más leve · toca un hallazgo para graficarlo">
+              <BarList items={r.hallazgos} formato={valorTexto} formatoLargo={(v) => `Grado ${valorTexto(v)}`} seleccion={p.clave} onSelect={setParametro} />
             </Grafico>
-            <Grafico titulo="Análisis por centro de costo" nota="Informes de cada análisis en cada centro">
-              <CruceCentros columnas={r.cruce.columnas} filas={r.cruce.filas} />
+          )}
+          {r.generos.length > 0 && (
+            <Grafico titulo="Géneros encontrados" nota="Porcentaje de muestras en que aparece cada género">
+              <BarList items={r.generos} formato={porcentaje} />
             </Grafico>
-          </div>
+          )}
+          <Grafico
+            titulo={`Resultados por ${centro ? 'muestra' : 'campamento'}`}
+            nota={[
+              centro ? 'Valor de cada muestra' : 'Promedio de las muestras',
+              r.conReferencia ? (centro ? '▲ sobre · ▼ bajo la referencia' : '▲n / ▼n: muestras sobre / bajo la referencia') : null,
+              r.hallazgos.length ? 'grado 0 ausencia · 0,1–0,9 bajo · 1–1,9 medio · 2–2,9 alto · 3–4 muy alto' : null,
+              'toca un parámetro para graficarlo',
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          >
+            <TablaResultados campos={r.campos} filas={r.filas} parametro={p.clave} onParametro={setParametro} titulo={centro ? 'Muestra' : 'Campamento'} />
+          </Grafico>
         </>
       )}
     </SeccionTablero>

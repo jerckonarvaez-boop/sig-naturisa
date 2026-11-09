@@ -127,9 +127,11 @@ puntos, que es donde se agregarán los roles cuando se definan: `client/src/modu
 
 Página de inicio (`/`): un filtro de **año**, botones para elegir **qué secciones se ven** (se recuerda en el navegador,
 `localStorage` `sig-tablero-secciones`) y una tarjeta por sección con sus cifras clave y gráficos — Monitoreo de agua
-(parámetros del efluente en % de su límite, resultados por mes, pH), Laboratorios de análisis (filtros por tipo de
-análisis, análisis específico y centro de costo; informes por mes, análisis realizados, informes por centro, tabla centro ×
-análisis y días de entrega), Inspecciones SCI (cumplimiento de la última revisión de cada sucursal), Calendario y
+(parámetros del efluente en % de su límite, resultados por mes, pH), Laboratorios de análisis (los **resultados**: se elige
+el análisis —fitoplancton, química del agua, vibrios, suelo, patología en fresco o bacteriología en camarón—, el campamento
+y el parámetro; valores por campamento o por muestra, promedio por mes, géneros de fitoplancton encontrados, hallazgos de
+patología por grado y una tabla con todos los parámetros que marca ▲/▼ lo que sale de la referencia; los datos vienen de
+`GET /api/laboratorio/resultados`), Inspecciones SCI (cumplimiento de la última revisión de cada sucursal), Calendario y
 auditorías (fechas por mes y por tipo, próximas/vencidas/realizadas), Oxigenómetros (ahorro por mes) y Presupuesto
 (ejecutado, gasto por mes, por área frente al presupuesto y por sucursal). Usa los gráficos de `components/charts` y las
 reglas de cada módulo (`modules/dashboard/logic/resumen.ts`), así las cifras coinciden con las de cada sección. Si una

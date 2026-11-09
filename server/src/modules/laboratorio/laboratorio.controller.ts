@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express';
 import { esUnoDe, normalizarCorreos } from '../../utils/validacion.js';
 import { valoresListas } from '../configuracion/configuracion.service.js';
 import { SECCIONES, type SeccionId } from './laboratorio.secciones.js';
-import { actualizarInforme, crearInforme, eliminarInforme, listarInformes, obtenerInforme } from './laboratorio.service.js';
+import { actualizarInforme, crearInforme, eliminarInforme, listarInformes, listarResultados, obtenerInforme } from './laboratorio.service.js';
 import {
   guardarDestinatarios,
   guardarPlantilla,
@@ -34,6 +34,11 @@ export const listar: RequestHandler = async (req, res) => {
     return;
   }
   res.json(await listarInformes(req.query.seccion));
+};
+
+// GET /api/laboratorio/resultados: informes con los valores de cada muestra (Dashboard)
+export const resultados: RequestHandler = async (_req, res) => {
+  res.json(await listarResultados());
 };
 
 // GET /api/laboratorio/informes/:id

@@ -5,6 +5,8 @@ const BASE = '/laboratorio';
 
 export const obtenerDefinicion = () => apiGet<DefinicionLaboratorio>(`${BASE}/secciones`);
 export const listarInformes = (seccion: SeccionId) => apiGet<InformeResumen[]>(`${BASE}/informes?seccion=${seccion}`);
+/** Todos los informes con los valores de sus muestras (Dashboard) */
+export const listarResultados = () => apiGet<Informe[]>(`${BASE}/resultados`);
 export const obtenerInforme = (id: number) => apiGet<Informe>(`${BASE}/informes/${id}`);
 export const crearInforme = (datos: InformeDatos) => apiPost<Informe>(`${BASE}/informes`, datos);
 export const actualizarInforme = (id: number, datos: InformeDatos) => apiPut<Informe>(`${BASE}/informes/${id}`, datos);

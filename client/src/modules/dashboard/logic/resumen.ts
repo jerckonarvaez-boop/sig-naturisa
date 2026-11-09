@@ -8,7 +8,6 @@ import { agruparEventos } from '@/modules/eventos/logic/eventos';
 import type { Evento } from '@/modules/eventos/types';
 import { contar, cumplimiento } from '@/modules/inspecciones-sci/checklist/logic/calculo';
 import type { Revision } from '@/modules/inspecciones-sci/checklist/types';
-import type { DefinicionLaboratorio, InformeResumen, SeccionId } from '@/modules/laboratorios/analisis/types';
 import { ahorroPorMes, anioDe, resumir } from '@/modules/laboratorios/oxigenometros/logic/ahorro';
 import type { Reparacion } from '@/modules/laboratorios/oxigenometros/types';
 import { evaluar, incumplimientos, numeroDe } from '@/modules/monitoreo-agua/logic/monitoreo';
@@ -55,118 +54,6 @@ export function resumenPresupuesto(data: PresupuestoData, anio: number) {
     porMes: gastoPorMes(registros, filtros),
     porArea,
     porSucursal: gastoPorSucursal(registros, filtros),
-  };
-}
-
-/* ---------- Laboratorios de análisis ---------- */
-
-export const NOMBRE_SECCION: Record<SeccionId, string> = { agua: 'Análisis de Agua', suelo: 'Análisis de Suelo', patologia: 'Patologías en fresco' };
-const SECCION_CORTA: Record<SeccionId, string> = { agua: 'Agua', suelo: 'Suelo', patologia: 'Patología' };
-const SIN_CENTRO = 'Sin centro de costo';
-
-/** Filtros del gráfico de laboratorio (null = todos) */
-export interface FiltrosLaboratorio {
-  seccion: SeccionId | null;
-  /** Análisis específico, "seccion:tipo" (ej. agua:fitoplancton) */
-  analisis: string | null;
-  centro: string | null;
-}
-
-export const SIN_FILTROS_LAB: FiltrosLaboratorio = { seccion: null, analisis: null, centro: null };
-
-/** Análisis que lleva un informe ("a+b+c" en las secciones combinables), como claves "seccion:tipo" */
-const analisisDe = (i: InformeResumen) => i.tipo.split('+').filter(Boolean).map((t) => `${i.seccion}:${t}`);
-const centroDe = (i: InformeResumen) => i.sucursal.trim() || SIN_CENTRO;
-
-/** Días entre la toma de la muestra y la emisión del informe (null si falta una fecha o no cuadran) */
-function diasEntrega(i: InformeResumen): number | null {
-  const a = Date.parse(i.fechaMuestra);
-  const b = Date.parse(i.fechaEmision);
-  if (Number.isNaN(a) || Number.isNaN(b) || b < a) return null;
-  return Math.round((b - a) / 864e5);
-}
-
-export function resumenLaboratorio(informes: InformeResumen[], def: DefinicionLaboratorio, anio: number, f: FiltrosLaboratorio) {
-  const nombreAnalisis = (clave: string, conSeccion: boolean) => {
-    const [s, t] = clave.split(':') as [SeccionId, string];
-    const tipo = def.secciones[s]?.tipos.find((x) => x.id === t);
-    // "Análisis de materia orgánica" → "Materia orgánica"; si el corto repite la sección ("Patología"), el nombre completo
-    const completo = (tipo?.nombre ?? t).replace(/^an[aá]lisis de /i, '');
-    const nombre = tipo?.corto && tipo.corto !== SECCION_CORTA[s] ? tipo.corto : completo.charAt(0).toUpperCase() + completo.slice(1);
-    return conSeccion && !nombre.startsWith(SECCION_CORTA[s]) ? `${SECCION_CORTA[s] ?? s} · ${nombre}` : nombre;
-  };
-
-  const delAnioLista = informes.filter((i) => delAnio(i.fechaEmision, anio));
-  // Centros con informes en el año (para el selector), según el tipo de análisis elegido
-  const centros = [...new Set(delAnioLista.filter((i) => !f.seccion || i.seccion === f.seccion).map(centroDe))].sort((a, b) => a.localeCompare(b, 'es'));
-  const lista = delAnioLista.filter(
-    (i) => (!f.seccion || i.seccion === f.seccion) && (!f.analisis || analisisDe(i).includes(f.analisis)) && (!f.centro || centroDe(i) === f.centro),
-  );
-  // Para el gráfico de análisis no se aplica el filtro de análisis (así se ve con cuál se compara)
-  const paraAnalisis = delAnioLista.filter((i) => (!f.seccion || i.seccion === f.seccion) && (!f.centro || centroDe(i) === f.centro));
-  // Y para el de centros, no el de centro
-  const paraCentros = delAnioLista.filter((i) => (!f.seccion || i.seccion === f.seccion) && (!f.analisis || analisisDe(i).includes(f.analisis)));
-
-  const muestrasDe = (l: InformeResumen[]) => sumar(l, (i) => i.muestras.length);
-  const muestrasTxt = (n: number) => `${miles(n)} ${n === 1 ? 'muestra' : 'muestras'}`;
-
-  // Análisis en el orden de la definición (agua, suelo, patología y sus tipos)
-  const claves = (Object.keys(NOMBRE_SECCION) as SeccionId[])
-    .filter((s) => !f.seccion || s === f.seccion)
-    .flatMap((s) => (def.secciones[s]?.tipos ?? []).map((t) => `${s}:${t.id}`));
-  for (const i of paraAnalisis) for (const c of analisisDe(i)) if (!claves.includes(c)) claves.push(c);
-  const conSeccion = !f.seccion;
-
-  const porAnalisis: BarListItem[] = claves
-    .map((c) => {
-      const l = paraAnalisis.filter((i) => analisisDe(i).includes(c));
-      return { key: c, label: nombreAnalisis(c, conSeccion), valor: l.length, detalle: muestrasTxt(muestrasDe(l)) };
-    })
-    .sort((a, b) => b.valor - a.valor);
-
-  const grupos = new Map<string, InformeResumen[]>();
-  for (const i of paraCentros) grupos.set(centroDe(i), [...(grupos.get(centroDe(i)) ?? []), i]);
-  const porCentro: BarListItem[] = [...grupos]
-    .map(([c, l]) => {
-      const partes = (Object.keys(SECCION_CORTA) as SeccionId[])
-        .map((s) => [s, l.filter((i) => i.seccion === s).length] as const)
-        .filter(([, n]) => n)
-        .map(([s, n]) => `${SECCION_CORTA[s]} ${n}`);
-      return { key: c, label: c, valor: l.length, detalle: [muestrasTxt(muestrasDe(l)), ...(conSeccion ? partes : [])].join(' · ') };
-    })
-    .sort((a, b) => b.valor - a.valor || a.label.localeCompare(b.label, 'es'));
-
-  // Cruce centro de costo × análisis (informes que incluyen cada análisis), con los filtros aplicados
-  const columnas = claves.filter((c) => lista.some((i) => analisisDe(i).includes(c)));
-  const filasCruce = [...new Set(lista.map(centroDe))]
-    .map((centro) => {
-      const l = lista.filter((i) => centroDe(i) === centro);
-      return { centro, total: l.length, celdas: columnas.map((c) => l.filter((i) => analisisDe(i).includes(c)).length) };
-    })
-    .sort((a, b) => b.total - a.total || a.centro.localeCompare(b.centro, 'es'));
-
-  const muestrasMes = porMes(lista, (i) => i.fechaEmision, (i) => i.muestras.length);
-  const dias = lista.map(diasEntrega).filter((d): d is number => d !== null);
-
-  return {
-    informes: lista.length,
-    muestras: muestrasDe(lista),
-    centrosAtendidos: new Set(lista.map(centroDe)).size,
-    diasEntrega: dias.length ? sumar(dias, (d) => d) / dias.length : null,
-    centros,
-    // El detalle (para el tooltip) son las muestras del mes
-    porMes: porMes(lista, (i) => i.fechaEmision).map((m, n) => ({ ...m, detalle: muestrasTxt(muestrasMes[n].valor) })),
-    porAnalisis,
-    porCentro,
-    // En la tabla, el análisis va sin la sección: la sección encabeza su grupo de columnas
-    cruce: {
-      columnas: columnas.map((c) => {
-        const s = c.split(':')[0] as SeccionId;
-        return { key: c, label: nombreAnalisis(c, false), grupo: SECCION_CORTA[s] ?? s };
-      }),
-      filas: filasCruce,
-    },
-    nombreAnalisis: (c: string) => nombreAnalisis(c, true),
   };
 }
 
