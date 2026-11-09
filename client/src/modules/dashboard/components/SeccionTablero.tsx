@@ -13,12 +13,14 @@ interface SeccionTableroProps {
   children: ReactNode;
   /** Ocupa todo el ancho en pantallas grandes (las cifras caben en una fila) */
   ancha?: boolean;
+  /** Filtros propios de la sección, debajo del título */
+  filtros?: ReactNode;
 }
 
 /** Tarjeta de una sección del Dashboard: título con enlace, cifras clave y sus gráficos */
-export function SeccionTablero({ titulo, icono: Icono, ruta, cifras, children, ancha = false }: SeccionTableroProps) {
+export function SeccionTablero({ titulo, icono: Icono, ruta, cifras, children, ancha = false, filtros }: SeccionTableroProps) {
   return (
-    <Card className={`flex flex-col ${ancha ? 'xl:col-span-2' : ''}`}>
+    <Card className={`flex min-w-0 flex-col ${ancha ? 'xl:col-span-2' : ''}`}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
           <Icono size={20} className="text-brand-500" aria-hidden />
@@ -28,6 +30,7 @@ export function SeccionTablero({ titulo, icono: Icono, ruta, cifras, children, a
           Ver sección <ArrowRight size={14} />
         </Link>
       </div>
+      {filtros && <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">{filtros}</div>}
       {cifras && (
         <dl className={`mb-5 grid grid-cols-2 gap-3 md:grid-cols-4 ${ancha ? '' : 'xl:grid-cols-2 2xl:grid-cols-4'}`}>{cifras}</dl>
       )}
@@ -39,7 +42,7 @@ export function SeccionTablero({ titulo, icono: Icono, ruta, cifras, children, a
 /** Un gráfico dentro de la sección: título (dice qué se grafica) y el gráfico */
 export function Grafico({ titulo, nota, children }: { titulo: string; nota?: string; children: ReactNode }) {
   return (
-    <section>
+    <section className="min-w-0">
       <h3 className="text-sm font-semibold">{titulo}</h3>
       {nota && <p className="text-xs text-slate-500 dark:text-slate-400">{nota}</p>}
       <div className="mt-2">{children}</div>

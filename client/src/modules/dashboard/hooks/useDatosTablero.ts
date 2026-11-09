@@ -3,8 +3,8 @@ import { listarEventos } from '@/modules/eventos/services/eventos.api';
 import type { Evento } from '@/modules/eventos/types';
 import { listarRevisiones } from '@/modules/inspecciones-sci/checklist/services/checklist.api';
 import type { Revision } from '@/modules/inspecciones-sci/checklist/types';
-import { listarInformes } from '@/modules/laboratorios/analisis/services/laboratorio.api';
-import type { InformeResumen } from '@/modules/laboratorios/analisis/types';
+import { listarInformes, obtenerDefinicion as definicionLaboratorio } from '@/modules/laboratorios/analisis/services/laboratorio.api';
+import type { DefinicionLaboratorio, InformeResumen } from '@/modules/laboratorios/analisis/types';
 import { listarReparaciones } from '@/modules/laboratorios/oxigenometros/services/oxigenometros.api';
 import type { Reparacion } from '@/modules/laboratorios/oxigenometros/types';
 import { listarResultados, obtenerDefinicion } from '@/modules/monitoreo-agua/services/monitoreo.api';
@@ -20,7 +20,7 @@ export interface Fuente<T> {
 
 export interface DatosTablero {
   presupuesto: Fuente<PresupuestoData>;
-  informes: Fuente<InformeResumen[]>;
+  informes: Fuente<{ informes: InformeResumen[]; definicion: DefinicionLaboratorio }>;
   reparaciones: Fuente<Reparacion[]>;
   monitoreo: Fuente<{ resultados: Resultado[]; definicion: DefinicionMonitoreo }>;
   revisiones: Fuente<Revision[]>;
@@ -44,7 +44,12 @@ export function useDatosTablero() {
     (async () => {
       const [presupuesto, informes, reparaciones, monitoreo, revisiones, eventos] = await Promise.all([
         fuente(obtenerPresupuesto()),
-        fuente(Promise.all([listarInformes('agua'), listarInformes('suelo'), listarInformes('patologia')]).then((l) => l.flat())),
+        fuente(
+          Promise.all([listarInformes('agua'), listarInformes('suelo'), listarInformes('patologia'), definicionLaboratorio()]).then(([a, s, p, definicion]) => ({
+            informes: [...a, ...s, ...p],
+            definicion,
+          })),
+        ),
         fuente(listarReparaciones()),
         fuente(Promise.all([listarResultados(), obtenerDefinicion()]).then(([resultados, definicion]) => ({ resultados, definicion }))),
         fuente(listarRevisiones()),
