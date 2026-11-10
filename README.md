@@ -278,6 +278,12 @@ arma la definición vigente con `seccionesVigentes()` y la usan el formulario, e
 Dashboard). Un parámetro quitado queda **oculto**: no se ofrece en informes nuevos, pero los que ya tienen su valor lo
 siguen mostrando e imprimiendo; si se vuelve a agregar con el mismo nombre recupera su clave y sus valores. "Restaurar"
 vuelve a los de fábrica (los agregados quedan ocultos). API: `GET/PUT/DELETE /api/laboratorio/parametros-quimicos`.
+Además, **cada informe** elige sus parámetros químicos: en el formulario cada fila química lleva una ✕ para quitarla de
+ese informe (borra sus valores) y "Agregar parámetro…" vuelve a poner uno de la lista o crea uno nuevo (que queda en
+Configuración). La elección se guarda en `lab_informe.parametros` (JSON con las claves en orden, migración 015) y el
+informe impreso sale solo con esos; en los informes anteriores es `NULL` y rigen los de Configuración. En el formulario,
+el **fitoplancton va en horizontal** (una fila por muestra, los grupos como columnas con su conteo y sus géneros); lo
+demás sigue con los parámetros en filas y una columna por muestra.
 
 **Espacio de la base de datos** (arriba de las listas): lo usado frente al límite del plan (`LIMITE_BASE_MB`, por defecto
 5120 = plan gratis de Turso), el espacio por módulo (por prefijo de tabla, con `dbstat`, que funciona en Turso y en la

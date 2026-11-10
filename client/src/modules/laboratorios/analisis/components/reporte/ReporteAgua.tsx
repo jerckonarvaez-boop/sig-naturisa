@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { camposVisibles, CLAVES_FITOPLANCTON, ESTADOS_REFERENCIA, estadoReferencia, partesDelTipo, type EstadoReferencia } from '../../logic/laboratorio';
+import { CLAVES_FITOPLANCTON, ESTADOS_REFERENCIA, estadoReferencia, partesDelTipo, quimicosDelInforme, type EstadoReferencia } from '../../logic/laboratorio';
 import { cientifico, fechaInforme, fmt, num, txt, type InformeVista } from '../../logic/reporte';
 import type { CampoLab } from '../../types';
 import { Firma, LEYENDA_FITOPLANCTON, LOGO, Pie } from './comunes';
@@ -90,9 +90,10 @@ function TituloSeccion({ children, codigo, style }: { children: ReactNode; codig
 /** Informe de Análisis de Agua (AA): una, dos o las tres tablas (fitoplancton, químico, bacteriológico) */
 export function ReporteAgua({ informe, campos }: { informe: InformeVista; campos: CampoLab[] }) {
   const porClave = new Map(campos.map((c) => [c.clave, c]));
-  // Parámetros químicos vigentes (editables en Configuración) y los quitados que este informe ya tiene
-  const quimicos = camposVisibles(
-    campos.filter((c) => c.grupo === 'quimica'),
+  // Parámetros químicos que lleva el informe (elegidos al hacerlo; en los anteriores, los de Configuración)
+  const quimicos = quimicosDelInforme(
+    campos,
+    informe.parametros,
     informe.muestras.map((m) => ({ valores: Object.fromEntries(Object.entries(m.valores).filter(([, v]) => num(v) != null)) })),
   );
   const conRango = quimicos.filter((c) => !c.factorSalinidad && (c.min != null || c.max != null));

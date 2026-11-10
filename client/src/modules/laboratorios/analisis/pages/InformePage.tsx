@@ -9,6 +9,7 @@ import { EnviarCorreoModal } from '../components/EnviarCorreoModal';
 import { ReporteOficial } from '../components/reporte/ReporteOficial';
 import { EncabezadoInforme } from '../components/EncabezadoInforme';
 import { useDefinicion } from '../hooks/useDefinicion';
+import { guardarParametrosQuimicos, obtenerParametrosQuimicos } from '../services/laboratorio.api';
 import { useInformeForm } from '../hooks/useInformeForm';
 import { RUTA_SECCION } from '../logic/laboratorio';
 import { aVista, horizontal } from '../logic/reporte';
@@ -18,7 +19,7 @@ import type { SeccionId } from '../types';
 export function InformePage({ seccionId }: { seccionId: SeccionId }) {
   const { id } = useParams();
   const informeId = id ? Number(id) : null;
-  const { definicion, error } = useDefinicion();
+  const { definicion, error, recargar } = useDefinicion();
   const seccion = definicion?.secciones[seccionId] ?? null;
   const f = useInformeForm(seccion, informeId);
   const reporte = useRef<HTMLDivElement>(null);
@@ -105,10 +106,22 @@ export function InformePage({ seccionId }: { seccionId: SeccionId }) {
             seccion={seccion}
             tipo={f.form.tipo}
             muestras={f.form.muestras}
+            parametros={f.form.parametros}
             onAgregar={f.agregarMuestra}
             onQuitar={f.quitarMuestra}
             onRenombrar={f.renombrarMuestra}
             onValor={f.cambiarValor}
+            onQuitarParametro={f.quitarParametro}
+            onAgregarParametro={f.agregarParametro}
+            onCrearParametro={async (p) => {
+              // Si ya existe uno con ese nombre (aunque esté quitado), se usa ese
+              const vigentes = await obtenerParametrosQuimicos();
+              const existente = vigentes.parametros.find((x) => x.nombre.toLowerCase() === p.nombre.trim().toLowerCase());
+              const r = existente ? vigentes : await guardarParametrosQuimicos([...vigentes.parametros, p]);
+              const clave = existente?.clave ?? r.parametros.find((x) => x.nombre.toLowerCase() === p.nombre.trim().toLowerCase())?.clave;
+              await recargar();
+              if (clave) f.agregarParametro(clave);
+            }}
           />
           {seccion.metodos.length > 0 && (
             <p className="text-xs text-slate-500 dark:text-slate-400">

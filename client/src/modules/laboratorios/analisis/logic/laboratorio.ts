@@ -24,6 +24,16 @@ export const camposDelTipo = (seccion: SeccionLab, tipo: string) => seccion.camp
 export const camposVisibles = (campos: CampoLab[], muestras: { valores: Record<string, unknown> }[]) =>
   campos.filter((c) => !c.oculto || muestras.some((m) => m.valores[c.clave] != null && String(m.valores[c.clave]).trim() !== ''));
 
+/**
+ * Parámetros químicos que lleva un informe, en orden: los elegidos al hacerlo o, si no se eligieron (informes
+ * anteriores), los vigentes en Configuración más los quitados que ya tienen valor.
+ */
+export function quimicosDelInforme(campos: CampoLab[], parametros: string[] | null, muestras: { valores: Record<string, unknown> }[]) {
+  const quimicos = campos.filter((c) => c.grupo === 'quimica');
+  if (!parametros) return camposVisibles(quimicos, muestras);
+  return parametros.map((clave) => quimicos.find((c) => c.clave === clave)).filter((c): c is CampoLab => Boolean(c));
+}
+
 export const gruposDelTipo = (seccion: SeccionLab, tipo: string) => seccion.grupos.filter((g) => aplica(g.soloTipos, tipo));
 
 const tiposDe = (seccion: SeccionLab, tipo: string) => seccion.tipos.filter((t) => partesDelTipo(tipo).includes(t.id));

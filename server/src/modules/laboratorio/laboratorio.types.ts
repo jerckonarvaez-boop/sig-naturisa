@@ -22,6 +22,11 @@ export interface InformeDatos {
   analisis: string;
   tecnico: string;
   observaciones: string;
+  /**
+   * Análisis de Agua con químico: claves de los parámetros químicos que lleva el informe, en orden (se quitan o
+   * agregan al hacerlo). null = los vigentes en Configuración (informes anteriores a esta opción).
+   */
+  parametros: string[] | null;
   muestras: MuestraLab[];
 }
 

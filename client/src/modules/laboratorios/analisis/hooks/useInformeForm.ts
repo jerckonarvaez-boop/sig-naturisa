@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hoyISO } from '@/utils/fechas';
-import { aNumero, camposDelTipo, nombreTipo, RUTA_SECCION, siguienteCodigo, tipoInicial, tipoUnaMuestra } from '../logic/laboratorio';
+import { aNumero, camposDelTipo, nombreTipo, partesDelTipo, quimicosDelInforme, RUTA_SECCION, siguienteCodigo, tipoInicial, tipoUnaMuestra } from '../logic/laboratorio';
 import { actualizarInforme, crearInforme, eliminarInforme, listarInformes, obtenerInforme } from '../services/laboratorio.api';
 import type { Informe, InformeDatos, SeccionLab } from '../types';
 
@@ -21,6 +21,8 @@ export interface InformeForm {
   muestreadoPor: string;
   tecnico: string;
   observaciones: string;
+  /** Parámetros químicos elegidos para este informe (null = los vigentes en Configuración) */
+  parametros: string[] | null;
   muestras: MuestraForm[];
 }
 
@@ -39,6 +41,7 @@ function aFormulario(i: Informe): InformeForm {
     muestreadoPor: i.muestreadoPor,
     tecnico: i.tecnico,
     observaciones: i.observaciones,
+    parametros: i.parametros ?? null,
     muestras: i.muestras.map((m) => ({
       nombre: m.nombre,
       valores: Object.fromEntries(Object.entries(m.valores).map(([k, v]) => [k, v == null ? '' : String(v)])),
@@ -52,8 +55,13 @@ export function useInformeForm(seccion: SeccionLab | null, informeId: number | n
   const [form, setForm] = useState<InformeForm | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<Mensaje>(null);
+  // La definición puede volver a pedirse (al crear un parámetro desde el informe): eso no debe recargar el formulario
+  const seccionActual = useRef(seccion);
+  seccionActual.current = seccion;
+  const seccionId = seccion?.id;
 
   useEffect(() => {
+    const seccion = seccionActual.current;
     if (!seccion) return;
     let vigente = true;
     setForm(null);
@@ -77,6 +85,10 @@ export function useInformeForm(seccion: SeccionLab | null, informeId: number | n
           muestreadoPor: '',
           tecnico: anteriores[0]?.tecnico ?? '',
           observaciones: '',
+          // Los parámetros químicos vigentes en Configuración; luego se quitan o agregan en el informe
+          parametros: seccion.campos.some((c) => c.grupo === 'quimica')
+            ? seccion.campos.filter((c) => c.grupo === 'quimica' && !c.oculto).map((c) => c.clave)
+            : null,
           muestras: [muestraVacia()],
         });
       } catch (e) {
@@ -86,7 +98,7 @@ export function useInformeForm(seccion: SeccionLab | null, informeId: number | n
     return () => {
       vigente = false;
     };
-  }, [seccion, informeId]);
+  }, [seccionId, informeId]);
 
   const actualizar = (cambio: (f: InformeForm) => InformeForm) => setForm((f) => (f ? cambio(f) : f));
 
@@ -103,6 +115,21 @@ export function useInformeForm(seccion: SeccionLab | null, informeId: number | n
       muestras: f.muestras.map((m, j) => (j === i ? { ...m, valores: { ...m.valores, [clave]: valor } } : m)),
     }));
 
+  /** Claves de los parámetros químicos que lleva ahora el informe */
+  const quimicosActuales = (f: InformeForm) => (seccion ? quimicosDelInforme(seccion.campos, f.parametros, f.muestras).map((c) => c.clave) : []);
+
+  /** Quita un parámetro químico de este informe (y borra sus valores) */
+  const quitarParametro = (clave: string) =>
+    actualizar((f) => ({
+      ...f,
+      parametros: quimicosActuales(f).filter((c) => c !== clave),
+      muestras: f.muestras.map((m) => ({ ...m, valores: Object.fromEntries(Object.entries(m.valores).filter(([k]) => k !== clave)) })),
+    }));
+
+  /** Agrega un parámetro químico al final de la tabla de este informe */
+  const agregarParametro = (clave: string) =>
+    actualizar((f) => ({ ...f, parametros: [...quimicosActuales(f).filter((c) => c !== clave), clave] }));
+
   async function guardar() {
     if (!seccion || !form) return;
     const unaMuestra = tipoUnaMuestra(seccion, form.tipo);
@@ -110,9 +137,13 @@ export function useInformeForm(seccion: SeccionLab | null, informeId: number | n
       setMensaje({ texto: `El tipo "${unaMuestra.nombre}" lleva una sola muestra: quite las demás.`, error: true });
       return;
     }
-    const campos = camposDelTipo(seccion, form.tipo);
+    // Con análisis químico se guarda qué parámetros lleva; los demás químicos no se guardan
+    const conQuimico = partesDelTipo(form.tipo).includes('quimico') && seccion.campos.some((c) => c.grupo === 'quimica');
+    const parametros = conQuimico ? quimicosActuales(form) : null;
+    const campos = camposDelTipo(seccion, form.tipo).filter((c) => c.grupo !== 'quimica' || parametros?.includes(c.clave));
     const datos: InformeDatos = {
       ...form,
+      parametros,
       seccion: seccion.id,
       analisis: nombreTipo(seccion, form.tipo),
       muestras: form.muestras.map((m) => ({
@@ -152,5 +183,18 @@ export function useInformeForm(seccion: SeccionLab | null, informeId: number | n
     }
   }
 
-  return { form, guardando, mensaje, cambiar, agregarMuestra, quitarMuestra, renombrarMuestra, cambiarValor, guardar, eliminar };
+  return {
+    form,
+    guardando,
+    mensaje,
+    cambiar,
+    agregarMuestra,
+    quitarMuestra,
+    renombrarMuestra,
+    cambiarValor,
+    quitarParametro,
+    agregarParametro,
+    guardar,
+    eliminar,
+  };
 }

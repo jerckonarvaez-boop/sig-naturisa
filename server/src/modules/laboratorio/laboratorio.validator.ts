@@ -30,7 +30,17 @@ export function validarInforme(body: Record<string, unknown> | undefined, seccio
   if (body.muestras.length > MAX_MUESTRAS) return { error: `Máximo ${MAX_MUESTRAS} muestras por informe.` };
   if (unaMuestra && body.muestras.length !== 1) return { error: `El tipo "${unaMuestra.nombre}" lleva una sola muestra.` };
 
-  const campos = new Map(camposDelTipo(seccion, tipo).map((c) => [c.clave, c]));
+  // Parámetros químicos elegidos para este informe (solo Análisis de Agua con químico); los demás no se guardan
+  let parametros: string[] | null = null;
+  const quimicos = seccion.campos.filter((c) => c.grupo === 'quimica');
+  if (quimicos.length && tipo.split('+').includes('quimico') && body.parametros != null) {
+    if (!Array.isArray(body.parametros)) return { error: 'La lista de parámetros químicos no es válida.' };
+    parametros = [...new Set(body.parametros.filter((c): c is string => typeof c === 'string'))];
+    const desconocido = parametros.find((c) => !quimicos.some((q) => q.clave === c));
+    if (desconocido) return { error: `El parámetro químico "${desconocido}" no existe; actualice la página.` };
+  }
+  const fuera = new Set(parametros ? quimicos.filter((q) => !parametros!.includes(q.clave)).map((q) => q.clave) : []);
+  const campos = new Map(camposDelTipo(seccion, tipo).filter((c) => !fuera.has(c.clave)).map((c) => [c.clave, c]));
   const muestras: MuestraLab[] = [];
   for (const [i, m] of (body.muestras as Record<string, unknown>[]).entries()) {
     const nombre = texto(m?.nombre, 40);
@@ -66,6 +76,7 @@ export function validarInforme(body: Record<string, unknown> | undefined, seccio
       analisis: texto(body.analisis, 200),
       tecnico: texto(body.tecnico, 120),
       observaciones: texto(body.observaciones, 4000),
+      parametros,
       muestras,
     },
   };

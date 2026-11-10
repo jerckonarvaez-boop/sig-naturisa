@@ -4,7 +4,18 @@ import type { SeccionId } from './laboratorio.secciones.js';
 import type { Informe, InformeDatos, InformeResumen, MuestraLab } from './laboratorio.types.js';
 
 const COLUMNAS = `id, seccion, tipo, codigo, fecha_emision, fecha_muestra, sucursal, matriz, muestreado_por, analisis,
-                  tecnico, observaciones, creado_en, actualizado_en`;
+                  tecnico, observaciones, parametros, creado_en, actualizado_en`;
+
+/** Lista de claves guardada como JSON (null si no se eligió) */
+function parametrosDe(v: unknown): string[] | null {
+  if (v == null) return null;
+  try {
+    const l = JSON.parse(String(v));
+    return Array.isArray(l) ? l.map(String) : null;
+  } catch {
+    return null;
+  }
+}
 
 function aInforme(r: Fila): Omit<Informe, 'muestras'> {
   return {
@@ -20,6 +31,7 @@ function aInforme(r: Fila): Omit<Informe, 'muestras'> {
     analisis: String(r.analisis ?? ''),
     tecnico: String(r.tecnico ?? ''),
     observaciones: String(r.observaciones ?? ''),
+    parametros: parametrosDe(r.parametros),
     creadoEn: String(r.creado_en),
     actualizadoEn: String(r.actualizado_en),
   };
@@ -77,7 +89,7 @@ export async function obtenerInforme(id: number): Promise<Informe | null> {
 
 const encabezado = (d: InformeDatos) => [
   d.seccion, d.tipo, d.codigo, d.fechaEmision, d.fechaMuestra, d.sucursal, d.matriz, d.muestreadoPor, d.analisis,
-  d.tecnico, d.observaciones,
+  d.tecnico, d.observaciones, d.parametros ? JSON.stringify(d.parametros) : null,
 ];
 
 /** Sentencias que reemplazan las muestras del informe */
@@ -95,7 +107,7 @@ export async function crearInforme(d: InformeDatos): Promise<Informe> {
   const id = await transaction(async (tx) => {
     const { id: nuevoId } = await ejecutar(
       `INSERT INTO lab_informe (seccion, tipo, codigo, fecha_emision, fecha_muestra, sucursal, matriz, muestreado_por,
-         analisis, tecnico, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         analisis, tecnico, observaciones, parametros) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       encabezado(d),
       tx,
     );
@@ -109,7 +121,7 @@ export async function actualizarInforme(id: number, d: InformeDatos): Promise<In
   const existe = await transaction(async (tx) => {
     const { cambios } = await ejecutar(
       `UPDATE lab_informe SET seccion = ?, tipo = ?, codigo = ?, fecha_emision = ?, fecha_muestra = ?, sucursal = ?,
-         matriz = ?, muestreado_por = ?, analisis = ?, tecnico = ?, observaciones = ?,
+         matriz = ?, muestreado_por = ?, analisis = ?, tecnico = ?, observaciones = ?, parametros = ?,
          actualizado_en = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
        WHERE id = ?`,
       [...encabezado(d), id],

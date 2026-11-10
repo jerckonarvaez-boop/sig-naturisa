@@ -81,6 +81,8 @@ export interface InformeDatos {
   analisis: string;
   tecnico: string;
   observaciones: string;
+  /** Claves de los parámetros químicos que lleva el informe, en orden; null = los vigentes en Configuración */
+  parametros: string[] | null;
   muestras: MuestraLab[];
 }
 

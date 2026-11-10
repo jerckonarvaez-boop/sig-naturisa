@@ -29,5 +29,13 @@ export function useDefinicion() {
     };
   }, []);
 
-  return { definicion, error };
+  /** Vuelve a pedir la definición (tras crear un parámetro desde el informe) */
+  const recargar = async () => {
+    pendiente = obtenerDefinicion();
+    const d = await pendiente;
+    setDefinicion(d);
+    return d;
+  };
+
+  return { definicion, error, recargar };
 }
