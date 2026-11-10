@@ -2,7 +2,7 @@
 // campamento (centro de costo), por mes y frente a su referencia, con las mismas reglas del módulo de laboratorio.
 import type { BarListItem } from '@/components/charts/BarList';
 import { MESES } from '@/constants/fechas';
-import { estadoReferencia, nivelPatologia, NIVELES_PATOLOGIA, type EstadoReferencia } from '@/modules/laboratorios/analisis/logic/laboratorio';
+import { camposVisibles, estadoReferencia, nivelPatologia, NIVELES_PATOLOGIA, type EstadoReferencia } from '@/modules/laboratorios/analisis/logic/laboratorio';
 import type { CampoLab, DefinicionLaboratorio, Informe, SeccionId, ValorLab } from '@/modules/laboratorios/analisis/types';
 
 /** Análisis que se pueden revisar: qué grupos de campos de qué sección muestra cada uno */
@@ -108,7 +108,6 @@ export interface FiltrosResultados {
 export function resumenResultados(informes: Informe[], def: DefinicionLaboratorio, anio: number, f: FiltrosResultados) {
   const analisis = ANALISIS_LAB.find((a) => a.id === f.analisis) ?? ANALISIS_LAB[0];
   const seccion = def.secciones[analisis.seccion];
-  const campos = (seccion?.campos ?? []).filter((c) => c.tipo === 'numero' && analisis.grupos.includes(c.grupo));
 
   // Muestras del año, por análisis (una muestra entra si tiene algún valor de ese análisis)
   const delAnio = informes.filter((i) => fechaDe(i).startsWith(String(anio)));
@@ -124,6 +123,11 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
   const disponibles = Object.fromEntries(ANALISIS_LAB.map((a) => [a.id, muestrasDe(a).length])) as Record<string, number>;
 
   const todas = muestrasDe(analisis);
+  // Parámetros del análisis; los quitados en Configuración, solo si tienen valores en el año
+  const campos = camposVisibles(
+    (seccion?.campos ?? []).filter((c) => c.tipo === 'numero' && analisis.grupos.includes(c.grupo)),
+    todas,
+  );
   const centros = [...new Set(todas.map((m) => m.centro))].sort((a, b) => a.localeCompare(b, 'es'));
   const muestras = todas.filter((m) => !f.centro || m.centro === f.centro).sort((a, b) => b.fecha.localeCompare(a.fecha) || a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
 

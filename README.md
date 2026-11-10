@@ -270,6 +270,15 @@ listas); lo editado se guarda en `configuracion` (clave `lista.<id>`) y "Restaur
 editable otra lista: agréguela al registro y léala con `valoresLista(id)` (servidor) o `useLista(id)` (cliente).
 API: `GET /api/configuracion/listas`, `GET/PUT/DELETE /api/configuracion/listas/:id`.
 
+**Parámetros del análisis químico** (grupo Análisis de Agua): las columnas de la tabla química del informe AA se
+agregan, quitan, ordenan y editan (nombre, fórmula —encabezado del informe impreso—, unidad y referencia: rango mín.–máx.
+o factor × salinidad, como Ca, Mg y K). Se guardan en `configuracion` (clave `laboratorio.parametros_quimicos`); sin
+editar rigen los de fábrica (`PARAMETROS_INICIALES` en `server/src/modules/laboratorio/laboratorio.parametros.ts`, que
+arma la definición vigente con `seccionesVigentes()` y la usan el formulario, el informe impreso, el validador y el
+Dashboard). Un parámetro quitado queda **oculto**: no se ofrece en informes nuevos, pero los que ya tienen su valor lo
+siguen mostrando e imprimiendo; si se vuelve a agregar con el mismo nombre recupera su clave y sus valores. "Restaurar"
+vuelve a los de fábrica (los agregados quedan ocultos). API: `GET/PUT/DELETE /api/laboratorio/parametros-quimicos`.
+
 **Espacio de la base de datos** (arriba de las listas): lo usado frente al límite del plan (`LIMITE_BASE_MB`, por defecto
 5120 = plan gratis de Turso), el espacio por módulo (por prefijo de tabla, con `dbstat`, que funciona en Turso y en la
 base local) y los archivos guardados dentro de la base (PDF de laboratorio, logos, fotos del check list), con cuántos

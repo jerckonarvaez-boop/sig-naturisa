@@ -7,6 +7,7 @@ import type { MuestraForm } from '../hooks/useInformeForm';
 import {
   aNumero,
   camposDelTipo,
+  camposVisibles,
   CLAVES_FITOPLANCTON,
   ESTADOS_REFERENCIA,
   evaluarReferencia,
@@ -33,7 +34,7 @@ const CELDA_CORTA = CELDA.replace('w-full min-w-24', 'w-20 shrink-0');
 
 /** Resultados en el formato del informe: parámetros en filas y una columna por muestra. */
 export function EditorMuestras({ seccion, tipo, muestras, onAgregar, onQuitar, onRenombrar, onValor }: EditorMuestrasProps) {
-  const campos = camposDelTipo(seccion, tipo);
+  const campos = camposVisibles(camposDelTipo(seccion, tipo), muestras);
   const grupos = gruposDelTipo(seccion, tipo);
   const unaMuestra = tipoUnaMuestra(seccion, tipo);
   const columnas = muestras.length + 1;

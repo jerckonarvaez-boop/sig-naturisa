@@ -8,7 +8,10 @@ import {
   crear,
   eliminar,
   listar,
+  guardarQuimicos,
   obtener,
+  parametrosQuimicos,
+  restaurarQuimicos,
   resultados,
   secciones,
 } from './laboratorio.controller.js';
@@ -16,6 +19,9 @@ import {
 export const laboratorioRouter = Router();
 
 laboratorioRouter.get('/secciones', secciones);
+laboratorioRouter.get('/parametros-quimicos', parametrosQuimicos);
+laboratorioRouter.put('/parametros-quimicos', guardarQuimicos);
+laboratorioRouter.delete('/parametros-quimicos', restaurarQuimicos);
 laboratorioRouter.get('/informes', listar);
 laboratorioRouter.get('/resultados', resultados);
 laboratorioRouter.get('/informes/:id', obtener);

@@ -17,6 +17,13 @@ const aplica = (soloTipos: string[] | undefined, tipo: string) => !soloTipos || 
 /** Campos que aplican a un tipo de informe (en las secciones combinables, los de cualquiera de sus análisis) */
 export const camposDelTipo = (seccion: SeccionLab, tipo: string) => seccion.campos.filter((c) => aplica(c.soloTipos, tipo));
 
+/**
+ * Campos que se muestran: los vigentes y, de los quitados en Configuración, solo los que ya tienen valor en
+ * alguna muestra (para no perderlos al ver o editar un informe antiguo).
+ */
+export const camposVisibles = (campos: CampoLab[], muestras: { valores: Record<string, unknown> }[]) =>
+  campos.filter((c) => !c.oculto || muestras.some((m) => m.valores[c.clave] != null && String(m.valores[c.clave]).trim() !== ''));
+
 export const gruposDelTipo = (seccion: SeccionLab, tipo: string) => seccion.grupos.filter((g) => aplica(g.soloTipos, tipo));
 
 const tiposDe = (seccion: SeccionLab, tipo: string) => seccion.tipos.filter((t) => partesDelTipo(tipo).includes(t.id));

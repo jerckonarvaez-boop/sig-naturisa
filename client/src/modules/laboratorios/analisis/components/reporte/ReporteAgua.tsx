@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { CLAVES_FITOPLANCTON, ESTADOS_REFERENCIA, estadoReferencia, partesDelTipo, type EstadoReferencia } from '../../logic/laboratorio';
+import { camposVisibles, CLAVES_FITOPLANCTON, ESTADOS_REFERENCIA, estadoReferencia, partesDelTipo, type EstadoReferencia } from '../../logic/laboratorio';
 import { cientifico, fechaInforme, fmt, num, txt, type InformeVista } from '../../logic/reporte';
 import type { CampoLab } from '../../types';
 import { Firma, LEYENDA_FITOPLANCTON, LOGO, Pie } from './comunes';
@@ -15,15 +15,16 @@ const GRUPOS: [string, string, string, string][] = [
   ['otros_fito', 'generos_otros', 'Otros', 'Otros'],
 ];
 
-const QUIMICOS: [string, string, string | null][] = [
-  ['fosfato', 'PO₄⁻³', 'mg/L'],
-  ['amonio', 'N-NH₄', 'mg/L'],
-  ['nitrito', 'NO²⁻', 'mg/L'],
-  ['nitrato', 'NO³⁻', 'mg/L'],
-  ['calcio', 'Ca++', 'mg/L'],
-  ['magnesio', 'Mg++', 'mg/L'],
-  ['potasio', 'K+', 'mg/L'],
-];
+/** Número de una referencia como en el formato oficial (0.6, 1.5…) */
+const ref = (n: number) => String(n);
+
+/** Valor referencial de un parámetro químico: "0.1 – 1 mg/l", "máx. 2 mg/l" o "mín. 5 mg/l" */
+function textoRango(c: CampoLab) {
+  const unidad = c.unidad ? ` ${c.unidad.toLowerCase()}` : '';
+  if (c.min != null && c.max != null) return `${ref(c.min)} – ${ref(c.max)}${unidad}`;
+  if (c.max != null) return `máx. ${ref(c.max)}${unidad}`;
+  return `mín. ${ref(c.min!)}${unidad}`;
+}
 
 /** Salinidad, pH y alcalinidad */
 const BASICOS = ['salinidad', 'ph', 'alcalinidad'];
@@ -45,7 +46,17 @@ function CeldaFito({ m, conteo, generos }: { m: Muestra; conteo: string; generos
       ) : (
         <div style={{ paddingTop: 7 }}>{g ? '+' : '-'}</div>
       )}
-      <span className="rep-generos">{g}</span>
+      {/* Un género por renglón, en columna */}
+      <span className="rep-generos">
+        {g
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((x, i) => (
+            <span key={i} style={{ display: 'block' }}>
+              {x}
+            </span>
+          ))}
+      </span>
     </td>
   );
 }
@@ -79,6 +90,13 @@ function TituloSeccion({ children, codigo, style }: { children: ReactNode; codig
 /** Informe de Análisis de Agua (AA): una, dos o las tres tablas (fitoplancton, químico, bacteriológico) */
 export function ReporteAgua({ informe, campos }: { informe: InformeVista; campos: CampoLab[] }) {
   const porClave = new Map(campos.map((c) => [c.clave, c]));
+  // Parámetros químicos vigentes (editables en Configuración) y los quitados que este informe ya tiene
+  const quimicos = camposVisibles(
+    campos.filter((c) => c.grupo === 'quimica'),
+    informe.muestras.map((m) => ({ valores: Object.fromEntries(Object.entries(m.valores).filter(([, v]) => num(v) != null)) })),
+  );
+  const conRango = quimicos.filter((c) => !c.factorSalinidad && (c.min != null || c.max != null));
+  const conFactor = quimicos.filter((c) => c.factorSalinidad);
   /** Indicador del valor frente a su referencia (pH, alcalinidad, amonio, fosfato, Ca, Mg, K, Vibrios) */
   const estado = (m: Muestra, clave: string) => {
     const campo = porClave.get(clave);
@@ -98,7 +116,7 @@ export function ReporteAgua({ informe, campos }: { informe: InformeVista; campos
   const numero = (t: string) => tablas.indexOf(t) + 1;
   const codigoEn = (t: string) => (tablas[0] === t ? informe.codigo : undefined);
   const refBasicas = conQuimico || basicosEnFito;
-  const referencias = [refBasicas, conQuimico, conBacteriologia].filter(Boolean).length;
+  const referencias = [refBasicas, conQuimico && conFactor.length > 0, conBacteriologia].filter(Boolean).length;
 
   return (
     <>
@@ -211,10 +229,10 @@ export function ReporteAgua({ informe, campos }: { informe: InformeVista; campos
                 <th>ppt</th>
                 <th>ph</th>
                 <th>Alcalinidad</th>
-                {QUIMICOS.map(([c, nombre, unidad]) => (
-                  <th key={c}>
-                    {nombre}
-                    {unidad && <div className="rep-muy-pequeno">{unidad}</div>}
+                {quimicos.map((c) => (
+                  <th key={c.clave}>
+                    {c.formula || c.nombre || c.etiqueta}
+                    {c.unidad && <div className="rep-muy-pequeno">{c.unidad}</div>}
                   </th>
                 ))}
               </tr>
@@ -226,9 +244,9 @@ export function ReporteAgua({ informe, campos }: { informe: InformeVista; campos
                   <td>{fmt(num(m.valores.salinidad))}</td>
                   <CeldaValor estado={estado(m, 'ph')}>{fmt(num(m.valores.ph), 2)}</CeldaValor>
                   <CeldaValor estado={estado(m, 'alcalinidad')}>{fmt(num(m.valores.alcalinidad))}</CeldaValor>
-                  {QUIMICOS.map(([c]) => (
-                    <CeldaValor key={c} estado={estado(m, c)}>
-                      {fmt(num(m.valores[c]))}
+                  {quimicos.map((c) => (
+                    <CeldaValor key={c.clave} estado={estado(m, c.clave)}>
+                      {fmt(num(m.valores[c.clave]))}
                     </CeldaValor>
                   ))}
                 </tr>
@@ -318,24 +336,18 @@ export function ReporteAgua({ informe, campos }: { informe: InformeVista; campos
                     <td className="rep-negrita">Alk</td>
                     <td>100-140 mg/l</td>
                   </tr>
-                  {conQuimico && (
-                    <>
-                      <tr>
-                        <td>Amonio</td>
-                        <td className="rep-negrita">NH₄</td>
-                        <td>0.1 – 1.0 mg/l</td>
+                  {conQuimico &&
+                    conRango.map((c) => (
+                      <tr key={c.clave}>
+                        <td>{c.nombre ?? c.etiqueta}</td>
+                        <td className="rep-negrita">{c.formula}</td>
+                        <td>{textoRango(c)}</td>
                       </tr>
-                      <tr>
-                        <td>Fosfato</td>
-                        <td className="rep-negrita">PO₄</td>
-                        <td>0.6 – 1.5 mg/l</td>
-                      </tr>
-                    </>
-                  )}
+                    ))}
                 </tbody>
               </table>
             )}
-            {conQuimico && (
+            {conQuimico && conFactor.length > 0 && (
               <div>
                 <table className="rep-ref morado">
                   <thead>
@@ -350,15 +362,11 @@ export function ReporteAgua({ informe, campos }: { informe: InformeVista; campos
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      ['Calcio', 'Ca', '11,6'],
-                      ['Potasio', 'K', '10,7'],
-                      ['Magnesio', 'Mg', '39,1'],
-                    ].map(([p, n, v]) => (
-                      <tr key={p}>
-                        <td>{p}</td>
-                        <td className="rep-negrita">{n}</td>
-                        <td>{v}</td>
+                    {conFactor.map((c) => (
+                      <tr key={c.clave}>
+                        <td>{c.nombre ?? c.etiqueta}</td>
+                        <td className="rep-negrita">{(c.formula ?? '').replace(/[+⁺]+$/, '')}</td>
+                        <td>{String(c.factorSalinidad).replace('.', ',')}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -1,14 +1,18 @@
 import { esFecha, esUnoDe, texto, type Validado } from '../../utils/validacion.js';
-import { camposDelTipo, SECCIONES, tiposDelInforme, type SeccionId } from './laboratorio.secciones.js';
+import { camposDelTipo, SECCIONES, tiposDelInforme, type SeccionId, type SeccionLab } from './laboratorio.secciones.js';
 import type { InformeDatos, MuestraLab, ValorLab } from './laboratorio.types.js';
 
 const SECCIONES_IDS = Object.keys(SECCIONES) as SeccionId[];
 const MAX_MUESTRAS = 60;
 
-export function validarInforme(body: Record<string, unknown> | undefined): Validado<InformeDatos> {
+/**
+ * Valida un informe contra la definición vigente (`secciones`, con los parámetros editados en Configuración;
+ * los quitados siguen aceptándose para no perder sus valores al editar un informe antiguo).
+ */
+export function validarInforme(body: Record<string, unknown> | undefined, secciones: Record<SeccionId, SeccionLab> = SECCIONES): Validado<InformeDatos> {
   if (!body) return { error: 'Faltan los datos del informe.' };
   if (!esUnoDe(SECCIONES_IDS, body.seccion)) return { error: 'Sección de laboratorio no válida.' };
-  const seccion = SECCIONES[body.seccion];
+  const seccion = secciones[body.seccion];
   const tipos = tiposDelInforme(seccion, body.tipo);
   if (!tipos) return { error: 'Tipo de informe no válido.' };
   const tipo = tipos.map((t) => t.id).join('+'); // en el orden de la definición

@@ -19,6 +19,11 @@ export interface CampoLab {
   opciones?: string[];
   /** Se muestra en la misma fila que este campo (a su derecha) */
   junto?: string;
+  /** Parámetros químicos editables: nombre corto y fórmula (encabezado del informe impreso) */
+  nombre?: string;
+  formula?: string;
+  /** Quitado en Configuración: solo se muestra en los informes que ya tienen su valor */
+  oculto?: boolean;
 }
 
 export interface GrupoLab {
@@ -86,3 +91,26 @@ export interface Informe extends InformeDatos {
 }
 
 export type InformeResumen = Omit<Informe, 'muestras'> & { muestras: string[] };
+
+/** Parámetro del análisis químico de agua, editable en Configuración */
+export interface ParametroQuimico {
+  /** Sin clave: parámetro nuevo (el servidor le asigna una) */
+  clave?: string;
+  nombre: string;
+  /** Encabezado de su columna en el informe impreso, ej. N-NH₄ */
+  formula: string;
+  unidad: string;
+  min?: number;
+  max?: number;
+  /** Referencia = factor × salinidad (reemplaza al rango) */
+  factorSalinidad?: number;
+  /** Quitado: solo se muestra en los informes que ya tienen su valor */
+  oculto?: boolean;
+}
+
+export interface ParametrosQuimicos {
+  parametros: ParametroQuimico[];
+  /** true si se editaron (si no, son los de fábrica) */
+  editados: boolean;
+  iniciales: ParametroQuimico[];
+}

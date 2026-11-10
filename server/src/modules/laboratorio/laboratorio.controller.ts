@@ -1,6 +1,5 @@
 import type { RequestHandler } from 'express';
 import { esUnoDe, normalizarCorreos } from '../../utils/validacion.js';
-import { valoresListas } from '../configuracion/configuracion.service.js';
 import { SECCIONES, type SeccionId } from './laboratorio.secciones.js';
 import { actualizarInforme, crearInforme, eliminarInforme, listarInformes, listarResultados, obtenerInforme } from './laboratorio.service.js';
 import {
@@ -10,21 +9,44 @@ import {
   obtenerPlantilla,
   validarPlantilla,
 } from './laboratorio.correo.js';
+import {
+  guardarParametros,
+  obtenerParametros,
+  PARAMETROS_INICIALES,
+  restaurarParametros,
+  seccionesVigentes,
+  validarParametros,
+} from './laboratorio.parametros.js';
 import { validarInforme } from './laboratorio.validator.js';
 
 const SECCIONES_IDS = Object.keys(SECCIONES) as SeccionId[];
 
 // GET /api/laboratorio/secciones -> definición de cada sección (parámetros, tipos, unidades, referencias),
-// con las listas editadas en Configuración (géneros, clientes) en lugar de las de fábrica
+// con lo editado en Configuración (géneros, clientes y parámetros químicos del agua) en lugar de lo de fábrica
 export const secciones: RequestHandler = async (_req, res) => {
-  const listas = await valoresListas();
-  const conListas = Object.fromEntries(
-    Object.entries(SECCIONES).map(([id, s]) => [
-      id,
-      { ...s, campos: s.campos.map((c) => (c.opciones ? { ...c, opciones: listas[`laboratorio.${c.clave}`] ?? c.opciones } : c)) },
-    ]),
-  );
-  res.json({ secciones: conListas, clientes: listas['laboratorio.clientes'] });
+  res.json(await seccionesVigentes());
+};
+
+// GET /api/laboratorio/parametros-quimicos -> parámetros del análisis químico de agua (con los quitados, ocultos)
+export const parametrosQuimicos: RequestHandler = async (_req, res) => {
+  res.json({ ...(await obtenerParametros()), iniciales: PARAMETROS_INICIALES });
+};
+
+// PUT /api/laboratorio/parametros-quimicos { parametros } -> guarda la lista (en el orden recibido)
+export const guardarQuimicos: RequestHandler = async (req, res) => {
+  const resultado = validarParametros(req.body, (await obtenerParametros()).parametros);
+  if ('error' in resultado) {
+    res.status(400).json({ error: resultado.error });
+    return;
+  }
+  await guardarParametros(resultado.datos);
+  res.json({ parametros: resultado.datos, editados: true, iniciales: PARAMETROS_INICIALES });
+};
+
+// DELETE /api/laboratorio/parametros-quimicos -> vuelve a los de fábrica
+export const restaurarQuimicos: RequestHandler = async (_req, res) => {
+  const parametros = await restaurarParametros();
+  res.json({ parametros, editados: parametros !== PARAMETROS_INICIALES, iniciales: PARAMETROS_INICIALES });
 };
 
 // GET /api/laboratorio/informes?seccion=agua
@@ -53,7 +75,7 @@ export const obtener: RequestHandler = async (req, res) => {
 
 // POST /api/laboratorio/informes
 export const crear: RequestHandler = async (req, res) => {
-  const resultado = validarInforme(req.body);
+  const resultado = validarInforme(req.body, (await seccionesVigentes()).secciones);
   if ('error' in resultado) {
     res.status(400).json({ error: resultado.error });
     return;
@@ -63,7 +85,7 @@ export const crear: RequestHandler = async (req, res) => {
 
 // PUT /api/laboratorio/informes/:id
 export const actualizar: RequestHandler = async (req, res) => {
-  const resultado = validarInforme(req.body);
+  const resultado = validarInforme(req.body, (await seccionesVigentes()).secciones);
   if ('error' in resultado) {
     res.status(400).json({ error: resultado.error });
     return;

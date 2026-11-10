@@ -25,6 +25,11 @@ export interface CampoLab {
   opciones?: string[];
   /** Se muestra en la misma fila que este campo (a su derecha), no como fila propia */
   junto?: string;
+  /** Parámetros químicos editables: nombre corto y fórmula (encabezado del informe impreso) */
+  nombre?: string;
+  formula?: string;
+  /** Quitado en Configuración: no se ofrece en informes nuevos, pero los que ya lo tienen lo siguen mostrando */
+  oculto?: boolean;
 }
 
 export interface GrupoLab {
@@ -121,6 +126,7 @@ const agua: SeccionLab = {
     { clave: 'salinidad', etiqueta: 'Salinidad', tipo: 'numero', unidad: 'ppt', grupo: 'basicos', soloTipos: BASICOS },
     { clave: 'ph', etiqueta: 'pH', tipo: 'numero', grupo: 'basicos', soloTipos: BASICOS, min: 7, max: 8 },
     { clave: 'alcalinidad', etiqueta: 'Alcalinidad', tipo: 'numero', unidad: 'mg/L', grupo: 'basicos', soloTipos: BASICOS, min: 100, max: 140 },
+    // Parámetros químicos de fábrica: los vigentes se editan en Configuración (laboratorio.parametros.ts los reemplaza)
     { clave: 'fosfato', etiqueta: 'Fosfato PO₄³⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO, min: 0.6, max: 1.5 },
     { clave: 'amonio', etiqueta: 'Amonio N-NH₄', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO, min: 0.1, max: 1 },
     { clave: 'nitrito', etiqueta: 'Nitrito NO₂⁻', tipo: 'numero', unidad: 'mg/L', grupo: 'quimica', soloTipos: QUIMICO },

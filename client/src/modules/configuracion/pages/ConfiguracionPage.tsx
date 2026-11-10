@@ -3,10 +3,11 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { olvidarDefinicion } from '@/modules/laboratorios/analisis/hooks/useDefinicion';
 import { guardarLista, obtenerListas, restaurarLista, type ListaEditable } from '@/services/api/listas';
 import { EditorLista } from '../components/EditorLista';
+import { EditorParametrosQuimicos } from '../components/EditorParametrosQuimicos';
 import { EspacioBase } from '../components/EspacioBase';
 import { meta } from '../meta';
 
-/** Configuración: espacio de la base de datos y listas de valores de los formularios (géneros, clientes, partes…). */
+/** Configuración: espacio de la base de datos, parámetros químicos del agua y listas de valores de los formularios (géneros, clientes, partes…). */
 export function ConfiguracionPage() {
   const [listas, setListas] = useState<ListaEditable[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +41,11 @@ export function ConfiguracionPage() {
       {secciones.map(([seccion, ls]) => (
         <section key={seccion} className="mb-6">
           <h2 className="mb-2 text-sm font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">{seccion}</h2>
+          {seccion === 'Análisis de Agua' && (
+            <div className="mb-4">
+              <EditorParametrosQuimicos />
+            </div>
+          )}
           <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
             {ls.map((l) => (
               <EditorLista

@@ -1,9 +1,15 @@
 import { apiDelete, apiGet, apiPost, apiPut } from '@/services/api/client';
-import type { DefinicionLaboratorio, Informe, InformeDatos, InformeResumen, SeccionId } from '../types';
+import type { DefinicionLaboratorio, Informe, InformeDatos, InformeResumen, ParametroQuimico, ParametrosQuimicos, SeccionId } from '../types';
 
 const BASE = '/laboratorio';
 
 export const obtenerDefinicion = () => apiGet<DefinicionLaboratorio>(`${BASE}/secciones`);
+// ---------- parámetros químicos del agua (Configuración) ----------
+export const obtenerParametrosQuimicos = () => apiGet<ParametrosQuimicos>(`${BASE}/parametros-quimicos`);
+export const guardarParametrosQuimicos = (parametros: ParametroQuimico[]) => apiPut<ParametrosQuimicos>(`${BASE}/parametros-quimicos`, { parametros });
+/** Vuelve a los de fábrica y devuelve la lista vigente */
+export const restaurarParametrosQuimicos = () => apiDelete(`${BASE}/parametros-quimicos`).then(obtenerParametrosQuimicos);
+
 export const listarInformes = (seccion: SeccionId) => apiGet<InformeResumen[]>(`${BASE}/informes?seccion=${seccion}`);
 /** Todos los informes con los valores de sus muestras (Dashboard) */
 export const listarResultados = () => apiGet<Informe[]>(`${BASE}/resultados`);
