@@ -16,6 +16,7 @@ import { BarList } from '@/components/charts/BarList';
 import { BudgetBars } from '@/components/charts/BudgetBars';
 import { ColumnChart } from '@/components/charts/ColumnChart';
 import { Gauge } from '@/components/charts/Gauge';
+import { MuestrasChart } from '@/components/charts/MuestrasChart';
 import { TooltipLayer } from '@/components/charts/Tooltip';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
@@ -221,6 +222,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
   const [parametro, setParametro] = useState<string | null>(null);
   const [meses, setMeses] = useState<[number, number]>([0, 11]);
   const [todosGrupos, setTodosGrupos] = useState(false);
+  const [orden, setOrden] = useState<'fecha' | 'piscina'>('fecha');
 
   const datos = fuente.datos;
   // Sin elección, el primer análisis con muestras en el año
@@ -229,8 +231,8 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
     const base = { centro: null, piscina: null, agrupar: 'campamento' as const, parametro: null };
     const previo = resumenResultados(datos.informes, datos.definicion, anio, { ...base, analisis: elegido ?? ANALISIS_LAB[0].id });
     const analisis = elegido ?? ANALISIS_LAB.find((a) => previo.disponibles[a.id] > 0)?.id ?? ANALISIS_LAB[0].id;
-    return resumenResultados(datos.informes, datos.definicion, anio, { analisis, centro, piscina, agrupar, parametro, mesDesde: meses[0], mesHasta: meses[1] });
-  }, [datos, anio, elegido, centro, piscina, agrupar, parametro, meses]);
+    return resumenResultados(datos.informes, datos.definicion, anio, { analisis, centro, piscina, agrupar, parametro, mesDesde: meses[0], mesHasta: meses[1], orden });
+  }, [datos, anio, elegido, centro, piscina, agrupar, parametro, meses, orden]);
 
   const p = r?.parametro;
   // Química del agua: líneas con área (evolución de cada parámetro) en lugar de columnas
@@ -416,9 +418,36 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                 <BarList items={r.barras} formato={valorTexto} formatoLargo={conUnidad} limite={12} onSelect={bajar} />
               </Grafico>
             )}
+            {quimica && tendencia && (
+              <Grafico
+                titulo={`${p.etiqueta} muestra por muestra ${nivel === 'muestra' ? `en ${r.nombrePiscina}` : centro ? `en ${centro}` : 'en todos los campamentos'}`}
+                nota={[
+                  `${r.porMuestra.length} ${r.porMuestra.length === 1 ? 'muestra' : 'muestras'}: cada punto es una, con su ${nivel === 'muestra' || orden === 'piscina' ? 'fecha' : 'piscina'} debajo`,
+                  unidad,
+                  referenciaDe(p),
+                  'rojo: fuera de la referencia',
+                  'anillo en el borde: valor que se sale de la escala',
+                  'si no caben, desliza el gráfico a los lados',
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              >
+                {nivel !== 'muestra' && (
+                  <div className="mb-2 flex items-center gap-1 text-xs font-semibold" role="group" aria-label="Orden de las muestras">
+                    Ordenar por
+                    {(['fecha', 'piscina'] as const).map((o) => (
+                      <button key={o} type="button" aria-pressed={orden === o} onClick={() => setOrden(o)} className={`${CHIP} ${orden === o ? CHIP_ACTIVO : CHIP_INACTIVO}`}>
+                        {o === 'fecha' ? 'Fecha' : 'Piscina'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <MuestrasChart items={r.porMuestra} formato={valorTexto} formatoLargo={conUnidad} rango={tendencia.rango} min={refFija(p).min} max={refFija(p).max} />
+              </Grafico>
+            )}
             {quimica && tendencia ? (
               <Grafico
-                titulo={`${p.etiqueta}: tendencia ${nivel === 'muestra' ? `de ${r.nombrePiscina}` : centro ? `de ${centro}` : 'de todos los campamentos'}`}
+                titulo={`${p.etiqueta}: tendencia por fecha ${nivel === 'muestra' ? `de ${r.nombrePiscina}` : centro ? `de ${centro}` : 'de todos los campamentos'}`}
                 nota={[nivel === 'muestra' ? 'Cada punto es un análisis' : 'Punto pequeño: cada muestra · línea: promedio de cada fecha', unidad, referenciaDe(p), 'rojo: fuera de la referencia', 'anillo en el borde: valor que se sale de la escala']
                   .filter(Boolean)
                   .join(' · ')}

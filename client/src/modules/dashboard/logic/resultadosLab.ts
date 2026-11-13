@@ -111,6 +111,8 @@ export interface FiltrosResultados {
   /** Meses que se analizan (0 = enero … 11 = diciembre); sin indicar, todo el año */
   mesDesde?: number;
   mesHasta?: number;
+  /** Orden de las muestras en el gráfico "muestra por muestra": por fecha de análisis o juntando las de cada piscina */
+  orden?: 'fecha' | 'piscina';
 }
 
 /** Cómo se agrupan las filas: por campamento, por piscina o cada análisis de una piscina */
@@ -320,6 +322,32 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
     return v.length < 20 ? [v[0], v[v.length - 1]] : [v[Math.floor(v.length * 0.02)], v[Math.ceil(v.length * 0.98) - 1]];
   };
   const tendencias = campos.map((c) => ({ campo: c, puntos: serie(c, muestras), rango: rangoDe(c) }));
+  // Muestra por muestra: cada una ocupa un lugar en el eje X, rotulada con su piscina (o su fecha) y agrupada por fecha (o piscina)
+  const porPiscinaOrden = nivel !== 'muestra' && f.orden === 'piscina';
+  const numerico = (a: string, b: string) => a.localeCompare(b, 'es', { numeric: true });
+  const porMuestra = parametro
+    ? muestras
+        .filter((m) => numeroDe(m.valores[parametro.clave]) != null)
+        .sort((a, b) =>
+          porPiscinaOrden
+            ? numerico(a.centro, b.centro) || numerico(clavePiscina(a.nombre), clavePiscina(b.nombre)) || a.fecha.localeCompare(b.fecha)
+            : a.fecha.localeCompare(b.fecha) || numerico(a.centro, b.centro) || numerico(a.nombre, b.nombre),
+        )
+        .map((m, i) => {
+          const estado = estadoDe(parametro, m);
+          const nombre = nombreDe(m.centro, m.nombre);
+          const conCentro = f.centro ? nombre : `${nombre} · ${m.centro}`;
+          return {
+            key: `${m.codigo}-${m.nombre}-${i}`,
+            label: nivel === 'muestra' || porPiscinaOrden ? fechaCortaNum(m.fecha) : nombre,
+            grupo: nivel === 'muestra' ? '' : porPiscinaOrden ? conCentro : fechaCortaNum(m.fecha),
+            valor: numeroDe(m.valores[parametro.clave]) ?? 0,
+            titulo: `${conCentro} · ${m.fecha}`,
+            detalle: `${m.codigo}${estado ? (estado === 'alto' ? ' · ▲ sobre la referencia' : ' · ▼ bajo la referencia') : ''}`,
+            fuera: Boolean(estado),
+          };
+        })
+    : [];
   // El parámetro elegido, separado por campamento o por piscina (misma escala en todos, para comparar)
   const tendenciasGrupo =
     parametro && nivel !== 'muestra'
@@ -396,6 +424,7 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
     porFecha,
     tendencias,
     tendenciasGrupo,
+    porMuestra,
     ejeX,
     ultima: muestras[0]?.fecha ?? null,
     valoresFuera,
