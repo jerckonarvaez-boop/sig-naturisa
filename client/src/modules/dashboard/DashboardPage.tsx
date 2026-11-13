@@ -1,14 +1,24 @@
 import { useMemo, useState, type ComponentType } from 'react';
 import {
   AlertTriangle,
+  Atom,
+  Beaker,
+  Bone,
   CalendarDays,
   Check,
   CheckCircle2,
+  Component,
+  Droplets,
   FlaskConical,
+  FlaskRound,
+  Gem,
+  Hexagon,
   Gauge as IconoOxigenometro,
   SearchCheck,
+  TestTube,
   Wallet,
   Waves,
+  Zap,
   type LucideIcon,
 } from 'lucide-react';
 import { BarList } from '@/components/charts/BarList';
@@ -207,6 +217,24 @@ function SeccionMonitoreo({ fuente, anio }: { fuente: DatosFuente<'monitoreo'>; 
   );
 }
 
+/**
+ * Ícono y color de cada parámetro químico (el color va en la variable --serie, con su tono para el tema oscuro).
+ * Los parámetros agregados en Configuración usan el ícono y el color general.
+ */
+const ESTILO_PARAMETRO: Record<string, { icono: LucideIcon; color: string }> = {
+  salinidad: { icono: Droplets, color: '[--serie:#0891b2] dark:[--serie:#06b6d4]' },
+  ph: { icono: TestTube, color: '[--serie:#7c3aed] dark:[--serie:#8b5cf6]' },
+  alcalinidad: { icono: Beaker, color: '[--serie:#059669] dark:[--serie:#10b981]' },
+  fosfato: { icono: Atom, color: '[--serie:#a16207] dark:[--serie:#eab308]' },
+  amonio: { icono: FlaskRound, color: '[--serie:#c026d3] dark:[--serie:#d946ef]' },
+  nitrito: { icono: Hexagon, color: '[--serie:#0284c7] dark:[--serie:#0ea5e9]' },
+  nitrato: { icono: Component, color: '[--serie:#4d7c0f] dark:[--serie:#84cc16]' },
+  calcio: { icono: Bone, color: '[--serie:#b45309] dark:[--serie:#d97706]' },
+  magnesio: { icono: Gem, color: '[--serie:#4f46e5] dark:[--serie:#6366f1]' },
+  potasio: { icono: Zap, color: '[--serie:#0d9488] dark:[--serie:#14b8a6]' },
+};
+const ESTILO_GENERAL = { icono: FlaskConical, color: '' };
+
 /** Referencia fija del parámetro (la que depende de la salinidad no se puede dibujar como línea) */
 const refFija = (c: { min?: number; max?: number; factorSalinidad?: number }) => (c.factorSalinidad ? {} : { min: c.min, max: c.max });
 
@@ -387,7 +415,9 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
       )}
       {r && hayMuestras && p && (
         <>
-          <div className={`grid gap-6 ${quimica ? '' : 'lg:grid-cols-2'}`}>
+          {/* En química no van las barras ni las columnas: cada parámetro tiene su gráfico, piscina por piscina */}
+          {!quimica && (
+          <div className="grid gap-6 lg:grid-cols-2">
             {nivel === 'muestra' ? (
               // En química, la evolución de la piscina va en el gráfico de línea (no se repite en columnas)
               !quimica && (
@@ -418,6 +448,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
               </Grafico>
             )}
           </div>
+          )}
           {quimica && (
             <Grafico
               titulo={`Cada parámetro ${nivel === 'muestra' ? `en ${r.nombrePiscina}, análisis por análisis` : `piscina por piscina ${centro ? `en ${centro}` : 'en todos los campamentos'}`}`}
@@ -443,12 +474,21 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
               <div className="flex flex-col gap-3">
                 {r.porParametro.map((t) => {
                   const u = unidadDe(t.campo);
+                  const estilo = ESTILO_PARAMETRO[t.campo.clave] ?? ESTILO_GENERAL;
+                  const Icono = estilo.icono;
                   return (
-                    <div key={t.campo.clave} className="min-w-0 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                      <h4 className="text-[13px] font-semibold">{t.campo.etiqueta}</h4>
-                      <p className="mb-1 text-[11px] text-slate-500 dark:text-slate-400">
-                        {[u, referenciaDe(t.campo), `${t.items.length} ${t.items.length === 1 ? 'muestra' : 'muestras'}`].filter(Boolean).join(' · ')}
-                      </p>
+                    <div key={t.campo.clave} className={`min-w-0 rounded-lg border border-slate-200 p-3 dark:border-slate-800 ${estilo.color}`}>
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="grid size-8 shrink-0 place-items-center rounded-lg text-white" style={{ background: 'var(--serie, var(--chart-serie))' }} aria-hidden="true">
+                          <Icono size={17} />
+                        </span>
+                        <div className="min-w-0">
+                          <h4 className="truncate text-[13px] font-semibold">{t.campo.etiqueta}</h4>
+                          <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                            {[u, referenciaDe(t.campo), `${t.items.length} ${t.items.length === 1 ? 'muestra' : 'muestras'}`].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
+                      </div>
                       <MuestrasChart
                         items={t.items}
                         formato={valorTexto}

@@ -28,10 +28,12 @@ interface MuestrasChartProps {
   rango?: [number, number];
 }
 
-const PASO = 30; // ancho mínimo por muestra (px): si no caben, el gráfico se desplaza a los lados
+const PASO = 40; // ancho mínimo por muestra (px): si no caben, el gráfico se desplaza a los lados
 const EJE = 46; // ancho del eje Y, que queda fijo al desplazar
 const SANGRIA = 22; // aire a la izquierda para el rótulo inclinado de la primera muestra
-const PIE = 74; // rótulos de las muestras (inclinados) y de los grupos
+const PIE = 74;
+/** Color de la serie: el del parámetro (variable --serie en un contenedor) o el general de los gráficos */
+const SERIE = 'var(--serie, var(--chart-serie))'; // rótulos de las muestras (inclinados) y de los grupos
 
 /**
  * Una muestra por posición en el eje X (con su rótulo) y su valor en el eje Y: línea con puntos y área.
@@ -42,7 +44,7 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
   const tip = useTip();
   const id = useId();
 
-  const top = 14;
+  const top = 26; // aire para el valor sobre el punto más alto
   const plotH = alto - top - PIE;
   const base = top + plotH;
   const visible = Math.max(width - EJE - SANGRIA, 1);
@@ -61,7 +63,7 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
   const y = (v: number) => top + plotH * (1 - (Math.min(y1, Math.max(y0, v)) - y0) / (y1 - y0 || 1));
   const seSale = (v: number) => v < y0 || v > y1;
 
-  const linea = items.map((it, i) => `${i ? 'L' : 'M'}${x(i)},${y(it.valor)}`).join(' ');
+  const linea = curva(items.map((it, i) => ({ x: x(i), y: y(it.valor) })));
   // Grupos seguidos (misma fecha o misma piscina)
   const grupos: { label: string; desde: number; hasta: number }[] = [];
   items.forEach((it, i) => {
@@ -94,8 +96,8 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
             <svg width={ancho} height={alto} className="block" role="img" aria-label="Gráfico de línea con una muestra por posición">
               <defs>
                 <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="var(--chart-serie)" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="var(--chart-serie)" stopOpacity={0.03} />
+                  <stop offset="0%" stopColor={SERIE} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={SERIE} stopOpacity={0.03} />
                 </linearGradient>
               </defs>
               {ticks.map((t) => (
@@ -120,7 +122,7 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
               {items.length > 1 && (
                 <>
                   <path d={`${linea} L${x(items.length - 1)},${base} L${x(0)},${base} Z`} fill={`url(#${id})`} />
-                  <path d={linea} fill="none" className="stroke-chart-serie" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                  <path d={linea} fill="none" stroke={SERIE} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
                 </>
               )}
               {items.map((it, i) => (
@@ -138,8 +140,18 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
                     cy={y(it.valor)}
                     r={4}
                     strokeWidth={2}
+                    style={seSale(it.valor) || it.fuera ? undefined : { fill: SERIE }}
                     className={seSale(it.valor) ? 'fill-white stroke-chart-exceso dark:fill-slate-900' : `stroke-white dark:stroke-slate-900 ${it.fuera ? 'fill-chart-exceso' : 'fill-chart-serie'}`}
                   />
+                  {/* el valor, sobre el punto (o debajo si no cabe arriba) */}
+                  <text
+                    x={x(i)}
+                    y={y(it.valor) - 9 < 10 ? y(it.valor) + 17 : y(it.valor) - 9}
+                    textAnchor="middle"
+                    className={`text-[10px] tabular-nums ${it.fuera ? 'fill-red-700 font-semibold dark:fill-red-400' : 'fill-slate-800 dark:fill-slate-100'}`}
+                  >
+                    {formato(it.valor)}
+                  </text>
                   <text
                     x={x(i)}
                     y={base + 10}
@@ -165,6 +177,39 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
       )}
     </div>
   );
+}
+
+/** Curva suave que pasa por todos los puntos sin pasarse de ellos (interpolación cúbica monótona) */
+function curva(p: { x: number; y: number }[]): string {
+  const n = p.length;
+  if (n < 2) return '';
+  if (n === 2) return `M${p[0].x},${p[0].y} L${p[1].x},${p[1].y}`;
+  const d: number[] = [];
+  for (let i = 0; i < n - 1; i++) d.push((p[i + 1].y - p[i].y) / (p[i + 1].x - p[i].x || 1));
+  const m: number[] = [d[0]];
+  for (let i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
+  m.push(d[n - 2]);
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) {
+      m[i] = 0;
+      m[i + 1] = 0;
+      continue;
+    }
+    const a = m[i] / d[i];
+    const b = m[i + 1] / d[i];
+    const s = a * a + b * b;
+    if (s > 9) {
+      const t = 3 / Math.sqrt(s);
+      m[i] = t * a * d[i];
+      m[i + 1] = t * b * d[i];
+    }
+  }
+  let ruta = `M${p[0].x},${p[0].y}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = (p[i + 1].x - p[i].x) / 3;
+    ruta += ` C${p[i].x + h},${p[i].y + m[i] * h} ${p[i + 1].x - h},${p[i + 1].y - m[i + 1] * h} ${p[i + 1].x},${p[i + 1].y}`;
+  }
+  return ruta;
 }
 
 /** Marcas redondas del eje Y que cubren [min, max] (ej. 7 · 7,5 · 8 · 8,5) */
