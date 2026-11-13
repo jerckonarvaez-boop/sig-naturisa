@@ -1,27 +1,28 @@
-import { cientifico, claseGrado, fechaInforme, grado, num, txt, type InformeVista } from '../../logic/reporte';
+import { Bug, Microscope } from 'lucide-react';
+import { cientifico, claseGrado, fechaLegible, grado, num, txt, type InformeVista } from '../../logic/reporte';
 import type { CampoLab } from '../../types';
-import { DatosEncabezado, EncabezadoEnsayo, Firma, Pie } from './comunes';
+import { Encabezado, Ficha, Firma, Metodos, Observaciones, Pie, Seccion } from './comunes';
 
-/** Nombres de las condiciones tal como aparecen en el informe oficial */
+/** Nombres de las condiciones tal como aparecen en el informe */
 const NOMBRE_OFICIAL: Record<string, string> = {
-  deformidad_tubulos: 'Deformidad en Túbulos del Hepatop.',
-  lipidos: 'Lípidos en Hepatopáncreas',
-  baculovirus: 'Hepatopáncreas: Baculovirus',
-  vermiformes_hp: 'Cuerpos Vermiformes en Hepatop.',
-  epibiontes: 'Epibiontes en Branquias y Apéndices',
+  deformidad_tubulos: 'Deformidad en túbulos del hepatopáncreas',
+  lipidos: 'Lípidos en hepatopáncreas',
+  baculovirus: 'Hepatopáncreas: baculovirus',
+  vermiformes_hp: 'Cuerpos vermiformes en hepatopáncreas',
+  epibiontes: 'Epibiontes en branquias y apéndices',
   necrosis_branquial: 'Necrosis branquial',
-  gregarinas: 'Tracto digestivo: Gregarinas',
-  nematodos: 'Tracto digestivo: Nematodos',
-  vermiformes_intestino: 'Cuerpos Vermiformes en Intestin.',
-  diatomeas_td: 'Tracto digestivo: Diatomeas',
-  cianofitas_td: 'Tracto digestivo: Cianofitas',
+  gregarinas: 'Tracto digestivo: gregarinas',
+  nematodos: 'Tracto digestivo: nematodos',
+  vermiformes_intestino: 'Cuerpos vermiformes en intestino',
+  diatomeas_td: 'Tracto digestivo: diatomeas',
+  cianofitas_td: 'Tracto digestivo: cianofitas',
 };
 
 const BACTERIOLOGIA: [string, string, string, string][] = [
-  // título, clave amarillas, clave verdes, unidad
-  ['1.1.- Análisis Bacteriológico Hepatopáncreas - Camarón', 'hp_amarillas', 'hp_verdes', 'Ufc/g'],
-  ['1.2.- Análisis Bacteriológico Estómago - Camarón', 'est_amarillas', 'est_verdes', 'Ufc/g'],
-  ['1.3.- Análisis Bacteriológico - Hemolinfa', 'hem_amarillas', 'hem_verdes', 'Ufc/ml'],
+  // órgano, clave amarillas, clave verdes, unidad
+  ['Hepatopáncreas', 'hp_amarillas', 'hp_verdes', 'UFC/g'],
+  ['Estómago', 'est_amarillas', 'est_verdes', 'UFC/g'],
+  ['Hemolinfa', 'hem_amarillas', 'hem_verdes', 'UFC/ml'],
 ];
 
 interface ReportePatologiaProps {
@@ -36,119 +37,109 @@ interface ReportePatologiaProps {
 export function ReportePatologia({ informe, condiciones, conFresco, conBacteriologia }: ReportePatologiaProps) {
   const muestras = informe.muestras;
   const una = muestras.length === 1;
-  const columnas = muestras.length + 1 + (una ? 1 : 0);
+  const columnas = muestras.length + 1;
   const notas = muestras.map((m) => txt(m.valores.notas)).filter(Boolean);
+  // Los órganos que se analizaron (la hemolinfa, solo si tiene valores)
+  const organos = BACTERIOLOGIA.filter(([organo, a, v]) => organo !== 'Hemolinfa' || muestras.some((m) => num(m.valores[a]) != null || num(m.valores[v]) != null));
 
   return (
     <>
-      <EncabezadoEnsayo informe={informe} />
-      <DatosEncabezado
-        filas={[
-          ['Fecha de recepción:', fechaInforme(informe.fechaMuestra, 'larga')],
-          ['Fecha de emisión del reporte:', fechaInforme(informe.fechaEmision, 'larga')],
-          ['Identificación de la muestra:', informe.sucursal, true],
-          ['Matriz de la Muestra:', informe.matriz],
-          ['Muestreado por:', informe.muestreadoPor],
+      <Encabezado informe={informe} />
+      <Ficha
+        datos={[
+          ['Identificación de la muestra', informe.sucursal],
+          ['Matriz', informe.matriz],
+          ['Fecha de recepción', fechaLegible(informe.fechaMuestra)],
+          ['Fecha de emisión', fechaLegible(informe.fechaEmision)],
+          ['Muestreado por', informe.muestreadoPor],
         ]}
       />
 
-      <table className="rep-tabla" style={{ width: '100%', fontFamily: 'Verdana, Arial, sans-serif', fontSize: una ? 11 : 10 }}>
-        <tbody>
-          {conBacteriologia && (
-            <>
+      {conBacteriologia && (
+        <>
+          <Seccion numero={1} titulo="Bacteriología" icono={Bug} nota="TCBS (Vibrios sp)" />
+          <table className="rep-tabla">
+            <thead>
               <tr>
-                <td colSpan={columnas} className="rep-barra rep-centro">
-                  1.- Bacteriología
-                </td>
+                <th>Colonias</th>
+                {muestras.map((m, i) => (
+                  <th key={i}>{m.nombre}</th>
+                ))}
               </tr>
-              {BACTERIOLOGIA.map(([titulo, amarillas, verdes, unidad]) => {
-                const hay = muestras.some((m) => num(m.valores[amarillas]) != null || num(m.valores[verdes]) != null);
-                if (!hay && titulo.startsWith('1.3')) return null; // la hemolinfa solo si se analizó
-                return [
-                  <tr key={titulo}>
-                    <td colSpan={columnas} className="rep-barra rep-centro" style={{ background: '#fff' }}>
-                      {titulo}
-                    </td>
-                  </tr>,
-                  <tr key={`${titulo}-enc`}>
-                    <td className="rep-negrita rep-centro">{una ? 'Medio de Cultivo' : ''}</td>
+            </thead>
+            <tbody>
+              {organos.map(([organo, amarillas, verdes, unidad]) => [
+                <tr key={organo}>
+                  <td colSpan={columnas} className="rep-barra">
+                    {organo} <span style={{ fontWeight: 400 }}>· {unidad}</span>
+                  </td>
+                </tr>,
+                ...[
+                  [amarillas, 'Amarillas'],
+                  [verdes, 'Verdes'],
+                ].map(([clave, nombre]) => (
+                  <tr key={clave}>
+                    <td>{nombre}</td>
                     {muestras.map((m, i) => (
-                      <td key={i} className="rep-negrita rep-centro">
-                        {m.nombre}
-                        <div style={{ fontWeight: 400 }}>{unidad}</div>
+                      <td key={i} className="rep-negrita">
+                        {cientifico(num(m.valores[clave]))}
                       </td>
                     ))}
-                    {una && <td className="rep-negrita rep-centro">Observaciones</td>}
-                  </tr>,
-                  ...[
-                    [amarillas, 'C. Amarillas', 'A- Colonias Color Amarillas'],
-                    [verdes, 'C. Verdes', 'V- Colonias Color Verdes'],
-                  ].map(([clave, corto, largo]) => (
-                    <tr key={`${titulo}-${clave}`}>
-                      <td>{una ? 'TCBS (Vibrios sp)' : `TCBS (Vibrios sp), ${corto}`}</td>
-                      {muestras.map((m, i) => (
-                        <td key={i} className="rep-centro rep-negrita">
-                          {cientifico(num(m.valores[clave]))}
-                        </td>
-                      ))}
-                      {una && <td className="rep-pequeno">{largo}</td>}
-                    </tr>
-                  )),
-                ];
-              })}
-            </>
-          )}
+                  </tr>
+                )),
+              ])}
+            </tbody>
+          </table>
+        </>
+      )}
 
-          {conFresco && (
-            <>
+      {conFresco && (
+        <>
+          <Seccion numero={conBacteriologia ? 2 : 1} titulo="Análisis en fresco" icono={Microscope} nota="Grado de 0 a 4" />
+          <table className="rep-tabla">
+            <thead>
               <tr>
-                <td colSpan={columnas} className="rep-barra" style={{ textAlign: una ? 'center' : 'left' }}>
-                  {conBacteriologia ? '2' : '1'}.- Análisis en Fresco
-                </td>
-              </tr>
-              <tr>
-                <td className="rep-negrita rep-centro" style={{ fontSize: 12 }}>
-                  Condición/Patología
-                </td>
+                <th>Condición / patología</th>
                 {muestras.map((m, i) => (
-                  <td key={i} className="rep-negrita rep-centro" style={{ fontSize: 12, minWidth: 74 }}>
+                  <th key={i} style={{ minWidth: 60 }}>
                     {m.nombre}
-                    {una && <div style={{ fontWeight: 400, fontSize: 10 }}>Grado</div>}
-                  </td>
+                  </th>
                 ))}
-                {una && <td className="rep-negrita rep-centro">Observaciones</td>}
+                {una && <th>Observaciones</th>}
               </tr>
+            </thead>
+            <tbody>
               {condiciones.map((c, fila) => (
                 <tr key={c.clave}>
-                  <td style={{ whiteSpace: 'nowrap' }}>{NOMBRE_OFICIAL[c.clave] ?? c.etiqueta}</td>
+                  <td className="rep-condicion">{NOMBRE_OFICIAL[c.clave] ?? c.etiqueta}</td>
                   {muestras.map((m, i) => {
                     const v = num(m.valores[c.clave]);
                     return (
-                      <td key={i} className={`rep-centro ${claseGrado(v)}`} style={{ fontSize: 12 }}>
+                      <td key={i} className={claseGrado(v)} style={{ fontSize: 12 }}>
                         {grado(v)}
                       </td>
                     );
                   })}
                   {una && fila === 0 && (
-                    <td rowSpan={condiciones.length} className="rep-pequeno" style={{ verticalAlign: 'top', maxWidth: 220 }}>
+                    <td rowSpan={condiciones.length} className="rep-pequeno" style={{ verticalAlign: 'top', maxWidth: 220, textAlign: 'left' }}>
                       {notas[0]}
                     </td>
                   )}
                 </tr>
               ))}
               <tr>
-                <td>Otros</td>
+                <td className="rep-condicion rep-negrita">Otros</td>
                 {muestras.map((m, i) => (
-                  <td key={i} className="rep-centro rep-pequeno">
+                  <td key={i} className="rep-pequeno">
                     {txt(m.valores.otros)}
                   </td>
                 ))}
                 {una && <td />}
               </tr>
               <tr>
-                <td style={{ height: 40 }}>Apariencia Externa</td>
+                <td className="rep-condicion rep-negrita">Apariencia externa</td>
                 {muestras.map((m, i) => (
-                  <td key={i} className="rep-centro rep-muy-pequeno rep-negrita">
+                  <td key={i} className="rep-muy-pequeno">
                     {txt(m.valores.apariencia)
                       .split(/\s*·\s*|\n/)
                       .filter(Boolean)
@@ -161,36 +152,39 @@ export function ReportePatologia({ informe, condiciones, conFresco, conBacteriol
               </tr>
               {!una && notas.length > 0 && (
                 <tr>
-                  <td>Observaciones</td>
+                  <td className="rep-condicion rep-negrita">Observaciones</td>
                   {muestras.map((m, i) => (
-                    <td key={i} className="rep-centro rep-muy-pequeno">
+                    <td key={i} className="rep-muy-pequeno">
                       {txt(m.valores.notas)}
                     </td>
                   ))}
                 </tr>
               )}
-            </>
-          )}
-        </tbody>
-      </table>
-
-      <div className="rep-leyenda">
-        {conFresco && 'Patología en fresco: 0 = Ausencia; 0.1 - 0.9 = Bajo; 1.0 - 1,9 = Medio; 2.0 - 2.9 = Alto; 3.0 - 4.0 = Muy Alto.'}
-        {conBacteriologia && <div>inc. = Incontables colonias.</div>}
-      </div>
-      <div className="rep-pequeno" style={{ marginTop: 4, fontFamily: 'Arial, sans-serif' }}>
-        <div className="rep-negrita">Método de análisis utilizado:</div>
-        {conFresco && <div>Patología en fresco: Observación directa al microscopio de montajes en fresco de muestras de Camarón.</div>}
-        {conBacteriologia && <div className="rep-negrita">Bacteriología: Siembra en medio sólido de TCBS, y dilución de macerado de hepatopáncreas y estómago.</div>}
-      </div>
-      {informe.observaciones && (
-        <p className="rep-pequeno" style={{ marginTop: 6 }}>
-          <b>Observaciones:</b> {informe.observaciones}
-        </p>
+            </tbody>
+          </table>
+          <div className="rep-leyenda">
+            Grado: 0 = ausencia · 0,1 – 0,9 = bajo · <span className="rep-grado-medio">1,0 – 1,9 = medio</span> ·{' '}
+            <span className="rep-grado-alto" style={{ padding: '0 4px', borderRadius: 3 }}>
+              2,0 – 2,9 = alto
+            </span>{' '}
+            ·{' '}
+            <span className="rep-grado-muy-alto" style={{ padding: '0 4px', borderRadius: 3 }}>
+              3,0 – 4,0 = muy alto
+            </span>
+          </div>
+        </>
       )}
+      {conBacteriologia && <div className="rep-nota-tabla">inc. = Incontables colonias.</div>}
 
+      <Metodos
+        lineas={[
+          ...(conFresco ? [['Patología en fresco', 'Observación directa al microscopio de montajes en fresco de muestras de camarón'] as [string, string]] : []),
+          ...(conBacteriologia ? [['Bacteriología', 'Siembra en medio sólido TCBS y dilución de macerado de hepatopáncreas y estómago'] as [string, string]] : []),
+        ]}
+      />
+      <Observaciones texto={informe.observaciones} />
       <Firma tecnico={informe.tecnico} empresa="Naturisa S.A." />
-      <Pie aviso="Este reporte corresponde a los resultados de esta muestra y no deberá ser reproducido más que en su totalidad, con autorización escrita de Naturisa." />
+      <Pie aviso="Los resultados corresponden únicamente a las muestras analizadas. Este informe no puede distribuirse, total ni parcialmente, sin autorización escrita de Naturisa." />
     </>
   );
 }

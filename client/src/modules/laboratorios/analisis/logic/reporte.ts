@@ -53,6 +53,13 @@ export function fechaInforme(iso: string, estilo: 'corta' | 'larga' = 'corta'): 
   return estilo === 'corta' ? `${d}-${mes}-${String(y).slice(2)}` : `${d}-${mes}.-${y}`;
 }
 
+/** AAAA-MM-DD → "5 nov 2026" (encabezado del informe) */
+export function fechaLegible(iso: string): string {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d} ${MESES_CORTOS[m - 1]} ${y}`;
+}
+
 /** Grado de patología: 1 decimal con coma; el 0 se muestra "0" */
 export const grado = (v: number | null) => (v == null ? '' : v === 0 ? '0' : v.toFixed(1).replace('.', ','));
 

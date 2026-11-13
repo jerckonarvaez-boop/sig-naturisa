@@ -187,7 +187,7 @@ muestra (piscina, precría…).
   costo y clientes: Acualit, Biofina, Larviquest 1 a 4, Pesjoya…), editable en Configuración ▸ Centros de costo del
   laboratorio. Ya no se mezcla con los centros del presupuesto.
 - **Código:** se sugiere el siguiente número del año (también entiende rangos como "AF-2026-128 al 133").
-- **Imprimir:** sale el informe con el diseño oficial de cada formato (igual al Excel: encabezado, tablas, leyendas,
+- **Imprimir:** sale el "Informe de resultados" con el diseño del laboratorio (logo y código en el encabezado, ficha de datos, secciones numeradas con ícono, tablas con cabecera celeste, leyendas,
   valores referenciales, firma y pie), en `analisis/components/reporte/`. Patología con más de 6 muestras sale en
   horizontal para que quepa en una hoja.
 - **Enviar por correo:** genera el PDF del informe (la misma vista de impresión, con `html-to-image` + `jspdf`) y

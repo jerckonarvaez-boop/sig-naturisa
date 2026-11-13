@@ -1,59 +1,92 @@
-// Piezas comunes del informe oficial: encabezados, firma y pie.
+// Piezas comunes del informe de laboratorio: encabezado, ficha de datos, títulos de sección, firma y pie.
 import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import { ESTADOS_REFERENCIA } from '../../logic/laboratorio';
 import type { InformeVista } from '../../logic/reporte';
 
-export const LOGO = '/logo-naturisa-lab.jpeg';
+export const LOGO = '/logo-naturisa-color.png';
 
 const DIRECCION = ['Instalaciones: Camaronera Naturisa - Isla Josefina - Sector las Exclusas', 'Oficina: Colombia 101 y la Ría - Teléfono 6005360', 'Guayaquil-Ecuador'];
 
-/** Encabezado "NATURISA · Laboratorio de Análisis | INFORME DE ENSAYOS · código" (suelo y patología) */
-export function EncabezadoEnsayo({ informe }: { informe: InformeVista }) {
+/** Encabezado: logo a la izquierda; "Laboratorio de análisis · Informe de resultados" y el código a la derecha */
+export function Encabezado({ informe }: { informe: InformeVista }) {
   return (
     <>
-      <table className="rep-caja" style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <tbody>
-          <tr>
-            <td className="rep-centro" style={{ width: '58%', borderRight: '2px solid #000', padding: '10px 4px' }}>
-              <div className="rep-negrita" style={{ fontSize: 13 }}>
-                NATURISA
-              </div>
-              <div>Laboratorio de Análisis</div>
-            </td>
-            <td className="rep-centro" style={{ padding: '10px 4px' }}>
-              <div style={{ fontSize: 13, fontStyle: 'italic' }}>INFORME DE ENSAYOS</div>
-              <div>{informe.codigo}</div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div className="rep-linea" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '8px 0 4px' }}>
-        <div>
-          <div className="rep-negrita">NATURISA S.A.</div>
-          <div>Colombia 101 y la Ría</div>
-          <div>Guayaquil</div>
-        </div>
+      <div className="rep-encabezado">
         <img src={LOGO} alt="Naturisa" className="rep-logo" />
+        <div className="rep-encabezado-titulo">
+          <div className="rep-sobretitulo">Laboratorio de análisis</div>
+          <div className="rep-titulo">Informe de resultados</div>
+          <div className="rep-codigo">{informe.codigo}</div>
+        </div>
       </div>
+      <div className="rep-franja" />
     </>
   );
 }
 
-/** Filas "Etiqueta: valor" del encabezado */
-export function DatosEncabezado({ filas }: { filas: [string, ReactNode, boolean?][] }) {
+/** Ficha de datos del informe: etiqueta pequeña arriba y valor en negrita (el primero, destacado en azul) */
+export function Ficha({ datos }: { datos: [string, ReactNode][] }) {
+  const visibles = datos.filter(([, valor]) => valor !== '' && valor != null);
   return (
-    <table className="rep-linea" style={{ width: '100%', borderCollapse: 'collapse', margin: '6px 0 10px' }}>
-      <tbody>
-        {filas.map(([etiqueta, valor, negrita]) => (
-          <tr key={etiqueta}>
-            <td style={{ width: '58%', padding: '0 0 1px' }}>{etiqueta}</td>
-            <td className={negrita ? 'rep-negrita' : ''}>{valor}</td>
-          </tr>
-        ))}
-        <tr>
-          <td colSpan={2} style={{ height: 6 }} />
-        </tr>
-      </tbody>
-    </table>
+    <div className="rep-ficha" style={{ gridTemplateColumns: ['1.6fr', ...Array(Math.max(Math.min(visibles.length, 4) - 1, 0)).fill('1fr')].join(' ') }}>
+      {visibles.map(([etiqueta, valor], i) => (
+        <div key={etiqueta} className={i === 0 ? 'rep-ficha-principal' : ''}>
+          <div className="rep-ficha-etiqueta">{etiqueta}</div>
+          <div className="rep-ficha-valor">{valor}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Título de una sección: número en un círculo, nombre, ícono y (a la derecha) la unidad o una nota */
+export function Seccion({ numero, titulo, icono: Icono, nota }: { numero: number; titulo: string; icono: LucideIcon; nota?: string }) {
+  return (
+    <div className="rep-seccion">
+      <span className="rep-numero">{numero}</span>
+      <span className="rep-seccion-titulo">{titulo}</span>
+      <Icono size={22} strokeWidth={1.75} className="rep-seccion-icono" aria-hidden="true" />
+      {nota && <span className="rep-seccion-nota">{nota}</span>}
+    </div>
+  );
+}
+
+/** Leyenda de los indicadores ▲ / ▼ (solo si el informe tiene valores fuera de referencia) */
+export function LeyendaReferencia() {
+  return (
+    <div className="rep-indicador">
+      {(['alto', 'bajo'] as const).map((e) => (
+        <span key={e}>
+          <span className={`rep-muestra-color rep-${e}`}>{ESTADOS_REFERENCIA[e].flecha}</span> {ESTADOS_REFERENCIA[e].texto}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Métodos de análisis: "Nombre: descripción" por renglón */
+export function Metodos({ lineas }: { lineas: [string, string][] }) {
+  if (!lineas.length) return null;
+  return (
+    <div className="rep-bloque">
+      <div className="rep-subtitulo">Métodos de análisis</div>
+      {lineas.map(([nombre, texto]) => (
+        <div key={nombre}>
+          <b>{nombre}:</b> {texto}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function Observaciones({ texto }: { texto: string }) {
+  if (!texto) return null;
+  return (
+    <div className="rep-bloque">
+      <div className="rep-subtitulo">Observaciones</div>
+      <div>{texto}</div>
+    </div>
   );
 }
 
@@ -61,8 +94,8 @@ export function Firma({ tecnico, empresa = 'Naturisa' }: { tecnico: string; empr
   return (
     <div className="rep-firma">
       <div className="rep-negrita">{tecnico || ' '}</div>
-      <div>Técnico de laboratorio</div>
-      <div className="rep-negrita">{empresa}</div>
+      <div className="rep-firma-cargo">Técnico de laboratorio</div>
+      <div className="rep-firma-empresa">{empresa}</div>
     </div>
   );
 }

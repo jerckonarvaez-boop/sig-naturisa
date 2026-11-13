@@ -13,7 +13,7 @@ interface ReporteOficialProps {
 }
 
 /**
- * Informe de ensayo con el diseño oficial de cada formato (igual al Excel). Se dibuja fuera de pantalla:
+ * Informe de resultados con el diseño del laboratorio (encabezado con logo y código, ficha, secciones numeradas). Se dibuja fuera de pantalla:
  * es lo que sale al imprimir y lo que se convierte en PDF para enviar por correo.
  */
 export const ReporteOficial = forwardRef<HTMLDivElement, ReporteOficialProps>(function ReporteOficial({ seccion, informe }, ref) {
