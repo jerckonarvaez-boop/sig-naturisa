@@ -92,7 +92,7 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
               </text>
             ))}
           </svg>
-          <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+          <div className="min-w-0 flex-1 overflow-x-auto pb-1 dark:[color-scheme:dark]">
             <svg width={ancho} height={alto} className="block" role="img" aria-label="Gráfico de línea con una muestra por posición">
               <defs>
                 <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
