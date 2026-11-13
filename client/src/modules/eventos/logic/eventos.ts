@@ -9,6 +9,20 @@ export const rangoFechas = (e: Pick<Evento, 'fechaInicio' | 'fechaFin'>) =>
 export const fechaFinal = (e: Pick<Evento, 'fechaInicio' | 'fechaFin'>) => e.fechaFin ?? e.fechaInicio;
 
 /** ¿El evento ocupa ese día? */
+/** Campamentos / centros de costo del evento (se guardan separados por coma) */
+export const campamentosDe = (e: Pick<Evento, 'sucursal'>) =>
+  e.sucursal
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+/** "Fincacua", "Fincacua y Kamaclusa", "Fincacua, Kamaclusa y 3 más" (para espacios cortos) */
+export function campamentosCorto(e: Pick<Evento, 'sucursal'>, max = 2) {
+  const l = campamentosDe(e);
+  if (l.length <= max) return l.length === 2 ? `${l[0]} y ${l[1]}` : (l[0] ?? '');
+  return `${l.slice(0, max).join(', ')} y ${l.length - max} más`;
+}
+
 export const cubreDia = (e: Evento, iso: string) => e.fechaInicio <= iso && iso <= fechaFinal(e);
 
 /** Estado a mostrar: un evento programado cuya fecha ya pasó se considera vencido */

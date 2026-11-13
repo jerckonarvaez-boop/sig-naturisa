@@ -16,18 +16,18 @@ export function PanelProximasFechas({ grupos, mostrarTipo, onEvento, onVerTodos 
     <Card compact title="Próximas fechas" className="self-start">
       <Contadores proximos={grupos.proximos.length} vencidos={grupos.vencidos.length} realizados={grupos.realizados.length} />
       {grupos.vencidos.length > 0 && (
-        <div className="mb-2">
+        <div className="mb-1">
           {grupos.vencidos.slice(0, 3).map((e) => (
             <EventoItem key={e.id} evento={e} mostrarTipo={mostrarTipo} onClick={onEvento} />
           ))}
         </div>
       )}
       {grupos.proximos.length ? (
-        grupos.proximos.slice(0, 6).map((e) => <EventoItem key={e.id} evento={e} mostrarTipo={mostrarTipo} onClick={onEvento} />)
+        grupos.proximos.slice(0, 8).map((e) => <EventoItem key={e.id} evento={e} mostrarTipo={mostrarTipo} onClick={onEvento} />)
       ) : (
         <p className="py-4 text-center text-sm text-slate-500 dark:text-slate-400">No hay fechas programadas.</p>
       )}
-      {(grupos.proximos.length > 6 || grupos.vencidos.length > 3) && (
+      {(grupos.proximos.length > 8 || grupos.vencidos.length > 3) && (
         <button type="button" onClick={onVerTodos} className="mt-1 ml-2 text-xs font-semibold text-brand-500 hover:underline">
           Ver todos en la lista
         </button>
@@ -43,10 +43,10 @@ function Contadores({ proximos, vencidos, realizados }: { proximos: number; venc
     { valor: realizados, etiqueta: 'realizados', clase: '' },
   ];
   return (
-    <dl className="mb-2 grid grid-cols-3 rounded-lg bg-slate-50 py-2 text-center dark:bg-slate-800/50">
+    <dl className="mb-1.5 grid grid-cols-3 rounded-lg bg-slate-50 py-1 text-center dark:bg-slate-800/50">
       {items.map((i) => (
         <div key={i.etiqueta}>
-          <dd className={`text-lg leading-tight font-semibold ${i.clase}`}>{i.valor}</dd>
+          <dd className={`text-base leading-tight font-semibold ${i.clase}`}>{i.valor}</dd>
           <dt className="text-[11px] text-slate-500 dark:text-slate-400">{i.etiqueta}</dt>
         </div>
       ))}

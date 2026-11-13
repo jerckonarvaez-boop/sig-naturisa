@@ -25,7 +25,7 @@ export function ListaEventos({ eventos, mostrarTipo, onEvento, vacio }: ListaEve
           <th className="px-3 py-1.5 font-semibold">Fecha</th>
           {mostrarTipo && <th className="px-3 py-1.5 font-semibold">Tipo</th>}
           <th className="px-3 py-1.5 font-semibold">Título</th>
-          <th className="px-3 py-1.5 font-semibold">Sucursal</th>
+          <th className="px-3 py-1.5 font-semibold">Campamentos</th>
           <th className="px-3 py-1.5 font-semibold">Responsable</th>
           <th className="px-3 py-1.5 font-semibold">Estado</th>
         </tr>

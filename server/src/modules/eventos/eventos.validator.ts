@@ -7,6 +7,19 @@ export const tiposDeConsulta = (valor: unknown): TipoEvento[] =>
     .split(',')
     .filter((t): t is TipoEvento => esUnoDe(TIPOS_EVENTO, t));
 
+/**
+ * Uno o varios campamentos / centros de costo, separados por coma ("Fincacua, Kamaclusa"): sin repetidos ni vacíos.
+ * Un evento que se repite en varios campamentos en las mismas fechas se registra una sola vez.
+ */
+function campamentos(v: unknown): string {
+  const lista: string[] = [];
+  for (const c of texto(v, 2000).split(',')) {
+    const t = c.trim().replace(/\s+/g, ' ').slice(0, 120);
+    if (t && !lista.some((x) => x.toLowerCase() === t.toLowerCase())) lista.push(t);
+  }
+  return lista.slice(0, 60).join(', ');
+}
+
 export function validarEvento(body: Record<string, unknown> | undefined): Validado<EventoDatos> {
   if (!body) return { error: 'Faltan los datos del evento.' };
   if (!esUnoDe(TIPOS_EVENTO, body.tipo)) return { error: 'Tipo de evento no válido.' };
@@ -26,7 +39,7 @@ export function validarEvento(body: Record<string, unknown> | undefined): Valida
       titulo,
       fechaInicio: body.fechaInicio,
       fechaFin: fechaFin && fechaFin !== body.fechaInicio ? fechaFin : null,
-      sucursal: texto(body.sucursal, 120),
+      sucursal: campamentos(body.sucursal),
       responsable: texto(body.responsable, 120),
       estado: body.estado,
       observaciones: texto(body.observaciones, 4000),

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Campo, CLASE_CONTROL } from '@/components/forms/Campo';
-import { SelectCentroCosto } from '@/components/forms/SelectCentroCosto';
+import { SelectorMultiple } from '@/components/forms/SelectorMultiple';
 import { BOTON_PRIMARIO } from '@/components/ui/botones';
 import { Modal } from '@/components/ui/Modal';
 import { useLista } from '@/hooks/useLista';
@@ -164,12 +164,17 @@ export function EventoModal({
           />
         </Campo>
 
-        <Campo etiqueta="Sucursal / centro de costo">
-          <SelectCentroCosto
-            value={datos.sucursal}
-            onChange={(v) => cambiar('sucursal', v)}
+        <Campo etiqueta="Campamentos / centros de costo">
+          {/* Uno o varios: un evento igual en varios campamentos y en las mismas fechas se registra una sola vez */}
+          <SelectorMultiple
             opciones={centros.valores}
-            sinLista={centros.cargado ? 'Agregue centros de costo en Configuración' : 'Cargando…'}
+            valor={datos.sucursal}
+            onCambiar={(v) => cambiar('sucursal', v)}
+            etiqueta="Campamentos / centros de costo"
+            separador="coma"
+            cursiva={false}
+            vacio={centros.cargado ? (centros.valores.length ? 'Elegir uno o varios…' : 'Agregue centros de costo en Configuración') : 'Cargando…'}
+            className={`${CLASE_CONTROL} min-h-[38px] text-sm`}
           />
         </Campo>
         <Campo etiqueta="Responsable">

@@ -295,9 +295,13 @@ PDF caben aún según el promedio. `GET /api/configuracion/almacenamiento` (`con
 - **Dónde:** menú **Calendario** (`/calendario`): todas las fechas en vista mensual o lista, con filtro por tipo
   (`/calendario?tipo=auditoria-asc,auditoria-bap`). Auditorías, Inspecciones SCI y el Dashboard ya no tienen
   calendario propio: muestran la tarjeta "Próximas fechas" de sus tipos, que enlaza al Calendario.
+- **Vista mensual compacta:** cada evento es una barra; si dura varios días, una sola barra que cruza esos días (y
+  sigue en la semana siguiente), con sus campamentos. Hasta 3 filas por semana; lo demás, "+N más" en su día.
 - **Tipos:** Auditoría ASC, Auditoría BAP, Inspección SCI, Capacitación, Mantenimiento / calibración,
   Vencimiento / renovación y Otro. Para agregar uno: `config.ts` (cliente) y `eventos.types.ts` (servidor).
-- **Datos de cada evento:** tipo, título, fecha de inicio/fin, sucursal, responsable, estado
+- **Datos de cada evento:** tipo, título, fecha de inicio/fin, **uno o varios campamentos** (un evento igual en varios
+  campamentos y en las mismas fechas se registra una sola vez; se guardan en `sucursal` separados por coma, sin
+  repetidos), responsable, estado
   (programado, realizado, reprogramado, cancelado), observaciones y **"Avisarme por correo"**. Un evento
   programado cuya fecha ya pasó se muestra como **vencido**.
 - **Avisos por correo** (`server/src/modules/eventos/eventos.avisos.ts`): el servidor revisa cada 30 minutos

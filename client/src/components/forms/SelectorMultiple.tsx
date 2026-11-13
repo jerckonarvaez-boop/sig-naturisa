@@ -5,23 +5,44 @@ import { Check, ChevronDown } from 'lucide-react';
 interface SelectorMultipleProps {
   /** Valores que se pueden elegir (en este orden) */
   opciones: string[];
-  /** Elegidos, separados por espacio (ej. "Nitzschia Skeletonema") */
+  /** Elegidos, separados por espacio (ej. "Nitzschia Skeletonema") o por coma (ej. "Camino Real, Fincacua") */
   valor: string;
   onCambiar: (valor: string) => void;
   /** Para lectores de pantalla, ej. "Géneros de diatomeas de PS-79" */
   etiqueta: string;
   className?: string;
+  /** 'coma' para valores de varias palabras (campamentos); por defecto espacio (géneros) */
+  separador?: 'espacio' | 'coma';
+  /** Texto cuando no hay nada elegido */
+  vacio?: string;
+  /** Los valores en cursiva (nombres científicos); por defecto sí */
+  cursiva?: boolean;
 }
 
-const partes = (v: string) => v.split(/\s+/).filter(Boolean);
+const SEPARADORES = { espacio: { partir: /\s+/, unir: ' ' }, coma: { partir: /\s*,\s*/, unir: ', ' } } as const;
 const igual = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /**
  * Elegir uno o varios valores de una lista fija. La lista se abre flotando sobre la página (portal), así no la
  * recorta una tabla con desplazamiento. Un valor guardado que ya no está en la lista se muestra para poder quitarlo.
  */
-export function SelectorMultiple({ opciones, valor, onCambiar, etiqueta, className = '' }: SelectorMultipleProps) {
+export function SelectorMultiple({
+  opciones,
+  valor,
+  onCambiar,
+  etiqueta,
+  className = '',
+  separador = 'espacio',
+  vacio = 'Géneros…',
+  cursiva = true,
+}: SelectorMultipleProps) {
+  const sep = SEPARADORES[separador];
+  const partes = (v: string) => v.split(sep.partir).map((x) => x.trim()).filter(Boolean);
   const [abierto, setAbierto] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  // Con muchas opciones (ej. campamentos) se puede buscar
+  const conBuscador = opciones.length > 10;
+  const visibles = busqueda.trim() ? opciones.filter((o) => o.toLowerCase().includes(busqueda.trim().toLowerCase())) : opciones;
   const [posicion, setPosicion] = useState<{ top: number; left: number; minWidth: number } | null>(null);
   const boton = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -34,7 +55,7 @@ export function SelectorMultiple({ opciones, valor, onCambiar, etiqueta, classNa
   const alternar = (o: string) => {
     const enLista = opciones.filter((x) => (igual(x, o) ? !marcado(x) : marcado(x)));
     const extra = fuera.filter((x) => !igual(x, o));
-    onCambiar([...enLista, ...extra].join(' '));
+    onCambiar([...enLista, ...extra].join(sep.unir));
   };
 
   // Ubica la lista bajo el botón (o encima si no cabe)
@@ -48,7 +69,10 @@ export function SelectorMultiple({ opciones, valor, onCambiar, etiqueta, classNa
 
   // Se cierra al pulsar fuera, con Escape o al desplazar la página
   useEffect(() => {
-    if (!abierto) return;
+    if (!abierto) {
+      setBusqueda('');
+      return;
+    }
     const cerrar = () => setAbierto(false);
     const fueraDe = (e: MouseEvent) => {
       const t = e.target as Node;
@@ -93,7 +117,7 @@ export function SelectorMultiple({ opciones, valor, onCambiar, etiqueta, classNa
         >
           {activo && <Check size={12} strokeWidth={3} />}
         </span>
-        <span className="italic">{o}</span>
+        <span className={cursiva ? 'italic' : ''}>{o}</span>
         {nota && <span className="text-[11px] text-amber-700 dark:text-amber-300">{nota}</span>}
       </button>
     );
@@ -111,9 +135,14 @@ export function SelectorMultiple({ opciones, valor, onCambiar, etiqueta, classNa
         onClick={() => setAbierto((a) => !a)}
         className={`flex min-h-[30px] w-full items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-left text-[12px] focus:border-brand-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950 ${className}`}
       >
-        <span className={`flex-1 truncate ${elegidos.length ? 'italic' : 'text-slate-400 dark:text-slate-500'}`}>
-          {elegidos.length ? elegidos.join(', ') : 'Géneros…'}
+        <span className={`flex-1 truncate ${elegidos.length ? (cursiva ? 'italic' : '') : 'text-slate-400 dark:text-slate-500'}`}>
+          {elegidos.length ? elegidos.join(', ') : vacio}
         </span>
+        {elegidos.length > 1 && !cursiva && (
+          <span className="shrink-0 rounded-full bg-slate-100 px-1.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            {elegidos.length}
+          </span>
+        )}
         <ChevronDown size={14} className="shrink-0 text-slate-400" />
       </button>
       {abierto &&
@@ -125,7 +154,18 @@ export function SelectorMultiple({ opciones, valor, onCambiar, etiqueta, classNa
             style={{ position: 'fixed', top: posicion?.top ?? -9999, left: posicion?.left ?? -9999, minWidth: posicion?.minWidth }}
             className="z-50 max-h-72 overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
           >
-            {opciones.map((o) => fila(o))}
+            {conBuscador && (
+              <input
+                autoFocus
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar…"
+                aria-label={`Buscar en ${etiqueta}`}
+                className="mb-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-[13px] focus:border-brand-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950"
+              />
+            )}
+            {visibles.map((o) => fila(o))}
+            {conBuscador && !visibles.length && <p className="px-2 py-1.5 text-[12px] text-slate-500">Sin coincidencias</p>}
             {fuera.map((o) => fila(o, '(no está en la lista)'))}
             {elegidos.length > 0 && (
               <button
