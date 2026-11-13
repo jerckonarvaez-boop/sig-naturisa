@@ -13,8 +13,11 @@ import {
   FlaskRound,
   Gem,
   Hexagon,
+  Leaf,
+  Orbit,
   Gauge as IconoOxigenometro,
   SearchCheck,
+  Shapes,
   TestTube,
   Wallet,
   Waves,
@@ -231,6 +234,12 @@ const ESTILO_PARAMETRO: Record<string, { icono: LucideIcon; color: string }> = {
   calcio: { icono: Bone, color: '[--serie:#b45309] dark:[--serie:#d97706]' },
   magnesio: { icono: Gem, color: '[--serie:#4f46e5] dark:[--serie:#6366f1]' },
   potasio: { icono: Zap, color: '[--serie:#0d9488] dark:[--serie:#14b8a6]' },
+  // Grupos de fitoplancton
+  diatomeas: { icono: Hexagon, color: '[--serie:#b45309] dark:[--serie:#d97706]' },
+  cianofitas: { icono: Waves, color: '[--serie:#0891b2] dark:[--serie:#06b6d4]' },
+  clorofitas: { icono: Leaf, color: '[--serie:#4d7c0f] dark:[--serie:#84cc16]' },
+  dinoflagelados: { icono: Orbit, color: '[--serie:#7c3aed] dark:[--serie:#8b5cf6]' },
+  otros_fito: { icono: Shapes, color: '[--serie:#4f46e5] dark:[--serie:#6366f1]' },
 };
 const ESTILO_GENERAL = { icono: FlaskConical, color: '' };
 
@@ -257,7 +266,8 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
 
   const p = r?.parametro;
   // Química del agua: líneas con área (evolución de cada parámetro) en lugar de columnas
-  const quimica = r?.analisis.id === 'quimica';
+  // Química y fitoplancton se ven muestra por muestra: un gráfico por parámetro, con las piscinas en el eje X
+  const quimica = r?.analisis.id === 'quimica' || r?.analisis.id === 'fitoplancton';
   // En química, con un parámetro elegido se ve solo su gráfico y su tabla; sin elegir, todos
   const solo = quimica && parametro ? (r?.campos.find((c) => c.clave === parametro) ?? null) : null;
   const columna = solo && r ? r.campos.indexOf(solo) : -1;
@@ -399,7 +409,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
       )}
       {r && hayMuestras && p && (
         <>
-          {/* En química no van las barras ni las columnas: cada parámetro tiene su gráfico, piscina por piscina */}
+          {/* En química y fitoplancton no van las barras ni las columnas: cada parámetro tiene su gráfico, piscina por piscina */}
           {!quimica && (
           <div className="grid gap-6 lg:grid-cols-2">
             {nivel === 'muestra' ? (
@@ -484,6 +494,13 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                         min={refFija(t.campo).min}
                         max={refFija(t.campo).max}
                       />
+                      {r.generos[t.campo.clave] && (
+                        <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-800">
+                          <h5 className="text-xs font-semibold">Géneros de {t.campo.etiqueta.toLowerCase()} encontrados</h5>
+                          <p className="mb-1 text-[11px] text-slate-500 dark:text-slate-400">Número de muestras en que apareció cada género</p>
+                          <BarList items={r.generos[t.campo.clave]} formato={miles} formatoLargo={(v) => `${miles(v)} ${v === 1 ? 'muestra' : 'muestras'}`} />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -493,11 +510,6 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
           {r.hallazgos.length > 0 && (
             <Grafico titulo="Hallazgos por grado promedio" nota="Del más grave al más leve · toca un hallazgo para graficarlo">
               <BarList items={r.hallazgos} formato={valorTexto} formatoLargo={(v) => `Grado ${valorTexto(v)}`} seleccion={p.clave} onSelect={setParametro} />
-            </Grafico>
-          )}
-          {r.generos.length > 0 && (
-            <Grafico titulo="Géneros encontrados" nota="Porcentaje de muestras en que aparece cada género">
-              <BarList items={r.generos} formato={porcentaje} />
             </Grafico>
           )}
           <Grafico

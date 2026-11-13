@@ -297,11 +297,11 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
     })
     .filter((t) => t.items.length > 0);
 
-  // Géneros de fitoplancton: en cuántas muestras aparece cada uno
-  const generos: BarListItem[] = [];
+  // Géneros de fitoplancton, por grupo (clave del conteo: diatomeas, cianofitas…): en cuántas muestras aparece cada uno
+  const generos: Record<string, BarListItem[]> = {};
   if (analisis.id === 'fitoplancton' && seccion) {
-    for (const campo of seccion.campos.filter((c) => c.grupo === 'fitoplancton' && c.opciones?.length)) {
-      const grupo = seccion.campos.find((c) => c.clave === campo.junto)?.etiqueta ?? campo.etiqueta;
+    for (const campo of seccion.campos.filter((c) => c.grupo === 'fitoplancton' && c.opciones?.length && c.junto)) {
+      const lista: BarListItem[] = [];
       for (const genero of campo.opciones!) {
         const con = muestras.filter((m) =>
           String(m.valores[campo.clave] ?? '')
@@ -310,15 +310,15 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
         );
         if (!con.length) continue;
         const enCentros = [...new Set(con.map((m) => m.centro))];
-        generos.push({
+        lista.push({
           key: `${campo.clave}:${genero}`,
-          label: `${genero} · ${grupo.toLowerCase()}`,
-          valor: con.length / muestras.length,
-          detalle: `En ${con.length} de ${muestras.length} muestras${f.centro ? '' : ` · ${enCentros.length === 1 ? enCentros[0] : `${enCentros.length} campamentos`}`}`,
+          label: genero,
+          valor: con.length,
+          detalle: `En ${con.length} de ${muestras.length} muestras (${Math.round((con.length / muestras.length) * 100)} %)${f.centro ? '' : ` · ${enCentros.length === 1 ? enCentros[0] : `${enCentros.length} campamentos`}`}`,
         });
       }
+      if (lista.length) generos[campo.junto!] = lista.sort((a, b) => b.valor - a.valor);
     }
-    generos.sort((a, b) => b.valor - a.valor);
   }
 
   // Patología en fresco: cada hallazgo con su grado promedio, del más grave al más leve
