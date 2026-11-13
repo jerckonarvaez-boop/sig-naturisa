@@ -8,6 +8,8 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Component,
   Droplets,
   FlaskConical,
@@ -463,19 +465,61 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
           )}
           {quimica && !general && (
             <Grafico
-              titulo={`${solo ? solo.etiqueta : 'Cada parámetro'} ${nivel === 'muestra' ? `en ${r.nombrePiscina}, análisis por análisis` : `${r.analisis.seccion === 'agua' ? 'piscina por piscina' : 'muestra por muestra'} ${centro ? `en ${centro}` : 'en todos los campamentos'}`}`}
-              nota={[
-                nivel === 'muestra' ? 'Eje X: la fecha de cada análisis' : `Eje X: las ${r.analisis.seccion === 'agua' ? 'piscinas' : 'muestras'} (una por análisis), con su campamento debajo`,
-                'eje Y: el valor del parámetro',
-                'línea punteada: referencia',
-                'rojo: fuera de la referencia',
-                'anillo en el borde: valor que se sale de la escala',
-                'si no caben, desliza el gráfico a los lados',
-              ].join(' · ')}
+              titulo={
+                solo
+                  ? `${solo.etiqueta} ${nivel === 'muestra' ? `en ${r.nombrePiscina}, análisis por análisis` : `${r.analisis.seccion === 'agua' ? 'piscina por piscina' : 'muestra por muestra'} ${centro ? `en ${centro}` : 'en todos los campamentos'}`}`
+                  : `Parámetros de ${r.analisis.nombre.toLowerCase()} ${centro ? `en ${centro}` : 'en todos los campamentos'}`
+              }
+              nota={
+                solo
+                  ? [
+                      nivel === 'muestra' ? 'Eje X: la fecha de cada análisis' : `Eje X: las ${r.analisis.seccion === 'agua' ? 'piscinas' : 'muestras'} (una por análisis), con su campamento debajo`,
+                      'eje Y: el valor del parámetro',
+                      'línea punteada: referencia',
+                      'rojo: fuera de la referencia',
+                      'anillo en el borde: valor que se sale de la escala',
+                      'si no caben, desliza el gráfico a los lados',
+                    ].join(' · ')
+                  : 'Toca un parámetro para ver su gráfico y su tabla'
+              }
             >
+              {!solo ? (
+                // Sin parámetro elegido: solo las tarjetas (los gráficos se dibujan al elegir uno, para que la página no se ponga lenta)
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {r.porParametro.map((t) => {
+                    const estilo = estiloDe(t.campo.clave);
+                    const Icono = estilo.icono;
+                    const fuera = t.items.filter((i) => i.fuera).length;
+                    return (
+                      <button
+                        key={t.campo.clave}
+                        type="button"
+                        onClick={() => setParametro(t.campo.clave)}
+                        className={`flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--serie,var(--chart-serie))] hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand-500 dark:border-slate-800 dark:bg-slate-900 ${estilo.color}`}
+                      >
+                        <span className="grid size-11 shrink-0 place-items-center rounded-xl text-white" style={{ background: 'var(--serie, var(--chart-serie))' }} aria-hidden="true">
+                          <Icono size={22} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold">{t.campo.etiqueta}</span>
+                          <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">{[unidadDe(t.campo), referenciaDe(t.campo)].filter(Boolean).join(' · ') || 'Sin referencia'}</span>
+                          <span className="mt-0.5 block truncate text-[11px] text-slate-600 dark:text-slate-300">
+                            {miles(t.items.length)} {t.items.length === 1 ? 'muestra' : 'muestras'}
+                          </span>
+                          {fuera > 0 && <span className="block truncate text-[11px] font-semibold text-red-700 dark:text-red-400">▲ {miles(fuera)} fuera de referencia</span>}
+                        </span>
+                        <ChevronRight size={16} className="shrink-0 text-slate-400" aria-hidden="true" />
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
               <div className="flex flex-col gap-3">
+                <button type="button" onClick={() => setParametro(null)} className="inline-flex items-center gap-1 self-start text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">
+                  <ChevronLeft size={14} aria-hidden="true" /> Todos los parámetros
+                </button>
                 {r.porParametro
-                  .filter((t) => !solo || t.campo.clave === solo.clave)
+                  .filter((t) => t.campo.clave === solo.clave)
                   .map((t) => {
                   const u = unidadDe(t.campo);
                   const estilo = estiloDe(t.campo.clave);
@@ -513,6 +557,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                   );
                 })}
               </div>
+              )}
             </Grafico>
           )}
           {r.hallazgos.length > 0 && (
