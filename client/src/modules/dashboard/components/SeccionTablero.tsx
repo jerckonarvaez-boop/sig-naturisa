@@ -54,31 +54,52 @@ interface CifraProps {
   etiqueta: string;
   valor: string;
   detalle?: string;
+  /** Ícono del indicador (a la izquierda, en un recuadro del color de su estado) */
+  icono?: LucideIcon;
   /** Estado: 'bien' o 'alerta' agregan ícono y color al detalle (nunca solo el color) */
   estado?: { tipo: 'bien' | 'alerta'; icono: LucideIcon };
 }
 
+/** Colores del indicador según su estado: franja lateral, recuadro del ícono y texto del detalle */
+const TONO_CIFRA = {
+  normal: {
+    franja: 'border-l-brand-500',
+    icono: 'bg-sky-50 text-brand-700 dark:bg-brand-500/15 dark:text-sky-300',
+    detalle: 'text-slate-500 dark:text-slate-400',
+  },
+  alerta: {
+    franja: 'border-l-red-500',
+    icono: 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-400',
+    detalle: 'font-semibold text-red-700 dark:text-red-400',
+  },
+  bien: {
+    franja: 'border-l-emerald-500',
+    icono: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
+    detalle: 'text-emerald-700 dark:text-emerald-400',
+  },
+};
+
 /** Cifra clave de la sección */
-export function Cifra({ etiqueta, valor, detalle, estado }: CifraProps) {
-  const Icono = estado?.icono;
+export function Cifra({ etiqueta, valor, detalle, icono: Icono, estado }: CifraProps) {
+  const IconoEstado = estado?.icono;
+  const tono = TONO_CIFRA[estado?.tipo ?? 'normal'];
   return (
-    <div className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-800/60">
-      <dt className="text-xs text-slate-500 dark:text-slate-400">{etiqueta}</dt>
-      <dd className="text-2xl leading-tight font-semibold">{valor}</dd>
-      {detalle && (
-        <dd
-          className={`mt-0.5 flex items-center gap-1 text-xs ${
-            estado?.tipo === 'alerta'
-              ? 'font-semibold text-red-700 dark:text-red-400'
-              : estado?.tipo === 'bien'
-                ? 'text-emerald-700 dark:text-emerald-400'
-                : 'text-slate-500 dark:text-slate-400'
-          }`}
-        >
-          {Icono && <Icono size={12} aria-hidden />}
-          {detalle}
-        </dd>
+    <div className={`flex min-w-0 items-center gap-3 rounded-xl border border-l-4 border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 ${tono.franja}`}>
+      {Icono && (
+        <span className={`grid size-11 shrink-0 place-items-center rounded-xl ${tono.icono}`} aria-hidden="true">
+          <Icono size={22} />
+        </span>
       )}
+      <div className="min-w-0">
+        <dt className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{etiqueta}</dt>
+        <dd className="truncate text-2xl leading-tight font-bold tabular-nums">{valor}</dd>
+        {detalle && (
+          <dd className={`mt-0.5 flex items-center gap-1 text-xs ${tono.detalle}`}>
+            {IconoEstado && <IconoEstado size={12} className="shrink-0" aria-hidden />}
+            <span className="min-w-0">{detalle}</span>
+          </dd>
+        )}
+      </div>
     </div>
   );
 }

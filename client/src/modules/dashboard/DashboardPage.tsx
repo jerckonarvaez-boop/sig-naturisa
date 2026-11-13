@@ -1,29 +1,44 @@
 import { useMemo, useState, type ComponentType } from 'react';
 import {
+  Activity,
   AlertTriangle,
   Atom,
+  Ban,
   Beaker,
   Bone,
   Bug,
+  Building2,
+  CalendarCheck,
+  CalendarClock,
   CalendarDays,
+  CalendarX,
   Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   Component,
   Droplets,
+  FileText,
   FlaskConical,
   FlaskRound,
+  Gauge as IconoOxigenometro,
   Gem,
+  Hammer,
   Hexagon,
   Leaf,
+  MapPin,
+  Microscope,
   Orbit,
-  Gauge as IconoOxigenometro,
+  Percent,
+  PiggyBank,
   SearchCheck,
   Shapes,
   TestTube,
+  TrendingUp,
   Wallet,
   Waves,
+  Wrench,
   Zap,
   type LucideIcon,
 } from 'lucide-react';
@@ -190,16 +205,16 @@ function SeccionMonitoreo({ fuente, anio }: { fuente: DatosFuente<'monitoreo'>; 
       cifras={
         r && (
           <>
-            <Cifra etiqueta="Resultados del laboratorio" valor={cantidad(r.resultados)} detalle={`${r.efluente} efluente · ${r.afluente} afluente`} />
-            <Cifra etiqueta="Informes PGC-025" valor={cantidad(r.informes)} detalle="Uno por camaronera" />
+            <Cifra icono={FlaskConical} etiqueta="Resultados del laboratorio" valor={cantidad(r.resultados)} detalle={`${r.efluente} efluente · ${r.afluente} afluente`} />
+            <Cifra icono={FileText} etiqueta="Informes PGC-025" valor={cantidad(r.informes)} detalle="Uno por camaronera" />
             <Cifra
-              etiqueta="Superan el límite"
+              icono={TrendingUp} etiqueta="Superan el límite"
               valor={cantidad(r.conIncumplimiento)}
               detalle={r.efluente ? (r.conIncumplimiento ? 'Revisar resultados' : 'Todos cumplen') : 'Sin resultados'}
               estado={r.efluente ? (r.conIncumplimiento ? { tipo: 'alerta', icono: AlertTriangle } : { tipo: 'bien', icono: CheckCircle2 }) : undefined}
             />
             <Cifra
-              etiqueta="pH del efluente"
+              icono={TestTube} etiqueta="pH del efluente"
               valor={r.ph ? `${miles(r.ph.min, 2)} – ${miles(r.ph.max, 2)}` : '—'}
               detalle={r.ph ? `Permitido ${r.ph.limite}` : 'Sin datos'}
             />
@@ -386,17 +401,17 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
       cifras={
         r && (
           <>
-            <Cifra etiqueta="Muestras analizadas" valor={cantidad(r.muestras)} detalle={r.ultima ? `Última: ${r.ultima}` : 'Sin muestras'} />
+            <Cifra icono={Microscope} etiqueta="Muestras analizadas" valor={cantidad(r.muestras)} detalle={r.ultima ? `Última: ${r.ultima}` : 'Sin muestras'} />
             {r.piscina ? (
-              <Cifra etiqueta="Piscina" valor={r.nombrePiscina ?? ''} detalle={centro ?? undefined} />
+              <Cifra icono={Waves} etiqueta="Piscina" valor={r.nombrePiscina ?? ''} detalle={centro ?? undefined} />
             ) : centro ? (
-              <Cifra etiqueta="Piscinas analizadas" valor={cantidad(r.cantidadPiscinas)} detalle={centro} />
+              <Cifra icono={Waves} etiqueta="Piscinas analizadas" valor={cantidad(r.cantidadPiscinas)} detalle={centro} />
             ) : (
-              <Cifra etiqueta="Campamentos" valor={cantidad(r.campamentos)} detalle={`${miles(r.cantidadPiscinas)} piscinas`} />
+              <Cifra icono={MapPin} etiqueta="Campamentos" valor={cantidad(r.campamentos)} detalle={`${miles(r.cantidadPiscinas)} piscinas`} />
             )}
             {r.valoresConRef > 0 && (
               <Cifra
-                etiqueta="Valores fuera de referencia"
+                icono={Activity} etiqueta="Valores fuera de referencia"
                 valor={cantidad(r.valoresFuera)}
                 detalle={`de ${miles(r.valoresConRef)} valores con referencia`}
                 estado={r.valoresFuera ? { tipo: 'alerta', icono: AlertTriangle } : { tipo: 'bien', icono: CheckCircle2 }}
@@ -404,7 +419,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
             )}
             {r.analisis.id === 'fresco' && hayMuestras && (
               <Cifra
-                etiqueta="Hallazgos en nivel alto o más"
+                icono={Bug} etiqueta="Hallazgos en nivel alto o más"
                 valor={cantidad(r.nivelesAltos)}
                 detalle="Grado 2 o mayor"
                 estado={r.nivelesAltos ? { tipo: 'alerta', icono: AlertTriangle } : { tipo: 'bien', icono: CheckCircle2 }}
@@ -515,7 +530,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                 </div>
               ) : (
               <div className="flex flex-col gap-3">
-                <button type="button" onClick={() => setParametro(null)} className="inline-flex items-center gap-1 self-start text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">
+                <button type="button" onClick={() => setParametro(null)} className="inline-flex items-center gap-1 self-start text-xs font-semibold text-brand-700 hover:underline dark:text-sky-300">
                   <ChevronLeft size={14} aria-hidden="true" /> Todos los parámetros
                 </button>
                 {r.porParametro
@@ -602,10 +617,10 @@ function SeccionInspecciones({ fuente, anio }: { fuente: DatosFuente<'revisiones
       cifras={
         r && (
           <>
-            <Cifra etiqueta="Revisiones del check list" valor={cantidad(r.revisiones)} />
-            <Cifra etiqueta="Sucursales revisadas" valor={cantidad(r.sucursales)} />
+            <Cifra icono={ClipboardCheck} etiqueta="Revisiones del check list" valor={cantidad(r.revisiones)} />
+            <Cifra icono={Building2} etiqueta="Sucursales revisadas" valor={cantidad(r.sucursales)} />
             <Cifra
-              etiqueta="Cumplimiento promedio"
+              icono={Percent} etiqueta="Cumplimiento promedio"
               valor={r.promedio == null ? '—' : porcentaje(r.promedio)}
               detalle={r.promedio == null ? 'Sin revisiones' : 'Última revisión de cada sucursal'}
             />
@@ -635,15 +650,15 @@ function SeccionCalendario({ fuente, anio }: { fuente: DatosFuente<'eventos'>; a
       cifras={
         r && (
           <>
-            <Cifra etiqueta="Fechas del año" valor={cantidad(r.total)} detalle={`${miles(r.auditorias)} ${r.auditorias === 1 ? 'auditoría' : 'auditorías'} ASC / BAP`} />
-            <Cifra etiqueta="Próximas" valor={cantidad(r.proximos)} />
+            <Cifra icono={CalendarDays} etiqueta="Fechas del año" valor={cantidad(r.total)} detalle={`${miles(r.auditorias)} ${r.auditorias === 1 ? 'auditoría' : 'auditorías'} ASC / BAP`} />
+            <Cifra icono={CalendarClock} etiqueta="Próximas" valor={cantidad(r.proximos)} />
             <Cifra
-              etiqueta="Vencidas"
+              icono={CalendarX} etiqueta="Vencidas"
               valor={cantidad(r.vencidos)}
               detalle={r.vencidos ? 'Sin marcar como realizadas' : r.total ? 'Ninguna vencida' : undefined}
               estado={r.total ? (r.vencidos ? { tipo: 'alerta', icono: AlertTriangle } : { tipo: 'bien', icono: CheckCircle2 }) : undefined}
             />
-            <Cifra etiqueta="Realizadas" valor={cantidad(r.realizados)} />
+            <Cifra icono={CalendarCheck} etiqueta="Realizadas" valor={cantidad(r.realizados)} />
           </>
         )
       }
@@ -674,10 +689,10 @@ function SeccionOxigenometros({ fuente, anio }: { fuente: DatosFuente<'reparacio
       cifras={
         r && (
           <>
-            <Cifra etiqueta="Partes reparadas" valor={cantidad(r.partesReparadas)} />
-            <Cifra etiqueta="Ahorro" valor={dineroCorto(r.ahorro)} detalle="Lo que no se gastó en partes nuevas" />
-            <Cifra etiqueta="En reparación" valor={cantidad(r.enReparacion)} />
-            <Cifra etiqueta="No reparables" valor={cantidad(r.noReparables)} />
+            <Cifra icono={Wrench} etiqueta="Partes reparadas" valor={cantidad(r.partesReparadas)} />
+            <Cifra icono={PiggyBank} etiqueta="Ahorro" valor={dineroCorto(r.ahorro)} detalle="Lo que no se gastó en partes nuevas" />
+            <Cifra icono={Hammer} etiqueta="En reparación" valor={cantidad(r.enReparacion)} />
+            <Cifra icono={Ban} etiqueta="No reparables" valor={cantidad(r.noReparables)} />
           </>
         )
       }
