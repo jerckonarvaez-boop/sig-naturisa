@@ -111,8 +111,6 @@ export interface FiltrosResultados {
   /** Meses que se analizan (0 = enero … 11 = diciembre); sin indicar, todo el año */
   mesDesde?: number;
   mesHasta?: number;
-  /** Orden de las muestras en el gráfico "muestra por muestra": por fecha de análisis o juntando las de cada piscina */
-  orden?: 'fecha' | 'piscina';
 }
 
 /** Cómo se agrupan las filas: por campamento, por piscina o cada análisis de una piscina */
@@ -260,14 +258,11 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
         })
       : [];
 
-  // Química, parámetro por parámetro: cada muestra ocupa un lugar en el eje X, rotulada con su piscina (o su fecha)
-  // y agrupada por fecha (o por piscina); el valor va en el eje Y
-  const porPiscinaOrden = nivel !== 'muestra' && f.orden === 'piscina';
+  // Química y fitoplancton, parámetro por parámetro: cada muestra ocupa un lugar en el eje X, rotulada con su piscina,
+  // y las piscinas de un mismo campamento van juntas (el campamento las engloba debajo); el valor va en el eje Y
   const numerico = (a: string, b: string) => a.localeCompare(b, 'es', { numeric: true });
-  const ordenadas = [...muestras].sort((a, b) =>
-    porPiscinaOrden
-      ? numerico(a.centro, b.centro) || numerico(clavePiscina(a.nombre), clavePiscina(b.nombre)) || a.fecha.localeCompare(b.fecha)
-      : a.fecha.localeCompare(b.fecha) || numerico(a.centro, b.centro) || numerico(a.nombre, b.nombre),
+  const ordenadas = [...muestras].sort(
+    (a, b) => numerico(a.centro, b.centro) || numerico(clavePiscina(a.nombre), clavePiscina(b.nombre)) || a.fecha.localeCompare(b.fecha),
   );
   // Escala de cada parámetro: deja fuera el 2 % más alto y más bajo, para que un valor disparado no aplaste el resto
   const rangoDe = (v: number[]): [number, number] | undefined => {
@@ -285,8 +280,9 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
           const conCentro = f.centro ? nombre : `${nombre} · ${m.centro}`;
           return {
             key: `${m.codigo}-${m.nombre}-${i}`,
-            label: nivel === 'muestra' || porPiscinaOrden ? fechaCortaNum(m.fecha) : nombre,
-            grupo: nivel === 'muestra' ? '' : porPiscinaOrden ? conCentro : fechaCortaNum(m.fecha),
+            // Con una piscina elegida, cada punto es un análisis (su fecha); si no, cada punto es una piscina
+            label: nivel === 'muestra' ? fechaCortaNum(m.fecha) : nombre,
+            grupo: nivel === 'muestra' ? `${nombre} · ${m.centro}` : m.centro,
             valor: numeroDe(m.valores[c.clave]) ?? 0,
             titulo: `${conCentro} · ${m.fecha}`,
             detalle: `${m.codigo}${estado ? (estado === 'alto' ? ' · ▲ sobre la referencia' : ' · ▼ bajo la referencia') : ''}`,

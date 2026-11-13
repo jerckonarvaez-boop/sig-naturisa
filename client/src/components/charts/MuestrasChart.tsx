@@ -31,7 +31,7 @@ interface MuestrasChartProps {
 const PASO = 40; // ancho mínimo por muestra (px): si no caben, el gráfico se desplaza a los lados
 const EJE = 46; // ancho del eje Y, que queda fijo al desplazar
 const SANGRIA = 22; // aire a la izquierda para el rótulo inclinado de la primera muestra
-const PIE = 74;
+const PIE = 80;
 /** Color de la serie: el del parámetro (variable --serie en un contenedor) o el general de los gráficos */
 const SERIE = 'var(--serie, var(--chart-serie))'; // rótulos de las muestras (inclinados) y de los grupos
 
@@ -71,13 +71,12 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
     if (g && g.label === it.grupo) g.hasta = i;
     else grupos.push({ label: it.grupo, desde: i, hasta: i });
   });
-  // Rótulo de grupo: solo si no pisa al anterior
+  // Rótulo de grupo: al inicio de su corchete (así se ve aunque el grupo sea más ancho que la pantalla), si no pisa al anterior
   let libre = -Infinity;
   const rotulos = grupos.map((g) => {
-    const cx = (x(g.desde) + x(g.hasta)) / 2;
-    const mitad = g.label.length * 3.4;
-    const cabe = Boolean(g.label) && cx - mitad > libre;
-    if (cabe) libre = cx + mitad + 6;
+    const inicio = x(g.desde) - paso / 2 + 5;
+    const cabe = Boolean(g.label) && inicio > libre;
+    if (cabe) libre = inicio + g.label.length * 6.8 + 8;
     return cabe;
   });
 
@@ -105,7 +104,7 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
               ))}
               {/* separación entre grupos */}
               {grupos.slice(1).map((g) => (
-                <line key={g.desde} x1={SANGRIA + paso * g.desde} x2={SANGRIA + paso * g.desde} y1={top} y2={alto - 4} className="stroke-chart-rejilla" strokeWidth={1} />
+                <line key={g.desde} x1={SANGRIA + paso * g.desde} x2={SANGRIA + paso * g.desde} y1={top} y2={base} className="stroke-chart-rejilla" strokeWidth={1} />
               ))}
               {[min, max].map(
                 (r, i) =>
@@ -165,10 +164,21 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
               ))}
               {grupos.map(
                 (g, i) =>
-                  rotulos[i] && (
-                    <text key={g.desde} x={(x(g.desde) + x(g.hasta)) / 2} y={alto - 6} textAnchor="middle" className="fill-slate-500 text-[11px] font-semibold dark:fill-slate-400">
-                      {g.label}
-                    </text>
+                  g.label && (
+                    <g key={g.desde}>
+                      {/* corchete que engloba las muestras del grupo */}
+                      <path
+                        d={`M${x(g.desde) - paso / 2 + 5},${alto - 26} v5 H${x(g.hasta) + paso / 2 - 5} v-5`}
+                        fill="none"
+                        className="stroke-slate-400 dark:stroke-slate-500"
+                        strokeWidth={1.5}
+                      />
+                      {rotulos[i] && (
+                        <text x={x(g.desde) - paso / 2 + 5} y={alto - 6} className="fill-slate-700 text-[11px] font-semibold dark:fill-slate-200">
+                          {g.label}
+                        </text>
+                      )}
+                    </g>
                   ),
               )}
             </svg>

@@ -252,7 +252,6 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
   const [piscina, setPiscina] = useState<string | null>(null);
   const [agrupar, setAgrupar] = useState<'campamento' | 'piscina'>('campamento');
   const [parametro, setParametro] = useState<string | null>(null);
-  const [orden, setOrden] = useState<'fecha' | 'piscina'>('fecha');
 
   const datos = fuente.datos;
   // Sin elección, el primer análisis con muestras en el año
@@ -261,8 +260,8 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
     const base = { centro: null, piscina: null, agrupar: 'campamento' as const, parametro: null };
     const previo = resumenResultados(datos.informes, datos.definicion, anio, { ...base, analisis: elegido ?? ANALISIS_LAB[0].id });
     const analisis = elegido ?? ANALISIS_LAB.find((a) => previo.disponibles[a.id] > 0)?.id ?? ANALISIS_LAB[0].id;
-    return resumenResultados(datos.informes, datos.definicion, anio, { analisis, centro, piscina, agrupar, parametro, orden });
-  }, [datos, anio, elegido, centro, piscina, agrupar, parametro, orden]);
+    return resumenResultados(datos.informes, datos.definicion, anio, { analisis, centro, piscina, agrupar, parametro });
+  }, [datos, anio, elegido, centro, piscina, agrupar, parametro]);
 
   const p = r?.parametro;
   // Química del agua: líneas con área (evolución de cada parámetro) en lugar de columnas
@@ -447,7 +446,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
             <Grafico
               titulo={`${solo ? solo.etiqueta : 'Cada parámetro'} ${nivel === 'muestra' ? `en ${r.nombrePiscina}, análisis por análisis` : `piscina por piscina ${centro ? `en ${centro}` : 'en todos los campamentos'}`}`}
               nota={[
-                nivel === 'muestra' ? 'Eje X: la fecha de cada análisis' : `Eje X: cada muestra con su ${orden === 'piscina' ? 'fecha, agrupadas por piscina' : 'piscina, agrupadas por fecha'}`,
+                nivel === 'muestra' ? 'Eje X: la fecha de cada análisis' : 'Eje X: las piscinas (una por muestra), con su campamento debajo',
                 'eje Y: el valor del parámetro',
                 'línea punteada: referencia',
                 'rojo: fuera de la referencia',
@@ -455,16 +454,6 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                 'si no caben, desliza el gráfico a los lados',
               ].join(' · ')}
             >
-              {nivel !== 'muestra' && (
-                <div className="mb-2 flex items-center gap-1 text-xs font-semibold" role="group" aria-label="Orden de las muestras">
-                  Ordenar por
-                  {(['fecha', 'piscina'] as const).map((o) => (
-                    <button key={o} type="button" aria-pressed={orden === o} onClick={() => setOrden(o)} className={`${CHIP} ${orden === o ? CHIP_ACTIVO : CHIP_INACTIVO}`}>
-                      {o === 'fecha' ? 'Fecha' : 'Piscina'}
-                    </button>
-                  ))}
-                </div>
-              )}
               <div className="flex flex-col gap-3">
                 {r.porParametro
                   .filter((t) => !solo || t.campo.clave === solo.clave)
