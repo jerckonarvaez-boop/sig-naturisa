@@ -144,6 +144,8 @@ const agua: SeccionLab = {
   ],
 };
 
+const MATERIA_ORGANICA = ['materia-organica'];
+
 const suelo: SeccionLab = {
   id: 'suelo',
   nombre: 'Análisis de Suelo',
@@ -151,12 +153,26 @@ const suelo: SeccionLab = {
   etiquetaMuestra: 'Piscina',
   etiquetaFechaMuestra: 'Fecha de muestreo',
   matrices: ['Suelo de piscinas'],
-  tipos: [{ id: 'materia-organica', nombre: 'Análisis de materia orgánica' }],
-  grupos: [{ id: 'suelo', nombre: 'Análisis de suelo' }],
+  // Un informe es de materia orgánica o bacteriológico (no se combinan: son tablas y muestras distintas)
+  tipos: [
+    { id: 'materia-organica', nombre: 'Análisis de materia orgánica' },
+    { id: 'bacteriologia', nombre: 'Análisis bacteriológico del suelo' },
+  ],
+  grupos: [
+    { id: 'suelo', nombre: 'Análisis de suelo', soloTipos: MATERIA_ORGANICA },
+    {
+      id: 'bacteriologia',
+      nombre: 'Análisis bacteriológico',
+      soloTipos: BACTERIOLOGICO,
+      nota: 'Siembra del suelo en medio sólido TCBS, con diluciones 1/10 · Vibrios: rango óptimo 500 – 1000 UFC/ml',
+    },
+  ],
   campos: [
-    { clave: 'humedad', etiqueta: 'Humedad', tipo: 'numero', unidad: '%', grupo: 'suelo' },
-    { clave: 'ph_seco', etiqueta: 'pH seco', tipo: 'numero', grupo: 'suelo' },
-    { clave: 'materia_organica', etiqueta: 'Materia orgánica', tipo: 'numero', unidad: '%', grupo: 'suelo' },
+    { clave: 'humedad', etiqueta: 'Humedad', tipo: 'numero', unidad: '%', grupo: 'suelo', soloTipos: MATERIA_ORGANICA },
+    { clave: 'ph_seco', etiqueta: 'pH seco', tipo: 'numero', grupo: 'suelo', soloTipos: MATERIA_ORGANICA },
+    { clave: 'materia_organica', etiqueta: 'Materia orgánica', tipo: 'numero', unidad: '%', grupo: 'suelo', soloTipos: MATERIA_ORGANICA },
+    { clave: 'vibrios_amarillas', etiqueta: 'Vibrios: colonias amarillas', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO, max: 1000 },
+    { clave: 'vibrios_verdes', etiqueta: 'Vibrios: colonias verdes', tipo: 'numero', unidad: 'UFC/ml', grupo: 'bacteriologia', soloTipos: BACTERIOLOGICO, max: 1000 },
   ],
   metodos: [],
 };

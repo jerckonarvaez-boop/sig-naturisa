@@ -128,7 +128,7 @@ puntos, que es donde se agregarán los roles cuando se definan: `client/src/modu
 Página de inicio (`/`): un filtro de **año**, botones para elegir **qué secciones se ven** (se recuerda en el navegador,
 `localStorage` `sig-tablero-secciones`) y una tarjeta por sección con sus cifras clave y gráficos — Monitoreo de agua
 (parámetros del efluente en % de su límite, resultados por mes, pH), Laboratorios de análisis (los **resultados**: se elige
-el análisis —fitoplancton, química del agua, vibrios, suelo, patología en fresco o bacteriología en camarón—, el campamento,
+el análisis —fitoplancton, química del agua, vibrios, suelo, vibrios en suelo, patología en fresco o bacteriología en camarón—, el campamento,
 la **piscina** y el parámetro; se ve por campamento, por piscina (de un campamento o de todos, "Ver por piscina") o el
 **historial de una piscina** análisis por análisis, y tocar una barra o una fila baja al siguiente nivel. La misma
 piscina escrita distinto ("ps-41", "PS-41") cuenta como una sola; valores por campamento o por muestra, promedio por mes, géneros de fitoplancton encontrados, hallazgos de
@@ -166,7 +166,7 @@ muestra (piscina, precría…).
 | Sección | Código | Tipos de informe |
 |---|---|---|
 | Análisis de Agua (`/laboratorios/agua`) | AA-AAAA-NNN | Tablas combinables (una, dos o las tres): Fitoplancton · Químico · Bacteriológico |
-| Análisis de Suelo (`/laboratorios/suelo`) | AS-AAAA-NNN | Materia orgánica (humedad, pH seco, % MO) |
+| Análisis de Suelo (`/laboratorios/suelo`) | AS-AAAA-NNN | Materia orgánica (humedad, pH seco, % MO) o bacteriológico (vibrios: colonias amarillas y verdes); un tipo por informe |
 | Patologías en fresco (`/laboratorios/patologias`) | AF-AAAA-NNN | Combinables: Patología en fresco · Bacteriología (formato de una o varias muestras según cuántas se agreguen) |
 
 - **Definición única:** parámetros, unidades, grupos, tipos y referencias están en

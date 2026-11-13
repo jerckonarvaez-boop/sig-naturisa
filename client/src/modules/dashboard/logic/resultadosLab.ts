@@ -18,6 +18,7 @@ export const ANALISIS_LAB: AnalisisLab[] = [
   { id: 'quimica', nombre: 'Química del agua', seccion: 'agua', grupos: ['basicos', 'quimica'] },
   { id: 'vibrios', nombre: 'Vibrios en agua', seccion: 'agua', grupos: ['bacteriologia'] },
   { id: 'suelo', nombre: 'Suelo', seccion: 'suelo', grupos: ['suelo'] },
+  { id: 'vibrios-suelo', nombre: 'Vibrios en suelo', seccion: 'suelo', grupos: ['bacteriologia'] },
   { id: 'fresco', nombre: 'Patología en fresco', seccion: 'patologia', grupos: ['fresco'] },
   { id: 'bacteriologia', nombre: 'Bacteriología en camarón', seccion: 'patologia', grupos: ['bacteriologia'] },
 ];
