@@ -39,13 +39,15 @@ interface AreaChartProps {
   compacto?: boolean;
   /** Separación en X a partir de la cual la línea se corta (no une períodos sin datos) */
   corte?: number;
+  /** Escala Y fija [mín, máx]: los valores que se salen se dibujan en el borde, con un anillo */
+  rango?: [number, number];
 }
 
 /**
  * Línea con puntos y área sombreada: la tendencia de un valor en el tiempo, con cada muestra como punto pequeño.
  * La línea se corta donde no hay datos; el eje Y se ajusta a los valores (no parte de cero) para que se note el cambio.
  */
-export function AreaChart({ puntos, ticksX, formato, formatoLargo, alto = 220, min, max, compacto = false, corte = Infinity }: AreaChartProps) {
+export function AreaChart({ puntos, ticksX, formato, formatoLargo, alto = 220, min, max, compacto = false, corte = Infinity, rango }: AreaChartProps) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const tip = useTip();
   const id = useId();
@@ -56,11 +58,17 @@ export function AreaChart({ puntos, ticksX, formato, formatoLargo, alto = 220, m
   const base = margen.top + plotH;
 
   // Escala Y: todas las muestras y la referencia, con marcas redondas
-  const todos = [...puntos.flatMap((p) => [p.valor, ...(p.muestras ?? []).map((m) => m.valor)]), ...(min != null ? [min] : []), ...(max != null ? [max] : [])];
+  const valores = rango ?? puntos.flatMap((p) => [p.valor, ...(p.muestras ?? []).map((m) => m.valor)]);
+  // La referencia entra en la escala solo si queda cerca de los valores (si no, los aplastaría)
+  const amplitud = valores.length ? Math.max(...valores) - Math.min(...valores) || Math.abs(valores[0]) || 1 : 1;
+  const cerca = (r?: number) => (r != null && valores.length && r >= Math.min(...valores) - amplitud && r <= Math.max(...valores) + amplitud ? [r] : []);
+  const todos = [...valores, ...cerca(min), ...cerca(max)];
   const ticks = marcas(todos.length ? Math.min(...todos) : 0, todos.length ? Math.max(...todos) : 1, compacto ? 3 : 4);
   const y0 = ticks[0];
   const y1 = ticks[ticks.length - 1];
-  const y = (v: number) => margen.top + plotH * (1 - (v - y0) / (y1 - y0 || 1));
+  const y = (v: number) => margen.top + plotH * (1 - (Math.min(y1, Math.max(y0, v)) - y0) / (y1 - y0 || 1));
+  const seSale = (v: number) => v < y0 || v > y1;
+  const enEscala = (r?: number): r is number => r != null && !seSale(r);
   const x = (t: number) => margen.left + plotW * t;
 
   // Tramos seguidos (la línea no une períodos sin muestras)
@@ -72,7 +80,8 @@ export function AreaChart({ puntos, ticksX, formato, formatoLargo, alto = 220, m
 
   const muchos = puntos.length > 40;
   const radio = muchos ? 2.5 : compacto ? 3 : 4;
-  const radioMuestra = compacto ? 1.5 : 2;
+  const cuantas = puntos.reduce((n, p) => n + (p.muestras?.length ?? 0), 0);
+  const radioMuestra = cuantas > 400 ? 1.5 : cuantas > 120 ? 2 : 2.5;
   const ticksVisibles = ticksX.filter((_, i) => i % Math.max(1, Math.ceil(ticksX.length / Math.max(1, Math.floor(plotW / (compacto ? 34 : 48))))) === 0);
 
   return (
@@ -100,7 +109,7 @@ export function AreaChart({ puntos, ticksX, formato, formatoLargo, alto = 220, m
           ))}
           {[min, max].map(
             (r, i) =>
-              r != null && (
+              enEscala(r) && (
                 <g key={i}>
                   <line x1={margen.left} x2={width - margen.right} y1={y(r)} y2={y(r)} className="stroke-slate-400 dark:stroke-slate-500" strokeWidth={1} strokeDasharray="4 3" />
                   {!compacto && (
@@ -139,7 +148,7 @@ export function AreaChart({ puntos, ticksX, formato, formatoLargo, alto = 220, m
                   cy={y(p.valor)}
                   r={radio}
                   strokeWidth={muchos ? 1 : 2}
-                  className={`stroke-white dark:stroke-slate-900 ${p.fuera ? 'fill-chart-exceso' : 'fill-chart-serie'}`}
+                  className={seSale(p.valor) ? 'fill-white stroke-chart-exceso dark:fill-slate-900' : `stroke-white dark:stroke-slate-900 ${p.fuera ? 'fill-chart-exceso' : 'fill-chart-serie'}`}
                 />
               </g>
             );
@@ -152,8 +161,9 @@ export function AreaChart({ puntos, ticksX, formato, formatoLargo, alto = 220, m
                 cx={x(p.x)}
                 cy={y(m.valor)}
                 r={radioMuestra}
-                fillOpacity={0.45}
-                className={`hover:[r:5] hover:[fill-opacity:1] ${m.fuera ? 'fill-chart-exceso' : 'fill-chart-serie'}`}
+                fillOpacity={seSale(m.valor) ? 1 : 0.5}
+                strokeWidth={seSale(m.valor) ? 1.5 : 0}
+                className={`hover:[r:5] hover:[fill-opacity:1] ${seSale(m.valor) ? 'fill-white stroke-chart-exceso dark:fill-slate-900' : m.fuera ? 'fill-chart-exceso' : 'fill-chart-serie'}`}
                 {...tip({ valor: formatoLargo(m.valor), etiqueta: m.label, detalle: m.detalle })}
               />
             )),

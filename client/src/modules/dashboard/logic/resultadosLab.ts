@@ -108,6 +108,9 @@ export interface FiltrosResultados {
   /** Sin campamento elegido: filas por campamento o por piscina (de todos los campamentos) */
   agrupar: 'campamento' | 'piscina';
   parametro: string | null;
+  /** Meses que se analizan (0 = enero … 11 = diciembre); sin indicar, todo el año */
+  mesDesde?: number;
+  mesHasta?: number;
 }
 
 /** Cómo se agrupan las filas: por campamento, por piscina o cada análisis de una piscina */
@@ -122,7 +125,11 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
   const seccion = def.secciones[analisis.seccion];
 
   // Muestras del año, por análisis (una muestra entra si tiene algún valor de ese análisis)
-  const delAnio = informes.filter((i) => fechaDe(i).startsWith(String(anio)));
+  const enMeses = (fecha: string) => {
+    const mes = Number(fecha.slice(5, 7)) - 1;
+    return mes >= (f.mesDesde ?? 0) && mes <= (f.mesHasta ?? 11);
+  };
+  const delAnio = informes.filter((i) => fechaDe(i).startsWith(String(anio)) && enMeses(fechaDe(i)));
   const muestrasDe = (a: AnalisisLab): Muestra[] => {
     const cs = (def.secciones[a.seccion]?.campos ?? []).filter((c) => c.tipo === 'numero' && a.grupos.includes(c.grupo));
     return delAnio
@@ -251,44 +258,82 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
         })
       : [];
 
-  // Evolución de cada parámetro: un punto por fecha de análisis (promedio) con todas sus muestras alrededor
+  // Tendencia: un punto por fecha de análisis (promedio) con todas sus muestras alrededor.
+  // El eje de tiempo va de la primera a la última muestra (no el año entero), para que los puntos se separen.
+  const DIA = 86_400_000;
+  const tiempos = muestras.map((m) => Date.parse(m.fecha));
+  const holgura = tiempos.length ? Math.max((Math.max(...tiempos) - Math.min(...tiempos)) * 0.02, 2 * DIA) : 0;
+  const t0 = (tiempos.length ? Math.min(...tiempos) : Date.UTC(anio, 0, 1)) - holgura;
+  const t1 = (tiempos.length ? Math.max(...tiempos) : Date.UTC(anio, 11, 31)) + holgura;
+  const dias = (t1 - t0) / DIA;
+  const enEje = (t: number) => (t - t0) / (t1 - t0);
+  const ticksEje: { x: number; label: string }[] = [];
+  if (dias > 62) {
+    MESES.forEach((label, i) => {
+      const t = Date.UTC(anio, i, 1);
+      if (t >= t0 && t <= t1) ticksEje.push({ x: enEje(t), label: label.slice(0, 3) });
+    });
+  } else {
+    // Pocas semanas: una marca por semana con su fecha
+    for (let t = t0 + holgura; t <= t1; t += 7 * DIA) ticksEje.push({ x: enEje(t), label: fechaCortaNum(new Date(t).toISOString().slice(0, 10)) });
+  }
+  const ejeX = { ticks: ticksEje, corte: 45 / dias };
+
   const fueraDe = (c: CampoLab, v: number | null) =>
     v != null && !c.escala && !c.factorSalinidad && ((c.min != null && v < c.min) || (c.max != null && v > c.max));
-  const enAnio = (fecha: string) => (Date.parse(fecha) - Date.UTC(anio, 0, 1)) / (Date.UTC(anio + 1, 0, 1) - Date.UTC(anio, 0, 1));
-  const tendencias = campos.map((c) => {
+  const serie = (c: CampoLab, lista: Muestra[]) => {
     const porDia = new Map<string, Muestra[]>();
-    for (const m of muestras) if (numeroDe(m.valores[c.clave]) != null) porDia.set(m.fecha, [...(porDia.get(m.fecha) ?? []), m]);
-    return {
-      campo: c,
-      puntos: [...porDia]
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([fecha, l]) => {
-          const x = celda(c, l);
-          const fuera = l.length === 1 ? Boolean(x.estado) : fueraDe(c, x.valor);
-          const aviso = !fuera ? '' : l.length > 1 ? ' · promedio fuera de la referencia' : x.estado === 'alto' ? ' · ▲ sobre la referencia' : ' · ▼ bajo la referencia';
-          return {
-            key: fecha,
-            label: l.length === 1 ? `${fecha} · ${nombreDe(l[0].centro, l[0].nombre)}${f.centro ? '' : ` · ${l[0].centro}`}` : `${fecha} · promedio`,
-            x: enAnio(fecha),
-            valor: x.valor ?? 0,
-            detalle: `${l.length === 1 ? l[0].codigo : detalleCelda(c, x)}${aviso}`,
-            fuera,
-            muestras:
-              l.length > 1
-                ? l.map((m, i) => ({
-                    key: `${m.codigo}-${i}`,
-                    label: `${nombreDe(m.centro, m.nombre)}${f.centro ? '' : ` · ${m.centro}`}`,
-                    valor: numeroDe(m.valores[c.clave]) ?? 0,
-                    detalle: `${m.fecha} · ${m.codigo}${estadoDe(c, m) ? (estadoDe(c, m) === 'alto' ? ' · ▲ sobre la referencia' : ' · ▼ bajo la referencia') : ''}`,
-                    fuera: Boolean(estadoDe(c, m)),
-                  }))
-                : [],
-          };
-        }),
-    };
-  });
-  // Eje de tiempo: el año completo, con una marca al inicio de cada mes
-  const mesesEje = MESES.map((label, i) => ({ x: enAnio(`${anio}-${String(i + 1).padStart(2, '0')}-01`), label: label.slice(0, 3) }));
+    for (const m of lista) if (numeroDe(m.valores[c.clave]) != null) porDia.set(m.fecha, [...(porDia.get(m.fecha) ?? []), m]);
+    return [...porDia]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([fecha, l]) => {
+        const x = celda(c, l);
+        const fuera = l.length === 1 ? Boolean(x.estado) : fueraDe(c, x.valor);
+        const aviso = !fuera ? '' : l.length > 1 ? ' · promedio fuera de la referencia' : x.estado === 'alto' ? ' · ▲ sobre la referencia' : ' · ▼ bajo la referencia';
+        return {
+          key: fecha,
+          label: l.length === 1 ? `${fecha} · ${nombreDe(l[0].centro, l[0].nombre)}${f.centro ? '' : ` · ${l[0].centro}`}` : `${fecha} · promedio`,
+          x: enEje(Date.parse(fecha)),
+          valor: x.valor ?? 0,
+          detalle: `${l.length === 1 ? l[0].codigo : detalleCelda(c, x)}${aviso}`,
+          fuera,
+          muestras:
+            l.length > 1
+              ? l.map((m, i) => ({
+                  key: `${m.codigo}-${i}`,
+                  label: `${nombreDe(m.centro, m.nombre)}${f.centro ? '' : ` · ${m.centro}`}`,
+                  valor: numeroDe(m.valores[c.clave]) ?? 0,
+                  detalle: `${m.fecha} · ${m.codigo}${estadoDe(c, m) ? (estadoDe(c, m) === 'alto' ? ' · ▲ sobre la referencia' : ' · ▼ bajo la referencia') : ''}`,
+                  fuera: Boolean(estadoDe(c, m)),
+                }))
+              : [],
+        };
+      });
+  };
+  // Escala de cada parámetro: deja fuera el 2 % más alto y más bajo, para que un valor disparado no aplaste el resto
+  const rangoDe = (c: CampoLab): [number, number] | undefined => {
+    const v = muestras
+      .map((m) => numeroDe(m.valores[c.clave]))
+      .filter((n): n is number => n != null)
+      .sort((a, b) => a - b);
+    if (!v.length) return undefined;
+    return v.length < 20 ? [v[0], v[v.length - 1]] : [v[Math.floor(v.length * 0.02)], v[Math.ceil(v.length * 0.98) - 1]];
+  };
+  const tendencias = campos.map((c) => ({ campo: c, puntos: serie(c, muestras), rango: rangoDe(c) }));
+  // El parámetro elegido, separado por campamento o por piscina (misma escala en todos, para comparar)
+  const tendenciasGrupo =
+    parametro && nivel !== 'muestra'
+      ? [...(nivel === 'campamento' ? porCentro : porPiscina)]
+          .map(([key, l]) => ({
+            key,
+            label: nivel === 'campamento' ? key : nombreDe(l[0].centro, l[0].nombre),
+            sub: `${nivel === 'piscina' && !f.centro ? `${l[0].centro} · ` : ''}${nMuestras(l.filter((m) => numeroDe(m.valores[parametro.clave]) != null).length)}`,
+            puntos: serie(parametro, l),
+          }))
+          .filter((g) => g.puntos.length > 0)
+          // Primero los que tienen más fechas de análisis (son los que muestran una tendencia)
+          .sort((a, b) => b.puntos.length - a.puntos.length || a.label.localeCompare(b.label, 'es', { numeric: true }))
+      : [];
 
   // Géneros de fitoplancton: en cuántas muestras aparece cada uno
   const generos: BarListItem[] = [];
@@ -350,7 +395,8 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
     cantidadPiscinas: porPiscina.size,
     porFecha,
     tendencias,
-    mesesEje,
+    tendenciasGrupo,
+    ejeX,
     ultima: muestras[0]?.fecha ?? null,
     valoresFuera,
     valoresConRef,
