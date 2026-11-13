@@ -8,14 +8,20 @@ import { LoginPage } from './LoginPage';
  * (y en server/src/middleware/requiereSesion.ts).
  */
 export function ControlAcceso({ children }: { children: ReactNode }) {
-  const { cargando, authActiva, usuario, error, iniciarSesion } = useAuth();
+  const { cargando, authActiva, usuario, error, motivoCierre, iniciarSesion } = useAuth();
 
   if (cargando) {
     return <div className="flex h-screen items-center justify-center bg-brand-950 text-sm text-white/70">Cargando…</div>;
   }
 
   if (authActiva && !usuario) {
-    return <LoginPage onIngresar={iniciarSesion} errorInicial={error} />;
+    const aviso =
+      motivoCierre === 'inactividad'
+        ? 'Su sesión se cerró por inactividad. Ingrese de nuevo para continuar.'
+        : motivoCierre === 'vencida'
+          ? 'Su sesión venció. Ingrese de nuevo para continuar.'
+          : undefined;
+    return <LoginPage onIngresar={iniciarSesion} errorInicial={error} aviso={aviso} />;
   }
 
   return <>{children}</>;

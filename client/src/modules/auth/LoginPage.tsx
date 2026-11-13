@@ -7,10 +7,12 @@ import { APP_CONFIG } from '@/config/app';
 interface LoginPageProps {
   onIngresar: (username: string, password: string) => Promise<void>;
   errorInicial?: string;
+  /** Por qué se pide ingresar de nuevo (sesión cerrada por inactividad o vencida) */
+  aviso?: string;
 }
 
 /** Pantalla de inicio de sesión con las credenciales corporativas de Naturisa. */
-export function LoginPage({ onIngresar, errorInicial }: LoginPageProps) {
+export function LoginPage({ onIngresar, errorInicial, aviso }: LoginPageProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [verClave, setVerClave] = useState(false);
@@ -80,6 +82,12 @@ export function LoginPage({ onIngresar, errorInicial }: LoginPageProps) {
               </button>
             </span>
           </label>
+
+          {aviso && !error && (
+            <p role="status" className="mb-4 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900 dark:bg-amber-500/15 dark:text-amber-200">
+              {aviso}
+            </p>
+          )}
 
           {error && (
             <p role="alert" className="mb-4 rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700 dark:bg-red-500/15 dark:text-red-300">

@@ -1,6 +1,8 @@
 /**
- * Sesión propia del SIG: cookie HttpOnly firmada con SESSION_SECRET (válida 7 días).
- * La plataforma NO guarda contraseñas; la cookie solo contiene usuario, nombre y vencimiento.
+ * Sesión propia del SIG: cookie HttpOnly firmada con SESSION_SECRET. Se cierra tras SESION_INACTIVIDAD_MIN minutos
+ * sin usar la plataforma (30 por defecto) y, aunque se use, a las SESION_MAXIMA_HORAS horas (10) de haber ingresado.
+ * Cada uso la renueva (como mucho una vez por minuto). La plataforma NO guarda contraseñas; la cookie solo contiene
+ * usuario, nombre, cuándo se ingresó y cuándo se usó por última vez.
  */
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -10,7 +12,20 @@ import { env } from '../../config/env.js';
 import type { Usuario } from './auth.types.js';
 
 const COOKIE = 'sig_sesion';
-const DURACION_MS = 7 * 24 * 60 * 60 * 1000;
+const INACTIVIDAD_MS = env.sesionInactividadMin * 60_000;
+const MAXIMA_MS = env.sesionMaximaHoras * 3_600_000;
+/** No se reescribe la cookie en cada petición: basta con renovarla una vez por minuto */
+const RENOVAR_CADA_MS = 60_000;
+
+/** Límites de la sesión que el cliente necesita para avisar antes de cerrarla */
+export const limitesSesion = { inactividadMin: env.sesionInactividadMin, maximaHoras: env.sesionMaximaHoras };
+
+interface DatosSesion extends Usuario {
+  /** Cuándo se ingresó (ms) */
+  inicio: number;
+  /** Último uso (ms) */
+  ultimo: number;
+}
 const SECRETO = env.sessionSecret || secretoLocal();
 
 /** Sin SESSION_SECRET, usa (o crea) una clave guardada junto a la base de datos */
@@ -34,8 +49,8 @@ function iguales(a: string, b: string) {
   return ba.length === bb.length && timingSafeEqual(ba, bb);
 }
 
-function crearToken(usuario: Usuario): string {
-  const datos = Buffer.from(JSON.stringify({ ...usuario, vence: Date.now() + DURACION_MS })).toString('base64url');
+function crearToken(s: DatosSesion): string {
+  const datos = Buffer.from(JSON.stringify({ username: s.username, nombre: s.nombre, inicio: s.inicio, ultimo: s.ultimo })).toString('base64url');
   return `${datos}.${firmar(datos)}`;
 }
 
@@ -47,26 +62,53 @@ function leerCookie(req: Request): string | null {
   return null;
 }
 
-/** Usuario de la cookie de sesión, si la firma es válida y no ha vencido */
-export function usuarioDeSesion(req: Request): Usuario | null {
+/** Datos de la cookie de sesión, si la firma es válida y no venció (por inactividad o por duración máxima) */
+function leerSesion(req: Request): DatosSesion | null {
   const [datos, firma] = (leerCookie(req) ?? '').split('.');
   if (!datos || !firma || !iguales(firma, firmar(datos))) return null;
   try {
     const s = JSON.parse(Buffer.from(datos, 'base64url').toString('utf8'));
-    return s.vence > Date.now() ? { username: s.username, nombre: s.nombre } : null;
+    // Las cookies del formato anterior (sin inicio ni último uso) ya no valen: se vuelve a ingresar
+    if (typeof s.inicio !== 'number' || typeof s.ultimo !== 'number') return null;
+    const ahora = Date.now();
+    if (ahora - s.ultimo > INACTIVIDAD_MS || ahora - s.inicio > MAXIMA_MS) return null;
+    return { username: s.username, nombre: s.nombre, inicio: s.inicio, ultimo: s.ultimo };
   } catch {
     return null;
   }
 }
 
-export function guardarSesion(req: Request, res: Response, usuario: Usuario) {
-  res.cookie(COOKIE, crearToken(usuario), {
+/** Usuario de la cookie de sesión, si es válida */
+export function usuarioDeSesion(req: Request): Usuario | null {
+  const s = leerSesion(req);
+  return s ? { username: s.username, nombre: s.nombre } : null;
+}
+
+function escribirCookie(req: Request, res: Response, s: DatosSesion) {
+  res.cookie(COOKIE, crearToken(s), {
     httpOnly: true,
     sameSite: 'lax',
     secure: req.secure,
-    maxAge: DURACION_MS,
+    // La cookie desaparece al cumplirse la duración máxima de la sesión
+    maxAge: Math.max(0, MAXIMA_MS - (Date.now() - s.inicio)),
     path: '/',
   });
+}
+
+export function guardarSesion(req: Request, res: Response, usuario: Usuario) {
+  const ahora = Date.now();
+  escribirCookie(req, res, { ...usuario, inicio: ahora, ultimo: ahora });
+}
+
+/**
+ * Usuario de la sesión, marcando que se acaba de usar la plataforma (la sesión sigue abierta otros 30 minutos).
+ * null si no hay sesión o ya venció.
+ */
+export function renovarSesion(req: Request, res: Response): Usuario | null {
+  const s = leerSesion(req);
+  if (!s) return null;
+  if (Date.now() - s.ultimo > RENOVAR_CADA_MS) escribirCookie(req, res, { ...s, ultimo: Date.now() });
+  return { username: s.username, nombre: s.nombre };
 }
 
 export function borrarSesion(res: Response) {

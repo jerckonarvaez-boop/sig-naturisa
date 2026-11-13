@@ -1,4 +1,10 @@
 // Configuración centralizada leída de variables de entorno (.env)
+/** Número mayor que 0 de una variable de entorno, o el valor por defecto */
+function positivo(valor: string | undefined, porDefecto: number) {
+  const n = Number(valor);
+  return Number.isFinite(n) && n > 0 ? n : porDefecto;
+}
+
 export const env = {
   port: Number(process.env.PORT ?? 4000),
   dbPath: process.env.DB_PATH ?? 'data/sig.db',
@@ -19,6 +25,10 @@ export const env = {
    * generada junto a la base de datos para que las sesiones sobrevivan a los reinicios.
    */
   sessionSecret: process.env.SESSION_SECRET ?? '',
+  /** La sesión se cierra tras estos minutos sin usar la plataforma */
+  sesionInactividadMin: positivo(process.env.SESION_INACTIVIDAD_MIN, 30),
+  /** Duración máxima de una sesión, aunque se use (horas): así se pide usuario y clave al menos una vez por jornada */
+  sesionMaximaHoras: positivo(process.env.SESION_MAXIMA_HORAS, 10),
   /**
    * Clave para descifrar los datos iniciales (server/semillas). Con ella, al arrancar con la base
    * de datos vacía (ej. plan gratuito de Render) se cargan solos los datos del presupuesto.

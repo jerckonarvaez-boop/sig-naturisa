@@ -7,7 +7,9 @@ export interface Usuario {
 }
 
 /** activa = false solo si el servidor tiene el inicio de sesión desactivado (AUTH_DISABLED) */
-export const consultarEstado = () => apiGet<{ activa: boolean; usuario: Usuario | null }>('/auth/estado');
+/** inactividadMin: minutos sin usar la plataforma tras los que se cierra la sesión */
+export const consultarEstado = () =>
+  apiGet<{ activa: boolean; usuario: Usuario | null; inactividadMin?: number; maximaHoras?: number }>('/auth/estado');
 
 export const iniciarSesion = (username: string, password: string) =>
   apiPost<{ usuario: Usuario }>('/auth/login', { username, password });

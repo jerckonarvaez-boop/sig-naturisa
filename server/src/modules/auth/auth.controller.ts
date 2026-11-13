@@ -1,11 +1,12 @@
 import type { RequestHandler } from 'express';
 import { validarCredenciales } from './auth.service.js';
 import { bloqueado, registrarFallo, reiniciarIntentos } from './limiteIntentos.js';
-import { authActiva, borrarSesion, guardarSesion, usuarioDeSesion } from './sesion.js';
+import { authActiva, borrarSesion, guardarSesion, limitesSesion, renovarSesion } from './sesion.js';
 
-// GET /api/auth/estado -> { activa, usuario }
+// GET /api/auth/estado -> { activa, usuario, inactividadMin, maximaHoras }. Consultarlo cuenta como uso: el cliente
+// lo llama mientras la persona trabaja en una pantalla sin guardar, para que la sesión no se cierre
 export const estado: RequestHandler = (req, res) => {
-  res.json({ activa: authActiva(), usuario: authActiva() ? usuarioDeSesion(req) : null });
+  res.json({ activa: authActiva(), usuario: authActiva() ? renovarSesion(req, res) : null, ...limitesSesion });
 };
 
 // POST /api/auth/login { username, password }

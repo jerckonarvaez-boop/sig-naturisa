@@ -363,7 +363,15 @@ Android se puede compilar en Windows (Android Studio); iOS requiere un Mac con X
 
 Todos los usuarios ingresan con sus **credenciales corporativas de Naturisa**, que se validan contra
 el servicio de seguridad del portal (`AUTH_URL`). La plataforma no guarda contraseñas: las reenvía por
-HTTPS y, si son correctas, crea una sesión propia (cookie firmada, válida 7 días).
+HTTPS y, si son correctas, crea una sesión propia (cookie firmada).
+
+- **Cierre de sesión automático:** tras **30 minutos sin usar la plataforma** (sin ratón, teclado, toques ni
+  desplazamiento en ninguna pestaña) y, aunque se use, a las **10 horas** de haber ingresado. Dos minutos antes del
+  cierre por inactividad aparece un aviso con cuenta regresiva y "Seguir conectado"; luego la pantalla de ingreso
+  explica que la sesión se cerró por inactividad (o que venció). Se cambian con `SESION_INACTIVIDAD_MIN` y
+  `SESION_MAXIMA_HORAS` (Render). La cookie guarda cuándo se ingresó y el último uso; cada petición a la API la renueva
+  (como mucho una vez por minuto) y, mientras se trabaja en una pantalla sin guardar, el cliente consulta
+  `/api/auth/estado` cada 4 minutos para que no venza (`client/src/context/useInactividad.ts`).
 
 - Formato (igual que el portal): `POST { userName, password, codeApplication, includeUserInfo: true }`.
   `codeApplication` es por defecto el del Portal de Compras (`AUTH_APP_CODE`); si TI registra uno
