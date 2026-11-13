@@ -11,6 +11,7 @@ import {
   Waves,
   type LucideIcon,
 } from 'lucide-react';
+import { AreaChart } from '@/components/charts/AreaChart';
 import { BarList } from '@/components/charts/BarList';
 import { BudgetBars } from '@/components/charts/BudgetBars';
 import { ColumnChart } from '@/components/charts/ColumnChart';
@@ -205,6 +206,12 @@ function SeccionMonitoreo({ fuente, anio }: { fuente: DatosFuente<'monitoreo'>; 
   );
 }
 
+/** La línea de tendencia no une fechas separadas por más de un mes y medio (períodos sin análisis) */
+const CORTE_LINEA = 45 / 365;
+
+/** Referencia fija del parámetro (la que depende de la salinidad no se puede dibujar como línea) */
+const refFija = (c: { min?: number; max?: number; factorSalinidad?: number }) => (c.factorSalinidad ? {} : { min: c.min, max: c.max });
+
 function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>; anio: number }) {
   const [elegido, setElegido] = useState<string | null>(null);
   const [centro, setCentro] = useState<string | null>(null);
@@ -223,6 +230,9 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
   }, [datos, anio, elegido, centro, piscina, agrupar, parametro]);
 
   const p = r?.parametro;
+  // Química del agua: líneas con área (evolución de cada parámetro) en lugar de columnas
+  const quimica = r?.analisis.id === 'quimica';
+  const tendencia = r?.tendencias.find((t) => t.campo.clave === p?.clave);
   const unidad = p ? unidadDe(p) : '';
   const conUnidad = (v: number) => `${valorTexto(v)} ${unidad}`.trim();
   const centros = r ? (centro && !r.centros.includes(centro) ? [centro, ...r.centros] : r.centros) : [];
@@ -360,14 +370,17 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
       )}
       {r && hayMuestras && p && (
         <>
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className={`grid gap-6 ${quimica ? '' : 'lg:grid-cols-2'}`}>
             {nivel === 'muestra' ? (
+              // En química, la evolución de la piscina va en el gráfico de línea (no se repite en columnas)
+              !quimica && (
               <Grafico
                 titulo={`${p.etiqueta} en ${r.nombrePiscina}, análisis por análisis`}
                 nota={['Cómo cambió en cada análisis del año', unidad, referenciaDe(p)].filter(Boolean).join(' · ')}
               >
                 <ColumnChart items={r.porFecha} formato={valorTexto} formatoLargo={conUnidad} alto={220} detalleTip={(i) => r.porFecha.find((m) => m.key === i.key)?.detalle} />
               </Grafico>
+              )
             ) : (
               <Grafico
                 titulo={`${p.etiqueta} por ${nivel}`}
@@ -382,10 +395,55 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                 <BarList items={r.barras} formato={valorTexto} formatoLargo={conUnidad} limite={12} onSelect={bajar} />
               </Grafico>
             )}
-            <Grafico titulo={`${p.etiqueta} por mes`} nota={['Promedio de las muestras de cada mes', unidad].filter(Boolean).join(' · ')}>
-              <ColumnChart items={r.porMes} formato={valorTexto} formatoLargo={conUnidad} alto={220} detalleTip={(i) => r.porMes.find((m) => m.key === i.key)?.detalle} />
-            </Grafico>
+            {quimica && tendencia ? (
+              <Grafico
+                titulo={`${p.etiqueta}: tendencia ${nivel === 'muestra' ? `de ${r.nombrePiscina}` : centro ? `de ${centro}` : 'de todos los campamentos'}`}
+                nota={[nivel === 'muestra' ? 'Cada punto es un análisis' : 'Punto pequeño: cada muestra · línea: promedio de cada fecha', unidad, referenciaDe(p), 'rojo: fuera de la referencia']
+                  .filter(Boolean)
+                  .join(' · ')}
+              >
+                <AreaChart puntos={tendencia.puntos} ticksX={r.mesesEje} corte={CORTE_LINEA} formato={valorTexto} formatoLargo={conUnidad} alto={260} min={refFija(p).min} max={refFija(p).max} />
+              </Grafico>
+            ) : (
+              <Grafico titulo={`${p.etiqueta} por mes`} nota={['Promedio de las muestras de cada mes', unidad].filter(Boolean).join(' · ')}>
+                <ColumnChart items={r.porMes} formato={valorTexto} formatoLargo={conUnidad} alto={220} detalleTip={(i) => r.porMes.find((m) => m.key === i.key)?.detalle} />
+              </Grafico>
+            )}
           </div>
+          {quimica && (
+            <Grafico
+              titulo="Evolución de cada parámetro"
+              nota={`${nivel === 'muestra' ? `Análisis por análisis de ${r.nombrePiscina}` : `Todas las muestras ${centro ? `de ${centro}` : 'de todos los campamentos'} y el promedio de cada fecha`} · línea punteada: referencia · toca un parámetro para verlo en grande`}
+            >
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {r.tendencias
+                  .filter((t) => t.puntos.length > 0)
+                  .map((t) => {
+                    const u = unidadDe(t.campo);
+                    const activo = t.campo.clave === p.clave;
+                    return (
+                      <div key={t.campo.clave} className={`min-w-0 rounded-lg border p-3 ${activo ? 'border-brand-500 ring-1 ring-brand-500' : 'border-slate-200 dark:border-slate-800'}`}>
+                        <button type="button" aria-pressed={activo} onClick={() => setParametro(t.campo.clave)} className="block w-full text-left">
+                          <span className="block truncate text-[13px] font-semibold">{t.campo.etiqueta}</span>
+                          <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">{[u, referenciaDe(t.campo)].filter(Boolean).join(' · ') || ' '}</span>
+                        </button>
+                        <AreaChart
+                          puntos={t.puntos}
+                          ticksX={r.mesesEje}
+                          corte={CORTE_LINEA}
+                          formato={valorTexto}
+                          formatoLargo={(v) => `${valorTexto(v)} ${u}`.trim()}
+                          alto={150}
+                          min={refFija(t.campo).min}
+                          max={refFija(t.campo).max}
+                          compacto
+                        />
+                      </div>
+                    );
+                  })}
+              </div>
+            </Grafico>
+          )}
           {r.hallazgos.length > 0 && (
             <Grafico titulo="Hallazgos por grado promedio" nota="Del más grave al más leve · toca un hallazgo para graficarlo">
               <BarList items={r.hallazgos} formato={valorTexto} formatoLargo={(v) => `Grado ${valorTexto(v)}`} seleccion={p.clave} onSelect={setParametro} />

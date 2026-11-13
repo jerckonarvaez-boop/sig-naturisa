@@ -251,6 +251,45 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
         })
       : [];
 
+  // Evolución de cada parámetro: un punto por fecha de análisis (promedio) con todas sus muestras alrededor
+  const fueraDe = (c: CampoLab, v: number | null) =>
+    v != null && !c.escala && !c.factorSalinidad && ((c.min != null && v < c.min) || (c.max != null && v > c.max));
+  const enAnio = (fecha: string) => (Date.parse(fecha) - Date.UTC(anio, 0, 1)) / (Date.UTC(anio + 1, 0, 1) - Date.UTC(anio, 0, 1));
+  const tendencias = campos.map((c) => {
+    const porDia = new Map<string, Muestra[]>();
+    for (const m of muestras) if (numeroDe(m.valores[c.clave]) != null) porDia.set(m.fecha, [...(porDia.get(m.fecha) ?? []), m]);
+    return {
+      campo: c,
+      puntos: [...porDia]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([fecha, l]) => {
+          const x = celda(c, l);
+          const fuera = l.length === 1 ? Boolean(x.estado) : fueraDe(c, x.valor);
+          const aviso = !fuera ? '' : l.length > 1 ? ' · promedio fuera de la referencia' : x.estado === 'alto' ? ' · ▲ sobre la referencia' : ' · ▼ bajo la referencia';
+          return {
+            key: fecha,
+            label: l.length === 1 ? `${fecha} · ${nombreDe(l[0].centro, l[0].nombre)}${f.centro ? '' : ` · ${l[0].centro}`}` : `${fecha} · promedio`,
+            x: enAnio(fecha),
+            valor: x.valor ?? 0,
+            detalle: `${l.length === 1 ? l[0].codigo : detalleCelda(c, x)}${aviso}`,
+            fuera,
+            muestras:
+              l.length > 1
+                ? l.map((m, i) => ({
+                    key: `${m.codigo}-${i}`,
+                    label: `${nombreDe(m.centro, m.nombre)}${f.centro ? '' : ` · ${m.centro}`}`,
+                    valor: numeroDe(m.valores[c.clave]) ?? 0,
+                    detalle: `${m.fecha} · ${m.codigo}${estadoDe(c, m) ? (estadoDe(c, m) === 'alto' ? ' · ▲ sobre la referencia' : ' · ▼ bajo la referencia') : ''}`,
+                    fuera: Boolean(estadoDe(c, m)),
+                  }))
+                : [],
+          };
+        }),
+    };
+  });
+  // Eje de tiempo: el año completo, con una marca al inicio de cada mes
+  const mesesEje = MESES.map((label, i) => ({ x: enAnio(`${anio}-${String(i + 1).padStart(2, '0')}-01`), label: label.slice(0, 3) }));
+
   // Géneros de fitoplancton: en cuántas muestras aparece cada uno
   const generos: BarListItem[] = [];
   if (analisis.id === 'fitoplancton' && seccion) {
@@ -310,6 +349,8 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
     nombrePiscina: piscina ? (nombresPiscina.get(piscina) ?? piscina) : null,
     cantidadPiscinas: porPiscina.size,
     porFecha,
+    tendencias,
+    mesesEje,
     ultima: muestras[0]?.fecha ?? null,
     valoresFuera,
     valoresConRef,
