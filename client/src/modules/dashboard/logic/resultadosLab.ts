@@ -291,7 +291,8 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
             fuera: Boolean(estado),
           };
         });
-      return { campo: c, items, rango: rangoDe(items.map((i) => i.valor)) };
+      // Los grados de patología van siempre de 0 a 4, para comparar un hallazgo con otro
+      return { campo: c, items, rango: c.escala === 'patologia' ? ([0, 4] as [number, number]) : rangoDe(items.map((i) => i.valor)) };
     })
     .filter((t) => t.items.length > 0);
 

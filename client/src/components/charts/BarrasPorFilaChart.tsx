@@ -13,6 +13,8 @@ export interface FilaBarras {
   /** Rango de referencia fijo: líneas punteadas dentro de la fila */
   min?: number;
   max?: number;
+  /** Tope fijo de la escala de la fila (ej. 4 en los grados de patología); sin indicar, el mayor valor */
+  tope?: number;
   puntos: { categoria: string; valor: number; titulo: string; detalle?: string; fuera?: boolean }[];
 }
 
@@ -52,7 +54,7 @@ export function BarrasPorFilaChart({ categorias, filas, formato, formatoLargo = 
         const mayor = orden.length > 1 && orden[1] > 0 && orden[0] > orden[1] * 3 ? orden[1] * 1.25 : Math.max(...valores, 0);
         // La referencia entra en la escala solo si queda cerca de los valores (si no, aplastaría las barras)
         const refs = [fila.min, fila.max].filter((r): r is number => r != null && r <= mayor * 1.6);
-        const tope = Math.max(mayor, ...refs) || 1;
+        const tope = fila.tope ?? (Math.max(mayor, ...refs) || 1);
         const y = (v: number) => base - (base - TOPE) * (Math.min(v, tope) / tope);
         const porCategoria = new Map(fila.puntos.map((p) => [p.categoria, p]));
         return (

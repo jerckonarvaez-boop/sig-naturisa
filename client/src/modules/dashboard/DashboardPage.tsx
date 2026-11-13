@@ -4,6 +4,7 @@ import {
   Atom,
   Beaker,
   Bone,
+  Bug,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -235,6 +236,10 @@ const ESTILO_PARAMETRO: Record<string, { icono: LucideIcon; color: string }> = {
   calcio: { icono: Bone, color: '[--serie:#b45309] dark:[--serie:#d97706]' },
   magnesio: { icono: Gem, color: '[--serie:#4f46e5] dark:[--serie:#6366f1]' },
   potasio: { icono: Zap, color: '[--serie:#0d9488] dark:[--serie:#14b8a6]' },
+  // Suelo
+  humedad: { icono: Droplets, color: '[--serie:#0891b2] dark:[--serie:#06b6d4]' },
+  ph_seco: { icono: TestTube, color: '[--serie:#7c3aed] dark:[--serie:#8b5cf6]' },
+  materia_organica: { icono: Leaf, color: '[--serie:#4d7c0f] dark:[--serie:#84cc16]' },
   // Grupos de fitoplancton
   diatomeas: { icono: Hexagon, color: '[--serie:#b45309] dark:[--serie:#d97706]' },
   cianofitas: { icono: Waves, color: '[--serie:#0891b2] dark:[--serie:#06b6d4]' },
@@ -243,9 +248,13 @@ const ESTILO_PARAMETRO: Record<string, { icono: LucideIcon; color: string }> = {
   otros_fito: { icono: Shapes, color: '[--serie:#4f46e5] dark:[--serie:#6366f1]' },
 };
 const ESTILO_GENERAL = { icono: FlaskConical, color: '' };
+const ESTILO_AMARILLAS = { icono: Bug, color: '[--serie:#a16207] dark:[--serie:#eab308]' };
+const ESTILO_VERDES = { icono: Bug, color: '[--serie:#059669] dark:[--serie:#10b981]' };
+/** Vibrios (de agua, suelo o camarón): colonias amarillas en ocre y verdes en verde; lo demás, su estilo propio o el general */
+const estiloDe = (clave: string) => ESTILO_PARAMETRO[clave] ?? (clave.endsWith('_amarillas') ? ESTILO_AMARILLAS : clave.endsWith('_verdes') ? ESTILO_VERDES : ESTILO_GENERAL);
 
-/** Referencia fija del parámetro (la que depende de la salinidad no se puede dibujar como línea) */
-const refFija = (c: { min?: number; max?: number; factorSalinidad?: number }) => (c.factorSalinidad ? {} : { min: c.min, max: c.max });
+/** Referencia fija del parámetro (la que depende de la salinidad no se puede dibujar como línea; los grados de patología no tienen) */
+const refFija = (c: { min?: number; max?: number; factorSalinidad?: number; escala?: string }) => (c.factorSalinidad || c.escala ? {} : { min: c.min, max: c.max });
 
 function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>; anio: number }) {
   const [elegido, setElegido] = useState<string | null>(null);
@@ -267,13 +276,12 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
   const p = r?.parametro;
   // Química del agua: líneas con área (evolución de cada parámetro) en lugar de columnas
   // Química y fitoplancton se ven muestra por muestra: un gráfico por parámetro, con las piscinas en el eje X
-  const quimica = r?.analisis.id === 'quimica' || r?.analisis.id === 'fitoplancton';
+  // Todos los análisis de laboratorio se ven muestra por muestra: un gráfico por parámetro, con las piscinas en el eje X
+  const quimica = Boolean(r);
   // En química, con un parámetro elegido se ve solo su gráfico y su tabla; sin elegir, todos
   const solo = quimica && parametro ? (r?.campos.find((c) => c.clave === parametro) ?? null) : null;
   const columna = solo && r ? r.campos.indexOf(solo) : -1;
   const general = quimica && r?.nivel === 'muestra' && !solo;
-  const unidad = p ? unidadDe(p) : '';
-  const conUnidad = (v: number) => `${valorTexto(v)} ${unidad}`.trim();
   const centros = r ? (centro && !r.centros.includes(centro) ? [centro, ...r.centros] : r.centros) : [];
   const hayMuestras = Boolean(r && r.muestras > 0);
   const nivel = r?.nivel ?? 'campamento';
@@ -410,40 +418,6 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
       )}
       {r && hayMuestras && p && (
         <>
-          {/* En química y fitoplancton no van las barras ni las columnas: cada parámetro tiene su gráfico, piscina por piscina */}
-          {!quimica && (
-          <div className="grid gap-6 lg:grid-cols-2">
-            {nivel === 'muestra' ? (
-              // En química, la evolución de la piscina va en el gráfico de línea (no se repite en columnas)
-              !quimica && (
-              <Grafico
-                titulo={`${p.etiqueta} en ${r.nombrePiscina}, análisis por análisis`}
-                nota={['Cómo cambió en cada análisis del año', unidad, referenciaDe(p)].filter(Boolean).join(' · ')}
-              >
-                <ColumnChart items={r.porFecha} formato={valorTexto} formatoLargo={conUnidad} alto={220} detalleTip={(i) => r.porFecha.find((m) => m.key === i.key)?.detalle} />
-              </Grafico>
-              )
-            ) : (
-              <Grafico
-                titulo={`${p.etiqueta} por ${nivel}`}
-                nota={[
-                  `Promedio de sus muestras · toca ${nivel === 'campamento' ? 'uno para ver sus piscinas' : 'una para ver su historial'}`,
-                  unidad,
-                  referenciaDe(p),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              >
-                <BarList items={r.barras} formato={valorTexto} formatoLargo={conUnidad} limite={12} onSelect={bajar} />
-              </Grafico>
-            )}
-            {!quimica && (
-              <Grafico titulo={`${p.etiqueta} por mes`} nota={['Promedio de las muestras de cada mes', unidad].filter(Boolean).join(' · ')}>
-                <ColumnChart items={r.porMes} formato={valorTexto} formatoLargo={conUnidad} alto={220} detalleTip={(i) => r.porMes.find((m) => m.key === i.key)?.detalle} />
-              </Grafico>
-            )}
-          </div>
-          )}
           {/* Una piscina elegida y sin parámetro: un solo gráfico general con todos los parámetros de esa piscina */}
           {general && (
             <Grafico
@@ -455,7 +429,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                   .sort((a, b) => a[0].localeCompare(b[0]))
                   .map(([key, label]) => ({ key, label }))}
                 filas={r.porParametro.map((t) => {
-                  const estilo = ESTILO_PARAMETRO[t.campo.clave] ?? ESTILO_GENERAL;
+                  const estilo = estiloDe(t.campo.clave);
                   const Icono = estilo.icono;
                   return {
                     key: t.campo.clave,
@@ -465,6 +439,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                     icono: <Icono size={17} />,
                     min: refFija(t.campo).min,
                     max: refFija(t.campo).max,
+                    tope: t.campo.escala === 'patologia' ? 4 : undefined,
                     puntos: t.items.map((i) => ({ categoria: i.analisis, valor: i.valor, titulo: i.titulo, detalle: i.detalle, fuera: i.fuera })),
                   };
                 })}
@@ -488,9 +463,9 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
           )}
           {quimica && !general && (
             <Grafico
-              titulo={`${solo ? solo.etiqueta : 'Cada parámetro'} ${nivel === 'muestra' ? `en ${r.nombrePiscina}, análisis por análisis` : `piscina por piscina ${centro ? `en ${centro}` : 'en todos los campamentos'}`}`}
+              titulo={`${solo ? solo.etiqueta : 'Cada parámetro'} ${nivel === 'muestra' ? `en ${r.nombrePiscina}, análisis por análisis` : `${r.analisis.seccion === 'agua' ? 'piscina por piscina' : 'muestra por muestra'} ${centro ? `en ${centro}` : 'en todos los campamentos'}`}`}
               nota={[
-                nivel === 'muestra' ? 'Eje X: la fecha de cada análisis' : 'Eje X: las piscinas (una por muestra), con su campamento debajo',
+                nivel === 'muestra' ? 'Eje X: la fecha de cada análisis' : `Eje X: las ${r.analisis.seccion === 'agua' ? 'piscinas' : 'muestras'} (una por análisis), con su campamento debajo`,
                 'eje Y: el valor del parámetro',
                 'línea punteada: referencia',
                 'rojo: fuera de la referencia',
@@ -503,7 +478,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                   .filter((t) => !solo || t.campo.clave === solo.clave)
                   .map((t) => {
                   const u = unidadDe(t.campo);
-                  const estilo = ESTILO_PARAMETRO[t.campo.clave] ?? ESTILO_GENERAL;
+                  const estilo = estiloDe(t.campo.clave);
                   const Icono = estilo.icono;
                   return (
                     <div key={t.campo.clave} className={`min-w-0 rounded-lg border border-slate-200 p-3 dark:border-slate-800 ${estilo.color}`}>
@@ -541,8 +516,8 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
             </Grafico>
           )}
           {r.hallazgos.length > 0 && (
-            <Grafico titulo="Hallazgos por grado promedio" nota="Del más grave al más leve · toca un hallazgo para graficarlo">
-              <BarList items={r.hallazgos} formato={valorTexto} formatoLargo={(v) => `Grado ${valorTexto(v)}`} seleccion={p.clave} onSelect={setParametro} />
+            <Grafico titulo="Hallazgos por grado promedio" nota="Del más grave al más leve · toca un hallazgo para ver solo su gráfico">
+              <BarList items={r.hallazgos} formato={valorTexto} formatoLargo={(v) => `Grado ${valorTexto(v)}`} seleccion={solo?.clave ?? null} onSelect={setParametro} />
             </Grafico>
           )}
           <Grafico

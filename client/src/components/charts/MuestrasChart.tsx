@@ -48,7 +48,9 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
   const plotH = alto - top - PIE;
   const base = top + plotH;
   const visible = Math.max(width - EJE - SANGRIA, 1);
-  const paso = Math.max(PASO, visible / Math.max(items.length, 1));
+  // Cada muestra ocupa lo que necesita su valor escrito (170.000 pide más que 8,4)
+  const largo = Math.max(0, ...items.map((i) => formato(i.valor).length));
+  const paso = Math.max(PASO, largo * 6.2 + 10, visible / Math.max(items.length, 1));
   const ancho = SANGRIA + Math.max(visible, paso * items.length);
   const x = (i: number) => SANGRIA + paso * (i + 0.5);
 
