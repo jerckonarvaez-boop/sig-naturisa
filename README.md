@@ -128,8 +128,10 @@ puntos, que es donde se agregarán los roles cuando se definan: `client/src/modu
 Página de inicio (`/`): un filtro de **año**, botones para elegir **qué secciones se ven** (se recuerda en el navegador,
 `localStorage` `sig-tablero-secciones`) y una tarjeta por sección con sus cifras clave y gráficos — Monitoreo de agua
 (parámetros del efluente en % de su límite, resultados por mes, pH), Laboratorios de análisis (los **resultados**: se elige
-el análisis —fitoplancton, química del agua, vibrios, suelo, patología en fresco o bacteriología en camarón—, el campamento
-y el parámetro; valores por campamento o por muestra, promedio por mes, géneros de fitoplancton encontrados, hallazgos de
+el análisis —fitoplancton, química del agua, vibrios, suelo, patología en fresco o bacteriología en camarón—, el campamento,
+la **piscina** y el parámetro; se ve por campamento, por piscina (de un campamento o de todos, "Ver por piscina") o el
+**historial de una piscina** análisis por análisis, y tocar una barra o una fila baja al siguiente nivel. La misma
+piscina escrita distinto ("ps-41", "PS-41") cuenta como una sola; valores por campamento o por muestra, promedio por mes, géneros de fitoplancton encontrados, hallazgos de
 patología por grado y una tabla con todos los parámetros que marca ▲/▼ lo que sale de la referencia; los datos vienen de
 `GET /api/laboratorio/resultados`), Inspecciones SCI (cumplimiento de la última revisión de cada sucursal), Calendario y
 auditorías (fechas por mes y por tipo, próximas/vencidas/realizadas), Oxigenómetros (ahorro por mes) y Presupuesto

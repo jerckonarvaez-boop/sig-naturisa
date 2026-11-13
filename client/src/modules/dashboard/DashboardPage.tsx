@@ -208,22 +208,42 @@ function SeccionMonitoreo({ fuente, anio }: { fuente: DatosFuente<'monitoreo'>; 
 function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>; anio: number }) {
   const [elegido, setElegido] = useState<string | null>(null);
   const [centro, setCentro] = useState<string | null>(null);
+  const [piscina, setPiscina] = useState<string | null>(null);
+  const [agrupar, setAgrupar] = useState<'campamento' | 'piscina'>('campamento');
   const [parametro, setParametro] = useState<string | null>(null);
 
   const datos = fuente.datos;
   // Sin elección, el primer análisis con muestras en el año
   const r = useMemo(() => {
     if (!datos) return null;
-    const previo = resumenResultados(datos.informes, datos.definicion, anio, { analisis: elegido ?? ANALISIS_LAB[0].id, centro: null, parametro: null });
+    const base = { centro: null, piscina: null, agrupar: 'campamento' as const, parametro: null };
+    const previo = resumenResultados(datos.informes, datos.definicion, anio, { ...base, analisis: elegido ?? ANALISIS_LAB[0].id });
     const analisis = elegido ?? ANALISIS_LAB.find((a) => previo.disponibles[a.id] > 0)?.id ?? ANALISIS_LAB[0].id;
-    return resumenResultados(datos.informes, datos.definicion, anio, { analisis, centro, parametro });
-  }, [datos, anio, elegido, centro, parametro]);
+    return resumenResultados(datos.informes, datos.definicion, anio, { analisis, centro, piscina, agrupar, parametro });
+  }, [datos, anio, elegido, centro, piscina, agrupar, parametro]);
 
   const p = r?.parametro;
   const unidad = p ? unidadDe(p) : '';
   const conUnidad = (v: number) => `${valorTexto(v)} ${unidad}`.trim();
   const centros = r ? (centro && !r.centros.includes(centro) ? [centro, ...r.centros] : r.centros) : [];
   const hayMuestras = Boolean(r && r.muestras > 0);
+  const nivel = r?.nivel ?? 'campamento';
+  const elegirCentro = (c: string | null) => {
+    setCentro(c);
+    setPiscina(null);
+  };
+  /** Baja un nivel desde una barra o una fila: campamento → sus piscinas → historial de una piscina */
+  const bajar = (key: string) => {
+    if (nivel === 'campamento') elegirCentro(key);
+    else if (nivel === 'piscina') {
+      const [c, pis] = key.split('|');
+      setCentro(c);
+      setPiscina(pis);
+    }
+  };
+  const SELECT = 'rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900';
+  const que = nivel === 'muestra' ? 'análisis' : nivel;
+  const nombreNivel = { campamento: 'Campamento', piscina: 'Piscina', muestra: 'Fecha' }[nivel];
 
   const filtros = r && (
     <>
@@ -238,6 +258,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
               onClick={() => {
                 setElegido(a.id);
                 setParametro(null);
+                setPiscina(null);
               }}
               className={`${CHIP} ${activo ? CHIP_ACTIVO : CHIP_INACTIVO}`}
             >
@@ -249,11 +270,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
       </div>
       <label className="flex items-center gap-2 text-xs font-semibold">
         Campamento
-        <select
-          value={centro ?? ''}
-          onChange={(e) => setCentro(e.target.value || null)}
-          className="max-w-56 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
-        >
+        <select value={centro ?? ''} onChange={(e) => elegirCentro(e.target.value || null)} className={`max-w-56 ${SELECT}`}>
           <option value="">Todos</option>
           {centros.map((c) => (
             <option key={c} value={c}>
@@ -262,14 +279,32 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
           ))}
         </select>
       </label>
+      {centro ? (
+        <label className="flex items-center gap-2 text-xs font-semibold">
+          Piscina
+          <select value={r.piscina ?? ''} onChange={(e) => setPiscina(e.target.value || null)} className={`max-w-40 ${SELECT}`}>
+            <option value="">Todas ({r.piscinas.length})</option>
+            {r.piscinas.map((x) => (
+              <option key={x.key} value={x.key}>
+                {x.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <div className="flex items-center gap-1 text-xs font-semibold" role="group" aria-label="Agrupar los resultados">
+          Ver por
+          {(['campamento', 'piscina'] as const).map((a) => (
+            <button key={a} type="button" aria-pressed={agrupar === a} onClick={() => setAgrupar(a)} className={`${CHIP} ${agrupar === a ? CHIP_ACTIVO : CHIP_INACTIVO}`}>
+              {a === 'campamento' ? 'Campamento' : 'Piscina'}
+            </button>
+          ))}
+        </div>
+      )}
       {r.campos.length > 0 && (
         <label className="flex items-center gap-2 text-xs font-semibold">
           Parámetro
-          <select
-            value={p?.clave ?? ''}
-            onChange={(e) => setParametro(e.target.value)}
-            className="max-w-64 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
-          >
+          <select value={p?.clave ?? ''} onChange={(e) => setParametro(e.target.value)} className={`max-w-64 ${SELECT}`}>
             {r.campos.map((c) => (
               <option key={c.clave} value={c.clave}>
                 {c.etiqueta}
@@ -292,7 +327,13 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
         r && (
           <>
             <Cifra etiqueta="Muestras analizadas" valor={cantidad(r.muestras)} detalle={r.ultima ? `Última: ${r.ultima}` : 'Sin muestras'} />
-            <Cifra etiqueta={centro ? 'Campamento' : 'Campamentos'} valor={centro ? centro : cantidad(r.campamentos)} />
+            {r.piscina ? (
+              <Cifra etiqueta="Piscina" valor={r.nombrePiscina ?? ''} detalle={centro ?? undefined} />
+            ) : centro ? (
+              <Cifra etiqueta="Piscinas analizadas" valor={cantidad(r.cantidadPiscinas)} detalle={centro} />
+            ) : (
+              <Cifra etiqueta="Campamentos" valor={cantidad(r.campamentos)} detalle={`${miles(r.cantidadPiscinas)} piscinas`} />
+            )}
             {r.valoresConRef > 0 && (
               <Cifra
                 etiqueta="Valores fuera de referencia"
@@ -320,18 +361,27 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
       {r && hayMuestras && p && (
         <>
           <div className="grid gap-6 lg:grid-cols-2">
-            <Grafico
-              titulo={`${p.etiqueta} por ${centro ? 'muestra' : 'campamento'}`}
-              nota={[centro ? 'Valor de cada muestra' : 'Promedio de sus muestras · toca uno para verlo', unidad, referenciaDe(p)].filter(Boolean).join(' · ')}
-            >
-              <BarList
-                items={r.barras}
-                formato={valorTexto}
-                formatoLargo={conUnidad}
-                limite={10}
-                onSelect={centro ? undefined : (k) => setCentro(k)}
-              />
-            </Grafico>
+            {nivel === 'muestra' ? (
+              <Grafico
+                titulo={`${p.etiqueta} en ${r.nombrePiscina}, análisis por análisis`}
+                nota={['Cómo cambió en cada análisis del año', unidad, referenciaDe(p)].filter(Boolean).join(' · ')}
+              >
+                <ColumnChart items={r.porFecha} formato={valorTexto} formatoLargo={conUnidad} alto={220} detalleTip={(i) => r.porFecha.find((m) => m.key === i.key)?.detalle} />
+              </Grafico>
+            ) : (
+              <Grafico
+                titulo={`${p.etiqueta} por ${nivel}`}
+                nota={[
+                  `Promedio de sus muestras · toca ${nivel === 'campamento' ? 'uno para ver sus piscinas' : 'una para ver su historial'}`,
+                  unidad,
+                  referenciaDe(p),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              >
+                <BarList items={r.barras} formato={valorTexto} formatoLargo={conUnidad} limite={12} onSelect={bajar} />
+              </Grafico>
+            )}
             <Grafico titulo={`${p.etiqueta} por mes`} nota={['Promedio de las muestras de cada mes', unidad].filter(Boolean).join(' · ')}>
               <ColumnChart items={r.porMes} formato={valorTexto} formatoLargo={conUnidad} alto={220} detalleTip={(i) => r.porMes.find((m) => m.key === i.key)?.detalle} />
             </Grafico>
@@ -347,17 +397,25 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
             </Grafico>
           )}
           <Grafico
-            titulo={`Resultados por ${centro ? 'muestra' : 'campamento'}`}
+            titulo={nivel === 'muestra' ? `Historial de ${r.nombrePiscina} (${centro})` : `Resultados por ${que}`}
             nota={[
-              centro ? 'Valor de cada muestra' : 'Promedio de las muestras',
-              r.conReferencia ? (centro ? '▲ sobre · ▼ bajo la referencia' : '▲n / ▼n: muestras sobre / bajo la referencia') : null,
+              nivel === 'muestra' ? 'Todos los parámetros de cada análisis' : 'Promedio de las muestras',
+              r.conReferencia ? (nivel === 'muestra' ? '▲ sobre · ▼ bajo la referencia' : '▲n / ▼n: muestras sobre / bajo la referencia') : null,
               r.hallazgos.length ? 'grado 0 ausencia · 0,1–0,9 bajo · 1–1,9 medio · 2–2,9 alto · 3–4 muy alto' : null,
+              nivel !== 'muestra' ? `toca ${nivel === 'campamento' ? 'un campamento' : 'una piscina'} para ver el detalle` : null,
               'toca un parámetro para graficarlo',
             ]
               .filter(Boolean)
               .join(' · ')}
           >
-            <TablaResultados campos={r.campos} filas={r.filas} parametro={p.clave} onParametro={setParametro} titulo={centro ? 'Muestra' : 'Campamento'} />
+            <TablaResultados
+              campos={r.campos}
+              filas={r.filas}
+              parametro={p.clave}
+              onParametro={setParametro}
+              titulo={nombreNivel}
+              onFila={nivel === 'muestra' ? undefined : bajar}
+            />
           </Grafico>
         </>
       )}

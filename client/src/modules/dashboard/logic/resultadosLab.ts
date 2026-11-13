@@ -102,8 +102,19 @@ export interface FilaTabla {
 export interface FiltrosResultados {
   analisis: string;
   centro: string | null;
+  /** Piscina elegida (clave de clavePiscina): se ve su historial, análisis por análisis */
+  piscina: string | null;
+  /** Sin campamento elegido: filas por campamento o por piscina (de todos los campamentos) */
+  agrupar: 'campamento' | 'piscina';
   parametro: string | null;
 }
+
+/** Cómo se agrupan las filas: por campamento, por piscina o cada análisis de una piscina */
+export type NivelResultados = 'campamento' | 'piscina' | 'muestra';
+
+/** La misma piscina escrita de distintas formas ("PS-35", "ps-35", "PS -35") es una sola */
+export const clavePiscina = (nombre: string) => nombre.trim().toUpperCase().replace(/\s+/g, '');
+const fechaCortaNum = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 export function resumenResultados(informes: Informe[], def: DefinicionLaboratorio, anio: number, f: FiltrosResultados) {
   const analisis = ANALISIS_LAB.find((a) => a.id === f.analisis) ?? ANALISIS_LAB[0];
@@ -129,7 +140,32 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
     todas,
   );
   const centros = [...new Set(todas.map((m) => m.centro))].sort((a, b) => a.localeCompare(b, 'es'));
-  const muestras = todas.filter((m) => !f.centro || m.centro === f.centro).sort((a, b) => b.fecha.localeCompare(a.fecha) || a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
+  const delCentro = todas.filter((m) => !f.centro || m.centro === f.centro);
+  // Nombre de cada piscina: la forma en mayúsculas si existe (son códigos, ej. PS-35); si no, la que más se escribió
+  const formas = new Map<string, Map<string, number>>();
+  for (const m of todas) {
+    const k = `${m.centro}|${clavePiscina(m.nombre)}`;
+    const conteo = formas.get(k) ?? new Map<string, number>();
+    conteo.set(m.nombre.trim(), (conteo.get(m.nombre.trim()) ?? 0) + 1);
+    formas.set(k, conteo);
+  }
+  const nombreDe = (centro: string, nombre: string) => {
+    const conteo = formas.get(`${centro}|${clavePiscina(nombre)}`);
+    if (!conteo) return nombre.trim();
+    const mayus = (t: string) => Number(t === t.toUpperCase());
+    return [...conteo].sort((a, b) => mayus(b[0]) - mayus(a[0]) || b[1] - a[1])[0][0];
+  };
+  // Piscinas del campamento elegido (para el selector)
+  const nombresPiscina = new Map<string, string>();
+  for (const m of delCentro) if (!nombresPiscina.has(clavePiscina(m.nombre))) nombresPiscina.set(clavePiscina(m.nombre), nombreDe(m.centro, m.nombre));
+  const piscinas = f.centro
+    ? [...nombresPiscina].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label, 'es', { numeric: true }))
+    : [];
+  const piscina = f.centro && f.piscina && nombresPiscina.has(f.piscina) ? f.piscina : null;
+  const muestras = delCentro
+    .filter((m) => !piscina || clavePiscina(m.nombre) === piscina)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha) || a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
+  const nivel: NivelResultados = piscina ? 'muestra' : f.centro || f.agrupar === 'piscina' ? 'piscina' : 'campamento';
 
   const estadoDe = (c: CampoLab, m: Muestra) => estadoReferencia(c, numeroDe(m.valores[c.clave]), numeroDe(m.valores.salinidad));
 
@@ -147,14 +183,32 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
     };
   };
 
-  // Tabla: una fila por campamento o, con un campamento elegido, una por muestra
+  const nMuestras = (n: number) => `${n} ${n === 1 ? 'muestra' : 'muestras'}`;
   const porCentro = new Map<string, Muestra[]>();
   for (const m of muestras) porCentro.set(m.centro, [...(porCentro.get(m.centro) ?? []), m]);
-  const filas: FilaTabla[] = f.centro
-    ? muestras.map((m, i) => ({ key: `${m.codigo}-${m.nombre}-${i}`, label: m.nombre, sub: m.fecha, celdas: campos.map((c) => celda(c, [m])) }))
-    : [...porCentro]
-        .sort((a, b) => a[0].localeCompare(b[0], 'es'))
-        .map(([centro, l]) => ({ key: centro, label: centro, sub: `${l.length} ${l.length === 1 ? 'muestra' : 'muestras'}`, celdas: campos.map((c) => celda(c, l)) }));
+  // Piscinas: la misma piscina en distintos campamentos son piscinas distintas
+  const porPiscina = new Map<string, Muestra[]>();
+  for (const m of muestras) {
+    const k = `${m.centro}|${clavePiscina(m.nombre)}`;
+    porPiscina.set(k, [...(porPiscina.get(k) ?? []), m]);
+  }
+
+  // Tabla: una fila por campamento, por piscina o (con una piscina elegida) por cada análisis de esa piscina
+  const filas: FilaTabla[] =
+    nivel === 'muestra'
+      ? muestras.map((m, i) => ({ key: `${m.codigo}-${i}`, label: m.fecha, sub: `${nombreDe(m.centro, m.nombre)} · ${m.codigo}`, celdas: campos.map((c) => celda(c, [m])) }))
+      : nivel === 'piscina'
+        ? [...porPiscina]
+            .sort((a, b) => a[0].localeCompare(b[0], 'es', { numeric: true }))
+            .map(([key, l]) => ({
+              key,
+              label: nombreDe(l[0].centro, l[0].nombre),
+              sub: f.centro ? `${nMuestras(l.length)} · última ${l[0].fecha}` : `${l[0].centro} · ${nMuestras(l.length)}`,
+              celdas: campos.map((c) => celda(c, l)),
+            }))
+        : [...porCentro]
+            .sort((a, b) => a[0].localeCompare(b[0], 'es'))
+            .map(([centro, l]) => ({ key: centro, label: centro, sub: nMuestras(l.length), celdas: campos.map((c) => celda(c, l)) }));
 
   // Parámetro elegido para los gráficos
   const parametro = campos.find((c) => c.clave === f.parametro) ?? campos[0] ?? null;
@@ -171,7 +225,8 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
     ? filas
         .map((fila) => {
           const x = fila.celdas[campos.indexOf(parametro)];
-          return { key: fila.key, label: f.centro ? `${fila.label} (${fila.sub})` : fila.label, valor: x.valor ?? 0, detalle: detalleCelda(parametro, x), n: x.n };
+          const label = nivel === 'piscina' && !f.centro ? `${fila.label} · ${fila.sub?.split(' · ')[0]}` : fila.label;
+          return { key: fila.key, label, valor: x.valor ?? 0, detalle: [fila.sub, detalleCelda(parametro, x)].filter(Boolean).join(' · '), n: x.n };
         })
         .filter((b) => b.n > 0)
         .sort((a, b) => b.valor - a.valor)
@@ -185,6 +240,15 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
         return { key: String(i), label, valor: x.valor ?? 0, detalle: x.n ? detalleCelda(parametro, x) : 'Sin muestras' };
       })
     : [];
+
+  // Historial de una piscina: el parámetro en cada análisis, del más antiguo al más reciente
+  const porFecha =
+    nivel === 'muestra' && parametro
+      ? [...muestras].reverse().map((m, i) => {
+          const x = celda(parametro, [m]);
+          return { key: `${m.codigo}-${i}`, label: fechaCortaNum(m.fecha), valor: x.valor ?? 0, detalle: `${m.fecha} · ${m.codigo}${x.estado ? (x.estado === 'alto' ? ' · ▲ sobre la referencia' : ' · ▼ bajo la referencia') : ''}` };
+        })
+      : [];
 
   // Géneros de fitoplancton: en cuántas muestras aparece cada uno
   const generos: BarListItem[] = [];
@@ -239,6 +303,12 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
     centros,
     muestras: muestras.length,
     campamentos: porCentro.size,
+    nivel,
+    piscinas,
+    piscina,
+    nombrePiscina: piscina ? (nombresPiscina.get(piscina) ?? piscina) : null,
+    cantidadPiscinas: porPiscina.size,
+    porFecha,
     ultima: muestras[0]?.fecha ?? null,
     valoresFuera,
     valoresConRef,

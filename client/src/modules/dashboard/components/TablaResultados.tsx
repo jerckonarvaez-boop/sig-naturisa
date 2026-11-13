@@ -13,6 +13,8 @@ interface TablaResultadosProps {
   /** Encabezado de la primera columna (Campamento / Muestra) */
   titulo: string;
   limite?: number;
+  /** Si se indica, cada fila se puede tocar (ej. ver las piscinas de un campamento) */
+  onFila?: (key: string) => void;
 }
 
 const ALTO = 'text-red-700 dark:text-red-400';
@@ -23,7 +25,7 @@ const BAJO = 'text-blue-700 dark:text-blue-400';
  * lleva flecha (▲ sobre · ▼ bajo) y color, y en los promedios cuántas muestras quedaron fuera. Conteos y grados sin
  * referencia: el fondo se intensifica con el valor (un solo tono). Tocar un encabezado lo grafica.
  */
-export function TablaResultados({ campos, filas, parametro, onParametro, titulo, limite = 12 }: TablaResultadosProps) {
+export function TablaResultados({ campos, filas, parametro, onParametro, titulo, limite = 12, onFila }: TablaResultadosProps) {
   const tip = useTip();
   const [verTodas, setVerTodas] = useState(false);
   const visibles = verTodas ? filas : filas.slice(0, limite);
@@ -84,10 +86,21 @@ export function TablaResultados({ campos, filas, parametro, onParametro, titulo,
             {visibles.map((f) => (
               <tr key={f.key}>
                 <th scope="row" className="sticky left-0 z-10 max-w-44 bg-white px-2 py-1 text-left font-normal dark:bg-slate-900">
-                  <span className="block truncate" title={f.label}>
-                    {f.label}
-                  </span>
-                  {f.sub && <span className="block text-[11px] text-slate-500 dark:text-slate-400">{f.sub}</span>}
+                  {onFila ? (
+                    <button
+                      type="button"
+                      onClick={() => onFila(f.key)}
+                      title={`Ver el detalle de ${f.label}`}
+                      className="block max-w-full truncate text-left font-semibold text-brand-500 hover:underline"
+                    >
+                      {f.label}
+                    </button>
+                  ) : (
+                    <span className="block truncate" title={f.label}>
+                      {f.label}
+                    </span>
+                  )}
+                  {f.sub && <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">{f.sub}</span>}
                 </th>
                 {f.celdas.map((x, i) => {
                   const c = campos[i];
