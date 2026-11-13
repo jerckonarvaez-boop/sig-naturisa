@@ -29,7 +29,6 @@ import { MuestrasChart } from '@/components/charts/MuestrasChart';
 import { TooltipLayer } from '@/components/charts/Tooltip';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
-import { MESES } from '@/constants/fechas';
 import { formatLongDate } from '@/utils/fechas';
 import { dinero, dineroCorto, miles, porcentaje } from '@/utils/numeros';
 import { BarrasLimite } from './components/BarrasLimite';
@@ -244,7 +243,6 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
   const [piscina, setPiscina] = useState<string | null>(null);
   const [agrupar, setAgrupar] = useState<'campamento' | 'piscina'>('campamento');
   const [parametro, setParametro] = useState<string | null>(null);
-  const [meses, setMeses] = useState<[number, number]>([0, 11]);
   const [orden, setOrden] = useState<'fecha' | 'piscina'>('fecha');
 
   const datos = fuente.datos;
@@ -254,12 +252,15 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
     const base = { centro: null, piscina: null, agrupar: 'campamento' as const, parametro: null };
     const previo = resumenResultados(datos.informes, datos.definicion, anio, { ...base, analisis: elegido ?? ANALISIS_LAB[0].id });
     const analisis = elegido ?? ANALISIS_LAB.find((a) => previo.disponibles[a.id] > 0)?.id ?? ANALISIS_LAB[0].id;
-    return resumenResultados(datos.informes, datos.definicion, anio, { analisis, centro, piscina, agrupar, parametro, mesDesde: meses[0], mesHasta: meses[1], orden });
-  }, [datos, anio, elegido, centro, piscina, agrupar, parametro, meses, orden]);
+    return resumenResultados(datos.informes, datos.definicion, anio, { analisis, centro, piscina, agrupar, parametro, orden });
+  }, [datos, anio, elegido, centro, piscina, agrupar, parametro, orden]);
 
   const p = r?.parametro;
   // Química del agua: líneas con área (evolución de cada parámetro) en lugar de columnas
   const quimica = r?.analisis.id === 'quimica';
+  // En química, con un parámetro elegido se ve solo su gráfico y su tabla; sin elegir, todos
+  const solo = quimica && parametro ? (r?.campos.find((c) => c.clave === parametro) ?? null) : null;
+  const columna = solo && r ? r.campos.indexOf(solo) : -1;
   const unidad = p ? unidadDe(p) : '';
   const conUnidad = (v: number) => `${valorTexto(v)} ${unidad}`.trim();
   const centros = r ? (centro && !r.centros.includes(centro) ? [centro, ...r.centros] : r.centros) : [];
@@ -341,7 +342,8 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
       {r.campos.length > 0 && (
         <label className="flex items-center gap-2 text-xs font-semibold">
           Parámetro
-          <select value={p?.clave ?? ''} onChange={(e) => setParametro(e.target.value)} className={`max-w-64 ${SELECT}`}>
+          <select value={quimica ? (solo?.clave ?? '') : (p?.clave ?? '')} onChange={(e) => setParametro(e.target.value || null)} className={`max-w-64 ${SELECT}`}>
+            {quimica && <option value="">Todos</option>}
             {r.campos.map((c) => (
               <option key={c.clave} value={c.clave}>
                 {c.etiqueta}
@@ -350,24 +352,6 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
           </select>
         </label>
       )}
-      <div className="flex items-center gap-2 text-xs font-semibold" role="group" aria-label="Meses que se analizan">
-        Meses
-        <select aria-label="Desde el mes" value={meses[0]} onChange={(e) => setMeses([Number(e.target.value), Math.max(Number(e.target.value), meses[1])])} className={SELECT}>
-          {MESES.map((m, i) => (
-            <option key={m} value={i}>
-              {m}
-            </option>
-          ))}
-        </select>
-        a
-        <select aria-label="Hasta el mes" value={meses[1]} onChange={(e) => setMeses([Math.min(Number(e.target.value), meses[0]), Number(e.target.value)])} className={SELECT}>
-          {MESES.map((m, i) => (
-            <option key={m} value={i}>
-              {m}
-            </option>
-          ))}
-        </select>
-      </div>
     </>
   );
 
@@ -451,7 +435,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
           )}
           {quimica && (
             <Grafico
-              titulo={`Cada parámetro ${nivel === 'muestra' ? `en ${r.nombrePiscina}, análisis por análisis` : `piscina por piscina ${centro ? `en ${centro}` : 'en todos los campamentos'}`}`}
+              titulo={`${solo ? solo.etiqueta : 'Cada parámetro'} ${nivel === 'muestra' ? `en ${r.nombrePiscina}, análisis por análisis` : `piscina por piscina ${centro ? `en ${centro}` : 'en todos los campamentos'}`}`}
               nota={[
                 nivel === 'muestra' ? 'Eje X: la fecha de cada análisis' : `Eje X: cada muestra con su ${orden === 'piscina' ? 'fecha, agrupadas por piscina' : 'piscina, agrupadas por fecha'}`,
                 'eje Y: el valor del parámetro',
@@ -472,7 +456,9 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                 </div>
               )}
               <div className="flex flex-col gap-3">
-                {r.porParametro.map((t) => {
+                {r.porParametro
+                  .filter((t) => !solo || t.campo.clave === solo.clave)
+                  .map((t) => {
                   const u = unidadDe(t.campo);
                   const estilo = ESTILO_PARAMETRO[t.campo.clave] ?? ESTILO_GENERAL;
                   const Icono = estilo.icono;
@@ -527,9 +513,9 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
               .join(' · ')}
           >
             <TablaResultados
-              campos={r.campos}
-              filas={r.filas}
-              parametro={p.clave}
+              campos={solo ? [solo] : r.campos}
+              filas={solo ? r.filas.map((fila) => ({ ...fila, celdas: [fila.celdas[columna]] })) : r.filas}
+              parametro={quimica ? (solo?.clave ?? null) : p.clave}
               onParametro={setParametro}
               titulo={nombreNivel}
               onFila={nivel === 'muestra' ? undefined : bajar}
