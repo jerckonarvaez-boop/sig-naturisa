@@ -11,7 +11,6 @@ import {
   Waves,
   type LucideIcon,
 } from 'lucide-react';
-import { AreaChart } from '@/components/charts/AreaChart';
 import { BarList } from '@/components/charts/BarList';
 import { BudgetBars } from '@/components/charts/BudgetBars';
 import { ColumnChart } from '@/components/charts/ColumnChart';
@@ -208,9 +207,6 @@ function SeccionMonitoreo({ fuente, anio }: { fuente: DatosFuente<'monitoreo'>; 
   );
 }
 
-/** Gráficos por campamento o por piscina que se muestran antes de "Ver todos" */
-const GRUPOS_VISIBLES = 12;
-
 /** Referencia fija del parámetro (la que depende de la salinidad no se puede dibujar como línea) */
 const refFija = (c: { min?: number; max?: number; factorSalinidad?: number }) => (c.factorSalinidad ? {} : { min: c.min, max: c.max });
 
@@ -221,7 +217,6 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
   const [agrupar, setAgrupar] = useState<'campamento' | 'piscina'>('campamento');
   const [parametro, setParametro] = useState<string | null>(null);
   const [meses, setMeses] = useState<[number, number]>([0, 11]);
-  const [todosGrupos, setTodosGrupos] = useState(false);
   const [orden, setOrden] = useState<'fecha' | 'piscina'>('fecha');
 
   const datos = fuente.datos;
@@ -237,7 +232,6 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
   const p = r?.parametro;
   // Química del agua: líneas con área (evolución de cada parámetro) en lugar de columnas
   const quimica = r?.analisis.id === 'quimica';
-  const tendencia = r?.tendencias.find((t) => t.campo.clave === p?.clave);
   const unidad = p ? unidadDe(p) : '';
   const conUnidad = (v: number) => `${valorTexto(v)} ${unidad}`.trim();
   const centros = r ? (centro && !r.centros.includes(centro) ? [centro, ...r.centros] : r.centros) : [];
@@ -418,114 +412,55 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
                 <BarList items={r.barras} formato={valorTexto} formatoLargo={conUnidad} limite={12} onSelect={bajar} />
               </Grafico>
             )}
-            {quimica && tendencia && (
-              <Grafico
-                titulo={`${p.etiqueta} muestra por muestra ${nivel === 'muestra' ? `en ${r.nombrePiscina}` : centro ? `en ${centro}` : 'en todos los campamentos'}`}
-                nota={[
-                  `${r.porMuestra.length} ${r.porMuestra.length === 1 ? 'muestra' : 'muestras'}: cada punto es una, con su ${nivel === 'muestra' || orden === 'piscina' ? 'fecha' : 'piscina'} debajo`,
-                  unidad,
-                  referenciaDe(p),
-                  'rojo: fuera de la referencia',
-                  'anillo en el borde: valor que se sale de la escala',
-                  'si no caben, desliza el gráfico a los lados',
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              >
-                {nivel !== 'muestra' && (
-                  <div className="mb-2 flex items-center gap-1 text-xs font-semibold" role="group" aria-label="Orden de las muestras">
-                    Ordenar por
-                    {(['fecha', 'piscina'] as const).map((o) => (
-                      <button key={o} type="button" aria-pressed={orden === o} onClick={() => setOrden(o)} className={`${CHIP} ${orden === o ? CHIP_ACTIVO : CHIP_INACTIVO}`}>
-                        {o === 'fecha' ? 'Fecha' : 'Piscina'}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <MuestrasChart items={r.porMuestra} formato={valorTexto} formatoLargo={conUnidad} rango={tendencia.rango} min={refFija(p).min} max={refFija(p).max} />
-              </Grafico>
-            )}
-            {quimica && tendencia ? (
-              <Grafico
-                titulo={`${p.etiqueta}: tendencia por fecha ${nivel === 'muestra' ? `de ${r.nombrePiscina}` : centro ? `de ${centro}` : 'de todos los campamentos'}`}
-                nota={[nivel === 'muestra' ? 'Cada punto es un análisis' : 'Punto pequeño: cada muestra · línea: promedio de cada fecha', unidad, referenciaDe(p), 'rojo: fuera de la referencia', 'anillo en el borde: valor que se sale de la escala']
-                  .filter(Boolean)
-                  .join(' · ')}
-              >
-                <AreaChart puntos={tendencia.puntos} ticksX={r.ejeX.ticks} corte={r.ejeX.corte} rango={tendencia.rango} formato={valorTexto} formatoLargo={conUnidad} alto={340} min={refFija(p).min} max={refFija(p).max} />
-              </Grafico>
-            ) : (
+            {!quimica && (
               <Grafico titulo={`${p.etiqueta} por mes`} nota={['Promedio de las muestras de cada mes', unidad].filter(Boolean).join(' · ')}>
                 <ColumnChart items={r.porMes} formato={valorTexto} formatoLargo={conUnidad} alto={220} detalleTip={(i) => r.porMes.find((m) => m.key === i.key)?.detalle} />
               </Grafico>
             )}
           </div>
-          {quimica && tendencia && r.tendenciasGrupo.length > 1 && (
-            <Grafico
-              titulo={`${p.etiqueta} en cada ${nivel}`}
-              nota={`Un gráfico por ${nivel}, todos con la misma escala para compararlos · primero los que tienen más análisis · toca ${nivel === 'campamento' ? 'un campamento para ver sus piscinas' : 'una piscina para ver su historial'}`}
-            >
-              <div className="grid gap-3 md:grid-cols-2">
-                {(todosGrupos ? r.tendenciasGrupo : r.tendenciasGrupo.slice(0, GRUPOS_VISIBLES)).map((g) => (
-                  <div key={g.key} className="min-w-0 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                    <button type="button" onClick={() => bajar(g.key)} className="block w-full text-left">
-                      <span className="block truncate text-[13px] font-semibold text-brand-700 dark:text-brand-300">{g.label}</span>
-                      <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">{g.sub}</span>
-                    </button>
-                    <AreaChart
-                      puntos={g.puntos}
-                      ticksX={r.ejeX.ticks}
-                      corte={r.ejeX.corte}
-                      rango={tendencia.rango}
-                      formato={valorTexto}
-                      formatoLargo={conUnidad}
-                      alto={200}
-                      min={refFija(p).min}
-                      max={refFija(p).max}
-                      compacto
-                    />
-                  </div>
-                ))}
-              </div>
-              {r.tendenciasGrupo.length > GRUPOS_VISIBLES && (
-                <button type="button" onClick={() => setTodosGrupos(!todosGrupos)} className="mt-2 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">
-                  {todosGrupos ? 'Ver menos' : `Ver todos (${r.tendenciasGrupo.length})`}
-                </button>
-              )}
-            </Grafico>
-          )}
           {quimica && (
             <Grafico
-              titulo="Evolución de cada parámetro"
-              nota={`${nivel === 'muestra' ? `Análisis por análisis de ${r.nombrePiscina}` : `Todas las muestras ${centro ? `de ${centro}` : 'de todos los campamentos'} y el promedio de cada fecha`} · línea punteada: referencia · toca un parámetro para verlo en grande`}
+              titulo={`Cada parámetro ${nivel === 'muestra' ? `en ${r.nombrePiscina}, análisis por análisis` : `piscina por piscina ${centro ? `en ${centro}` : 'en todos los campamentos'}`}`}
+              nota={[
+                nivel === 'muestra' ? 'Eje X: la fecha de cada análisis' : `Eje X: cada muestra con su ${orden === 'piscina' ? 'fecha, agrupadas por piscina' : 'piscina, agrupadas por fecha'}`,
+                'eje Y: el valor del parámetro',
+                'línea punteada: referencia',
+                'rojo: fuera de la referencia',
+                'anillo en el borde: valor que se sale de la escala',
+                'si no caben, desliza el gráfico a los lados',
+              ].join(' · ')}
             >
-              <div className="grid gap-3 md:grid-cols-2">
-                {r.tendencias
-                  .filter((t) => t.puntos.length > 0)
-                  .map((t) => {
-                    const u = unidadDe(t.campo);
-                    const activo = t.campo.clave === p.clave;
-                    return (
-                      <div key={t.campo.clave} className={`min-w-0 rounded-lg border p-3 ${activo ? 'border-brand-500 ring-1 ring-brand-500' : 'border-slate-200 dark:border-slate-800'}`}>
-                        <button type="button" aria-pressed={activo} onClick={() => setParametro(t.campo.clave)} className="block w-full text-left">
-                          <span className="block truncate text-[13px] font-semibold">{t.campo.etiqueta}</span>
-                          <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">{[u, referenciaDe(t.campo)].filter(Boolean).join(' · ') || ' '}</span>
-                        </button>
-                        <AreaChart
-                          puntos={t.puntos}
-                          ticksX={r.ejeX.ticks}
-                          corte={r.ejeX.corte}
-                          rango={t.rango}
-                          formato={valorTexto}
-                          formatoLargo={(v) => `${valorTexto(v)} ${u}`.trim()}
-                          alto={200}
-                          min={refFija(t.campo).min}
-                          max={refFija(t.campo).max}
-                          compacto
-                        />
-                      </div>
-                    );
-                  })}
+              {nivel !== 'muestra' && (
+                <div className="mb-2 flex items-center gap-1 text-xs font-semibold" role="group" aria-label="Orden de las muestras">
+                  Ordenar por
+                  {(['fecha', 'piscina'] as const).map((o) => (
+                    <button key={o} type="button" aria-pressed={orden === o} onClick={() => setOrden(o)} className={`${CHIP} ${orden === o ? CHIP_ACTIVO : CHIP_INACTIVO}`}>
+                      {o === 'fecha' ? 'Fecha' : 'Piscina'}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex flex-col gap-3">
+                {r.porParametro.map((t) => {
+                  const u = unidadDe(t.campo);
+                  return (
+                    <div key={t.campo.clave} className="min-w-0 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                      <h4 className="text-[13px] font-semibold">{t.campo.etiqueta}</h4>
+                      <p className="mb-1 text-[11px] text-slate-500 dark:text-slate-400">
+                        {[u, referenciaDe(t.campo), `${t.items.length} ${t.items.length === 1 ? 'muestra' : 'muestras'}`].filter(Boolean).join(' · ')}
+                      </p>
+                      <MuestrasChart
+                        items={t.items}
+                        formato={valorTexto}
+                        formatoLargo={(v) => `${valorTexto(v)} ${u}`.trim()}
+                        alto={280}
+                        rango={t.rango}
+                        min={refFija(t.campo).min}
+                        max={refFija(t.campo).max}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </Grafico>
           )}
