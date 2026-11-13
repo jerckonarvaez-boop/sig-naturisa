@@ -29,7 +29,7 @@ import { BudgetBars } from '@/components/charts/BudgetBars';
 import { ColumnChart } from '@/components/charts/ColumnChart';
 import { Gauge } from '@/components/charts/Gauge';
 import { MuestrasChart } from '@/components/charts/MuestrasChart';
-import { MultiLineaChart } from '@/components/charts/MultiLineaChart';
+import { BarrasPorFilaChart } from '@/components/charts/BarrasPorFilaChart';
 import { TooltipLayer } from '@/components/charts/Tooltip';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
@@ -448,20 +448,28 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
           {general && (
             <Grafico
               titulo={`Todos los parámetros de ${r.nombrePiscina} (${centro})`}
-              nota="Eje X: la fecha de cada análisis · una línea por parámetro, con su valor en cada punto · rojo: fuera de la referencia · toca un parámetro en la leyenda para ocultarlo o mostrarlo"
+              nota="Una fila por parámetro y una columna por análisis (su fecha, abajo) · cada fila tiene su propia escala · línea punteada: referencia · rojo: fuera de la referencia · barra cortada con una raya: valor muy por encima del resto"
             >
-              <MultiLineaChart
+              <BarrasPorFilaChart
                 categorias={[...new Map(r.porParametro.flatMap((t) => t.items.map((i) => [i.analisis, i.label] as const)))]
                   .sort((a, b) => a[0].localeCompare(b[0]))
                   .map(([key, label]) => ({ key, label }))}
-                series={r.porParametro.map((t) => ({
-                  key: t.campo.clave,
-                  label: t.campo.etiqueta,
-                  clase: (ESTILO_PARAMETRO[t.campo.clave] ?? ESTILO_GENERAL).color,
-                  unidad: unidadDe(t.campo),
-                  puntos: t.items.map((i) => ({ categoria: i.analisis, valor: i.valor, titulo: i.titulo, detalle: i.detalle, fuera: i.fuera })),
-                }))}
+                filas={r.porParametro.map((t) => {
+                  const estilo = ESTILO_PARAMETRO[t.campo.clave] ?? ESTILO_GENERAL;
+                  const Icono = estilo.icono;
+                  return {
+                    key: t.campo.clave,
+                    label: t.campo.etiqueta,
+                    sub: [unidadDe(t.campo), referenciaDe(t.campo)].filter(Boolean).join(' · '),
+                    clase: estilo.color,
+                    icono: <Icono size={17} />,
+                    min: refFija(t.campo).min,
+                    max: refFija(t.campo).max,
+                    puntos: t.items.map((i) => ({ categoria: i.analisis, valor: i.valor, titulo: i.titulo, detalle: i.detalle, fuera: i.fuera })),
+                  };
+                })}
                 formato={valorTexto}
+                formatoLargo={(v, fila) => `${valorTexto(v)} ${fila.sub?.split(' · ')[0] ?? ''}`.trim()}
               />
               {Object.keys(r.generos).length > 0 && (
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
