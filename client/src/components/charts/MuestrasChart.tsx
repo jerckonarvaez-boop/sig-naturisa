@@ -71,12 +71,13 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
     if (g && g.label === it.grupo) g.hasta = i;
     else grupos.push({ label: it.grupo, desde: i, hasta: i });
   });
-  // Rótulo de grupo: al inicio de su corchete (así se ve aunque el grupo sea más ancho que la pantalla), si no pisa al anterior
+  // Rótulo de grupo: centrado bajo su corchete, si no pisa al anterior
   let libre = -Infinity;
   const rotulos = grupos.map((g) => {
-    const inicio = x(g.desde) - paso / 2 + 5;
-    const cabe = Boolean(g.label) && inicio > libre;
-    if (cabe) libre = inicio + g.label.length * 6.8 + 8;
+    const cx = (x(g.desde) + x(g.hasta)) / 2;
+    const mitad = g.label.length * 3.4;
+    const cabe = Boolean(g.label) && cx - mitad > libre;
+    if (cabe) libre = cx + mitad + 6;
     return cabe;
   });
 
@@ -174,7 +175,7 @@ export function MuestrasChart({ items, formato, formatoLargo, alto = 360, min, m
                         strokeWidth={1.5}
                       />
                       {rotulos[i] && (
-                        <text x={x(g.desde) - paso / 2 + 5} y={alto - 6} className="fill-slate-700 text-[11px] font-semibold dark:fill-slate-200">
+                        <text x={(x(g.desde) + x(g.hasta)) / 2} y={alto - 6} textAnchor="middle" className="fill-slate-700 text-[11px] font-semibold dark:fill-slate-200">
                           {g.label}
                         </text>
                       )}

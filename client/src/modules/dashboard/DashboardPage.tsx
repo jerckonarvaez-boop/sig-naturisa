@@ -29,6 +29,7 @@ import { BudgetBars } from '@/components/charts/BudgetBars';
 import { ColumnChart } from '@/components/charts/ColumnChart';
 import { Gauge } from '@/components/charts/Gauge';
 import { MuestrasChart } from '@/components/charts/MuestrasChart';
+import { MultiLineaChart } from '@/components/charts/MultiLineaChart';
 import { TooltipLayer } from '@/components/charts/Tooltip';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
@@ -270,6 +271,7 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
   // En química, con un parámetro elegido se ve solo su gráfico y su tabla; sin elegir, todos
   const solo = quimica && parametro ? (r?.campos.find((c) => c.clave === parametro) ?? null) : null;
   const columna = solo && r ? r.campos.indexOf(solo) : -1;
+  const general = quimica && r?.nivel === 'muestra' && !solo;
   const unidad = p ? unidadDe(p) : '';
   const conUnidad = (v: number) => `${valorTexto(v)} ${unidad}`.trim();
   const centros = r ? (centro && !r.centros.includes(centro) ? [centro, ...r.centros] : r.centros) : [];
@@ -442,7 +444,41 @@ function SeccionLaboratorio({ fuente, anio }: { fuente: DatosFuente<'informes'>;
             )}
           </div>
           )}
-          {quimica && (
+          {/* Una piscina elegida y sin parámetro: un solo gráfico general con todos los parámetros de esa piscina */}
+          {general && (
+            <Grafico
+              titulo={`Todos los parámetros de ${r.nombrePiscina} (${centro})`}
+              nota="Eje X: la fecha de cada análisis · una línea por parámetro, con su valor en cada punto · rojo: fuera de la referencia · toca un parámetro en la leyenda para ocultarlo o mostrarlo"
+            >
+              <MultiLineaChart
+                categorias={[...new Map(r.porParametro.flatMap((t) => t.items.map((i) => [i.analisis, i.label] as const)))]
+                  .sort((a, b) => a[0].localeCompare(b[0]))
+                  .map(([key, label]) => ({ key, label }))}
+                series={r.porParametro.map((t) => ({
+                  key: t.campo.clave,
+                  label: t.campo.etiqueta,
+                  clase: (ESTILO_PARAMETRO[t.campo.clave] ?? ESTILO_GENERAL).color,
+                  unidad: unidadDe(t.campo),
+                  puntos: t.items.map((i) => ({ categoria: i.analisis, valor: i.valor, titulo: i.titulo, detalle: i.detalle, fuera: i.fuera })),
+                }))}
+                formato={valorTexto}
+              />
+              {Object.keys(r.generos).length > 0 && (
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  {r.porParametro
+                    .filter((t) => r.generos[t.campo.clave])
+                    .map((t) => (
+                      <div key={t.campo.clave}>
+                        <h5 className="text-xs font-semibold">Géneros de {t.campo.etiqueta.toLowerCase()} encontrados</h5>
+                        <p className="mb-1 text-[11px] text-slate-500 dark:text-slate-400">Número de análisis en que apareció cada género</p>
+                        <BarList items={r.generos[t.campo.clave]} formato={miles} formatoLargo={(v) => `${miles(v)} ${v === 1 ? 'análisis' : 'análisis'}`} />
+                      </div>
+                    ))}
+                </div>
+              )}
+            </Grafico>
+          )}
+          {quimica && !general && (
             <Grafico
               titulo={`${solo ? solo.etiqueta : 'Cada parámetro'} ${nivel === 'muestra' ? `en ${r.nombrePiscina}, análisis por análisis` : `piscina por piscina ${centro ? `en ${centro}` : 'en todos los campamentos'}`}`}
               nota={[

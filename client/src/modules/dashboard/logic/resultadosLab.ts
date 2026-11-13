@@ -280,6 +280,8 @@ export function resumenResultados(informes: Informe[], def: DefinicionLaboratori
           const conCentro = f.centro ? nombre : `${nombre} · ${m.centro}`;
           return {
             key: `${m.codigo}-${m.nombre}-${i}`,
+            /** El análisis al que pertenece (para alinear los parámetros de una misma muestra) */
+            analisis: `${m.fecha}|${m.codigo}|${m.nombre}`,
             // Con una piscina elegida, cada punto es un análisis (su fecha); si no, cada punto es una piscina
             label: nivel === 'muestra' ? fechaCortaNum(m.fecha) : nombre,
             grupo: nivel === 'muestra' ? `${nombre} · ${m.centro}` : m.centro,
