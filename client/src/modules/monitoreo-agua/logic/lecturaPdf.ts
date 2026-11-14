@@ -78,10 +78,15 @@ function valorDe(token: string): string | null {
  * resultado e incertidumbre).
  */
 function valorTras(resto: string, elicrom: boolean): string | null {
-  const t = resto.split(' ').slice(0, 6);
+  // Sin signos sueltos (el punto de "1,2 ." queda aparte en algunos PDF)
+  const t = resto
+    .split(' ')
+    .filter((x) => !/^[.,;:]+$/.test(x))
+    .slice(0, 7);
   if (elicrom) {
-    // Notas "1,2" · "2,5" · "1,2,8"; una nota sola ("3") solo si no es la lectura repetida ("8 8")
-    if (/^[1-9](?:,[1-9])+$/.test(t[0]) || (/^[1-9]$/.test(t[0]) && t[0] !== t[1])) t.shift();
+    // Notas "1,2" · "2,5" · "1,2,8" · "1,2." · "1, 2"; una nota sola ("3") solo si no es la lectura repetida ("8 8")
+    while (/^[1-9](?:,[1-9]?)+\.?$/.test(t[0] ?? '')) t.shift();
+    if (/^[1-9]\.?$/.test(t[0] ?? '') && t[0].replace('.', '') !== t[1]) t.shift();
     return valorDe(t[0] ?? '');
   }
   const i = t.findIndex((x) => ES_NUMERO.test(x) || NO_DETECTADO.test(x) || /^(AUSEN|PRESEN)/.test(x));
